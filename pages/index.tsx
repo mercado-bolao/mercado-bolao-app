@@ -118,7 +118,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
-              {concursos.map((concurso, index) => (
+              {concursos.map((concurso: any, index) => (
                 <div 
                   key={concurso.id} 
                   className="group bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-8 hover:bg-white/15 transition-all duration-300 hover:scale-105 animate-fade-in"

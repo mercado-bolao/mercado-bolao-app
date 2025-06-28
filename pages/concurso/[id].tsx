@@ -111,9 +111,9 @@ export default function ConcursoDetalhes() {
             erros++;
             const jogo = concurso?.jogos.find(j => j.id === jogoId);
             const nomeJogo = jogo ? `${jogo.mandante} x ${jogo.visitante}` : `Jogo ${jogoId}`;
-            
+
             console.error(`❌ Erro ao salvar palpite do jogo ${jogoId}:`, result);
-            
+
             if (response.status === 400 && result.error?.includes('encerrado')) {
               mensagensErro.push(`Apostas encerradas para: ${nomeJogo}`);
             } else if (response.status === 404) {
@@ -141,7 +141,7 @@ export default function ConcursoDetalhes() {
           setNome("");
           setWhatsapp("");
         }
-        
+
         let mensagem = `✅ ${sucessos} palpite(s) enviado(s) com sucesso!`;
         if (erros > 0) {
           mensagem += `\n\n❌ ${erros} erro(s):\n${mensagensErro.join('\n')}`;
