@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@prisma/client": "latest",
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/formidable": "^3.4.5",
     "formidable": "^3.5.4",
     "html2canvas": "^1.4.1",
