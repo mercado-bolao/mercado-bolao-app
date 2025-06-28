@@ -1,4 +1,3 @@
-
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,22 +7,29 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const fetchConcursos = async () => {
+      try {
+        const response = await fetch("/api/concursos");
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setConcursos(data);
+        } else {
+          console.error("API retornou dados inválidos:", data);
+          setConcursos([]);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar concursos:", error);
+        setConcursos([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchConcursos();
   }, []);
-
-  const fetchConcursos = async () => {
-    try {
-      const response = await fetch("/api/concursos");
-      if (response.ok) {
-        const data = await response.json();
-        setConcursos(Array.isArray(data) ? data : []);
-      }
-    } catch (error) {
-      console.error("Erro ao buscar concursos:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,7 +94,7 @@ const Home = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">
             📋 Concursos Recentes
           </h2>
-          
+
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className="text-gray-500">Carregando concursos...</div>
