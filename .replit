@@ -9,6 +9,8 @@ channel = "stable-24_11"
 [env]
 NEXT_TELEMETRY_DISABLED = "1"
 DATABASE_URL = "$DATABASE_URL"
+NPM_CONFIG_CACHE = "/tmp/.npm"
+HOME = "/tmp"
 
 [deployment]
 build = ["sh", "-c", "npm install && npx prisma generate && npm run build"]
