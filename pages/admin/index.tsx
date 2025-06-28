@@ -60,9 +60,16 @@ export default function AdminPanel() {
     try {
       const response = await fetch("/api/admin/concursos");
       const data = await response.json();
-      setConcursos(data);
+      // Garantir que data é um array
+      if (Array.isArray(data)) {
+        setConcursos(data);
+      } else {
+        console.error("API retornou dados inválidos:", data);
+        setConcursos([]);
+      }
     } catch (error) {
       console.error("Erro ao buscar concursos:", error);
+      setConcursos([]); // Garantir que concursos seja um array vazio em caso de erro
     }
   };
 
@@ -296,7 +303,7 @@ export default function AdminPanel() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todos os concursos</option>
-                {concursos.map((concurso) => (
+                {Array.isArray(concursos) && concursos.map((concurso) => (
                   <option key={concurso.id} value={concurso.id}>
                     Concurso #{concurso.numero}
                   </option>
