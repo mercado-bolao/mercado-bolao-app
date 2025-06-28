@@ -8,23 +8,22 @@
   },
   "dependencies": {
     "@prisma/client": "latest",
-    "@tailwindcss/postcss": "^4.1.11",
     "@types/formidable": "^3.4.5",
-    "autoprefixer": "^10.4.21",
     "formidable": "^3.5.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "next": "latest",
     "react": "latest",
-    "react-dom": "latest",
-    "tailwindcss": "^4.1.11"
+    "react-dom": "latest"
   },
   "devDependencies": {
     "@types/node": "24.0.4",
     "@types/react": "19.1.8",
+    "autoprefixer": "^10.4.21",
     "eslint": "^8.0.0",
     "eslint-config-next": "latest",
     "postcss": "^8.5.6",
-    "prisma": "latest"
+    "prisma": "latest",
+    "tailwindcss": "^4.1.11"
   }
 }
