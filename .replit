@@ -9,9 +9,11 @@ channel = "stable-24_11"
 [env]
 NEXT_TELEMETRY_DISABLED = "1"
 DATABASE_URL = "$DATABASE_URL"
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
+REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
 
 [deployment]
-build = ["sh", "-c", "npm install && npx prisma generate && npm run build"]
+build = ["sh", "-c", "mkdir -p ~/.config && npm install && npx prisma generate && npm run build"]
 run = ["sh", "-c", "npx prisma db push --force-reset && npm run start"]
 deploymentTarget = "cloudrun"
 
