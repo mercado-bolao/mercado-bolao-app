@@ -1,6 +1,6 @@
 run = "npm run dev"
 entrypoint = "index.js"
-hidden = [".config", "package-lock.json", ".next", ".swc"]
+hidden = ["package-lock.json", ".next", ".swc"]
 modules = ["nodejs-22", "postgresql-16"]
 
 [nix]
@@ -11,61 +11,13 @@ NEXT_TELEMETRY_DISABLED = "1"
 DATABASE_URL = "$DATABASE_URL"
 
 [deployment]
-build = ["sh", "-c", "npx prisma generate && npx prisma db push --force-reset && npm run build"]
+build = ["sh", "-c", "npm install && npx prisma generate && npx prisma db push --force-reset && npm run build"]
 run = ["sh", "-c", "npm run start"]
 deploymentTarget = "cloudrun"
 
 [[ports]]
 localPort = 3000
 externalPort = 80
-
-[[ports]]
-localPort = 3001
-externalPort = 3001
-
-[[ports]]
-localPort = 3002
-externalPort = 3002
-
-[[ports]]
-localPort = 3003
-externalPort = 3003
-
-[[ports]]
-localPort = 3004
-externalPort = 5000
-
-[[ports]]
-localPort = 3005
-externalPort = 5173
-
-[[ports]]
-localPort = 3006
-externalPort = 6000
-
-[[ports]]
-localPort = 3007
-externalPort = 6800
-
-[[ports]]
-localPort = 3008
-externalPort = 8000
-
-[[ports]]
-localPort = 3009
-externalPort = 8008
-
-[[ports]]
-localPort = 3010
-externalPort = 8080
-
-[[ports]]
-localPort = 5555
-externalPort = 3000
-
-[[ports]]
-localPort = 5556
-externalPort = 4200
 
 [workflows]
 runButton = "Dev Server"
