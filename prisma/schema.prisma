@@ -1,0 +1,64 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String?   @unique
+  nome      String
+  whatsapp  String    @unique // ✅ Campo adicionado e definido como único
+  senhaHash String?
+  isAdmin   Boolean   @default(false)
+  palpites  Palpite[]
+}
+
+model Concurso {
+  id                    String    @id @default(cuid())
+  nome                  String?   // Nome do concurso
+  numero                Int
+  dataInicio            DateTime
+  dataFim               DateTime
+  status                String
+  premioEstimado        Float?    // Prêmio em R$
+  fechamentoPalpites    DateTime? // Data/hora limite para apostas
+  jogos                 Jogo[]
+  palpites              Palpite[] // <- relação reversa com Palpite
+}
+
+model Jogo {
+  id            String    @id @default(cuid())
+  mandante      String
+  visitante     String
+  horario       DateTime
+  resultado     String?
+  placarCasa    Int?
+  placarVisitante Int?
+  statusJogo    String?
+  tempoJogo     Int?
+  fotoMandante  String?
+  fotoVisitante String?
+  concursoId    String
+  concurso      Concurso  @relation(fields: [concursoId], references: [id])
+  palpites      Palpite[]
+}
+
+model Palpite {
+  id         String   @id @default(uuid())
+  nome       String
+  whatsapp   String
+  resultado  String
+  jogoId     String
+  concursoId String // ✅ adicionado
+  createdAt  DateTime @default(now())
+  concurso   Concurso @relation(fields: [concursoId], references: [id])
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+  jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, jogoId])
+}

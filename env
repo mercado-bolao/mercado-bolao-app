@@ -1,0 +1,2 @@
+DATABASE_URL="postgresql://neondb_owner:npg_pfB7grdO2SWs@ep-holy-sky-a5vg4vc6.us-east-2.aws.neon.tech/neondb?sslmode=require"
+# Substitua pelos dados reais do seu banco do Replit
