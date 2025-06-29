@@ -257,6 +257,33 @@ export default function BilhetesAdmin() {
     }
   };
 
+  const forcarVerificacaoPagamento = async (bilheteId: string, txid: string) => {
+    try {
+      console.log('🔍 Forçando verificação de pagamento...');
+
+      const response = await fetch('/api/admin/forcar-verificacao-pagamento', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ bilheteId, txid }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert('✅ ' + data.message);
+        buscarBilhetes();
+      } else {
+        alert('❌ Erro: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('Erro ao verificar pagamento');
+    }
+  };
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -500,17 +527,25 @@ export default function BilhetesAdmin() {
 
                             {/* Botão Marcar como PAGO (apenas para não pagos) */}
                             {abaAtiva === 'nao-pagos' && (
-                              <button
-                                onClick={() => marcarComoPago(bilhete.id)}
-                                disabled={!senhaAdmin.trim()}
-                                className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                  !senhaAdmin.trim()
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                    : 'bg-green-100 hover:bg-green-200 text-green-700'
-                                }`}
-                              >
-                                ✅ Marcar como PAGO
-                              </button>
+                              <>
+                                <button
+                                  onClick={() => marcarComoPago(bilhete.id)}
+                                  disabled={!senhaAdmin.trim()}
+                                  className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                    !senhaAdmin.trim()
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      : 'bg-green-100 hover:bg-green-200 text-green-700'
+                                  }`}
+                                >
+                                  ✅ Marcar como PAGO
+                                </button>
+                                <button
+                                  onClick={() => forcarVerificacaoPagamento(bilhete.id, bilhete.txid)}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                                >
+                                  Verificar Pagamento
+                                </button>
+                              </>
                             )}
                           </td>
                         </tr>

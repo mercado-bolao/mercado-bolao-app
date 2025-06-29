@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bilhete: {
           id: bilhete.id,
           status: bilhete.status,
-          valor: bilhete.valor,
+          valorTotal: bilhete.valorTotal,
           txid: bilhete.txid
         }
       });
@@ -109,8 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Atualizar palpites
           await prisma.palpite.updateMany({
             where: { 
-              whatsapp: bilhete.whatsapp,
-              status: 'pendente_pagamento'
+              bilheteId: bilhete.id
             },
             data: { status: 'pago' }
           });
@@ -122,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             bilhete: {
               id: bilhete.id,
               status: 'PAGO',
-              valor: bilhete.valor,
+              valorTotal: bilhete.valorTotal,
               txid: bilhete.txid
             }
           });
@@ -148,8 +147,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Reverter palpites
       await prisma.palpite.updateMany({
         where: { 
-          whatsapp: bilhete.whatsapp,
-          status: 'pendente_pagamento'
+          bilheteId: bilhete.id
         },
         data: { status: 'pendente' }
       });
@@ -160,7 +158,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         bilhete: {
           id: bilhete.id,
           status: 'CANCELADO',
-          valor: bilhete.valor,
+          valorTotal: bilhete.valorTotal,
           txid: bilhete.txid
         }
       });
@@ -173,7 +171,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bilhete: {
         id: bilhete.id,
         status: bilhete.status,
-        valor: bilhete.valor,
+        valorTotal: bilhete.valorTotal,
         txid: bilhete.txid,
         expiresAt: bilhete.expiresAt.toISOString()
       }
