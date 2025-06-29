@@ -304,6 +304,37 @@ export default function BilhetesAdmin() {
     }
   };
 
+  const forcarPagamentoManual = async (bilheteId: string) => {
+    if (!confirm('⚠️ ATENÇÃO: Você confirma que o pagamento foi realizado?\n\nEsta ação irá marcar o bilhete como PAGO mesmo que não tenha sido verificado automaticamente.\n\nConfirma?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/admin/force-verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          bilheteId: bilheteId, 
+          forcarAtualizacao: true 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ ${data.message}\n\n📊 Detalhes:\n• Bilhete: ${data.bilhete.id}\n• Status: ${data.bilhete.status}\n• Valor: R$ ${data.bilhete.valorTotal.toFixed(2)}\n• Palpites atualizados: ${data.bilhete.palpitesAtualizados}`);
+        buscarBilhetes();
+      } else {
+        alert('❌ Erro: ' + data.error);
+      }
+    } catch (error) {
+      console.error('Erro:', error);
+      alert('❌ Erro ao forçar pagamento manual');
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -566,9 +597,15 @@ export default function BilhetesAdmin() {
                                 </button>
                                 <button
                                   onClick={() => forcarVerificacaoPagamento(bilhete.id, bilhete.txid)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mb-1"
                                 >
                                   Verificar Pagamento
+                                </button>
+                                <button
+                                  onClick={() => forcarPagamentoManual(bilhete.id)}
+                                  className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm"
+                                >
+                                  🔧 Forçar como PAGO
                                 </button>
                               </>
                             )}
