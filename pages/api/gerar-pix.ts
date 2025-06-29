@@ -88,20 +88,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Gerar TXID válido conforme padrão EFÍ (26-35 caracteres alfanuméricos)
     const generateValidTxid = () => {
       const timestamp = Date.now().toString();
-      const randomChars = Math.random().toString(36).substr(2, 15).toUpperCase();
-      const txid = (timestamp + randomChars).replace(/[^a-zA-Z0-9]/g, '');
-
-      // Garantir que tenha entre 26-35 caracteres
-      if (txid.length < 26) {
-        return (txid + Math.random().toString(36).substr(2, 35 - txid.length).toUpperCase()).substr(0, 35);
+      
+      // Gerar caracteres alfanuméricos aleatórios (mais restritivo)
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let randomPart = '';
+      for (let i = 0; i < 10; i++) {
+        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-      return txid.substr(0, 35);
+      
+      // Combinar timestamp + random (garantindo apenas alfanuméricos)
+      let txid = (timestamp + randomPart).replace(/[^A-Z0-9]/g, '');
+      
+      // Garantir que tenha exatamente 32 caracteres (meio do range 26-35)
+      if (txid.length > 32) {
+        txid = txid.substring(0, 32);
+      } else if (txid.length < 32) {
+        // Completar com caracteres aleatórios até 32
+        while (txid.length < 32) {
+          txid += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+      }
+      
+      return txid;
     };
 
     const txid = generateValidTxid();
 
     // 🔒 VALIDAÇÃO: Verificar se TXID está no formato correto
-    const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+    const txidPattern = /^[A-Z0-9]{32}$/;
     if (!txidPattern.test(txid)) {
       console.error('❌ TXID gerado está inválido:', txid);
       throw new Error(`TXID inválido gerado: ${txid}`);
@@ -111,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('✅ TXID validado com sucesso:', {
       txid: txid,
       comprimento: txid.length,
-      formato: 'alfanumérico 26-35 chars',
+      formato: 'alfanumérico uppercase 32 chars',
       valido: txidPattern.test(txid)
     });
 

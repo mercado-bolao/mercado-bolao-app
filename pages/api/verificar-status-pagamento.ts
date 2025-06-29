@@ -55,8 +55,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Se tem TXID, verificar na EFI (apenas se TXID for válido)
     if (bilhete.txid) {
-      // Validar formato do TXID antes de consultar a EFÍ
-      const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+      // Validar formato do TXID antes de consultar a EFÍ  
+      const txidPattern = /^[A-Z0-9]{32}$/;
       const txidValido = txidPattern.test(bilhete.txid);
 
       if (!txidValido) {
