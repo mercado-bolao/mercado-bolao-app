@@ -13,8 +13,8 @@ REPLIT_DISABLE_PACKAGE_LAYER = "1"
 REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
 
 [deployment]
-build = ["sh", "-c", "rm -rf .next && npm install && npx prisma generate && npm run build"]
-run = ["sh", "-c", "npx prisma migrate deploy && npx prisma generate && NODE_ENV=production node server.js"]
+build = ["sh", "-c", "npm install && npx prisma generate && npm run build"]
+run = ["sh", "-c", "npx prisma migrate deploy && NODE_ENV=production node server.js"]
 deploymentTarget = "cloudrun"
 
 [[ports]]

@@ -7,6 +7,15 @@ const dev = process.env.NODE_ENV !== 'production'
 const hostname = '0.0.0.0'
 const port = parseInt(process.env.PORT || '3000')
 
+// Add process error handlers for production
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err)
+})
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason)
+})
+
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
@@ -30,5 +39,7 @@ app.prepare().then(() => {
     console.log(`> Ready on http://${hostname}:${port}`)
     console.log(`> Environment: ${process.env.NODE_ENV || 'development'}`)
     console.log(`> Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`)
+    console.log(`> EFI Integration: ${process.env.EFI_CLIENT_ID ? 'Configured' : 'Not configured'}`)
+    console.log(`> Deployment ready`)
   })
 })
