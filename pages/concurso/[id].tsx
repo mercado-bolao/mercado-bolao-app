@@ -398,80 +398,122 @@ export default function ConcursoDetalhes() {
           {/* Carrinho de Palpites */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-3">
+              <h3 className="text-lg font-semibold text-yellow-800 mb-4">
                 🛒 CARRINHO DE APOSTAS
               </h3>
               
-              {/* Lista de Palpites em formato vertical */}
-              <div className="bg-white rounded-lg p-3 mb-4 space-y-2">
-                {/* Palpites já no carrinho */}
-                {Object.entries(carrinho).map(([jogoId, resultado]) => {
-                  const jogo = concurso.jogos.find(j => j.id === jogoId);
-                  return (
-                    <div key={jogoId} className="flex items-center justify-between bg-green-50 p-2 rounded border-l-4 border-green-500">
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-gray-700">
-                          {jogo?.mandante} x {jogo?.visitante}
+              {/* Grid de todos os jogos do concurso */}
+              <div className="bg-white rounded-lg p-4 mb-4">
+                <div className="grid gap-3">
+                  {concurso.jogos.map((jogo, index) => {
+                    // Verifica se há palpite para este jogo (no carrinho ou nos palpites atuais)
+                    const palpiteCarrinho = carrinho[jogo.id];
+                    const palpiteAtual = palpites[jogo.id];
+                    const temPalpite = palpiteCarrinho || palpiteAtual;
+                    const resultado = palpiteCarrinho || palpiteAtual;
+                    
+                    return (
+                      <div 
+                        key={jogo.id} 
+                        className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
+                          temPalpite 
+                            ? palpiteCarrinho 
+                              ? 'bg-green-50 border-green-300 shadow-md' 
+                              : 'bg-blue-50 border-blue-300 shadow-md'
+                            : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        {/* Informações do jogo */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                              JOGO {index + 1}
+                            </span>
+                          </div>
+                          <div className="text-sm font-semibold text-gray-800">
+                            {jogo.mandante} x {jogo.visitante}
+                          </div>
+                          
+                          {/* Status do palpite */}
+                          {temPalpite ? (
+                            <div className="mt-1">
+                              {palpiteCarrinho ? (
+                                <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
+                                  ✅ CONFIRMADO
+                                </span>
+                              ) : (
+                                <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">
+                                  ⏳ PENDENTE
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="mt-1">
+                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                                ⚪ SEM PALPITE
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Palpite e ações */}
+                        <div className="flex items-center gap-3">
+                          {temPalpite ? (
+                            <>
+                              {/* Mostrar o palpite com significado */}
+                              <div className="text-center">
+                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
+                                  resultado === '1' ? 'bg-blue-600 text-white' :
+                                  resultado === 'X' ? 'bg-gray-600 text-white' :
+                                  resultado === '2' ? 'bg-red-600 text-white' : 'bg-gray-300'
+                                }`}>
+                                  {resultado}
+                                </div>
+                                <div className="text-xs mt-1 font-medium text-gray-600">
+                                  {resultado === '1' ? 'Casa' : resultado === 'X' ? 'Empate' : resultado === '2' ? 'Fora' : ''}
+                                </div>
+                              </div>
+                              
+                              {/* Botão de remover */}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (palpiteCarrinho) {
+                                    const newCarrinho = { ...carrinho };
+                                    delete newCarrinho[jogo.id];
+                                    setCarrinho(newCarrinho);
+                                  } else {
+                                    const newPalpites = { ...palpites };
+                                    delete newPalpites[jogo.id];
+                                    setPalpites(newPalpites);
+                                  }
+                                }}
+                                className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800 flex items-center justify-center transition-colors"
+                                title="Remover palpite"
+                              >
+                                ❌
+                              </button>
+                            </>
+                          ) : (
+                            <div className="text-center w-20">
+                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
+                                <span className="text-gray-400 text-sm">?</span>
+                              </div>
+                              <div className="text-xs mt-1 text-gray-400">Escolha</div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="bg-green-100 px-2 py-1 rounded text-xs font-bold text-green-800">
-                          {resultado}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newCarrinho = { ...carrinho };
-                            delete newCarrinho[jogoId];
-                            setCarrinho(newCarrinho);
-                          }}
-                          className="text-red-600 hover:text-red-800 text-xs p-1"
-                        >
-                          ❌
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                {/* Palpites atuais (ainda não salvos no carrinho) */}
-                {Object.entries(palpites).map(([jogoId, resultado]) => {
-                  // Não mostrar se já está no carrinho
-                  if (carrinho[jogoId]) return null;
-                  
-                  const jogo = concurso.jogos.find(j => j.id === jogoId);
-                  return (
-                    <div key={jogoId} className="flex items-center justify-between bg-blue-50 p-2 rounded border-l-4 border-blue-500">
-                      <div className="flex-1">
-                        <div className="text-xs font-medium text-gray-700">
-                          {jogo?.mandante} x {jogo?.visitante}
-                        </div>
-                        <div className="text-xs text-blue-600 font-medium">⏳ PALPITE ATUAL</div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="bg-blue-100 px-2 py-1 rounded text-xs font-bold text-blue-800">
-                          {resultado}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newPalpites = { ...palpites };
-                            delete newPalpites[jogoId];
-                            setPalpites(newPalpites);
-                          }}
-                          className="text-red-600 hover:text-red-800 text-xs p-1"
-                        >
-                          ❌
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
                 
                 {/* Mensagem quando não há palpites */}
                 {Object.keys(carrinho).length === 0 && Object.keys(palpites).length === 0 && (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    Nenhum palpite adicionado ainda
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">🎯</div>
+                    <div className="font-medium">Nenhum palpite adicionado ainda</div>
+                    <div className="text-sm mt-1">Escolha seus palpites nos jogos acima</div>
                   </div>
                 )}
               </div>
