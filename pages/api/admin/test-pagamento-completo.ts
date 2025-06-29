@@ -29,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Gerar TXID válido
-    const txid = TxidUtils.gerar();
+    const txid = TxidUtils.gerarTxid();
     const orderId = `TEST${Date.now()}`;
     
     // Criar bilhete de teste
