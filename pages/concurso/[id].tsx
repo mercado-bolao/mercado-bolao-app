@@ -665,21 +665,7 @@ export default function ConcursoDetalhes() {
                   </div>
                 </div>
 
-                {/* Status dos palpites - compacto */}
-                {!palpitesEncerrados && (palpites[jogo.id] || (carrinho[jogo.id] && carrinho[jogo.id].length > 0)) && (
-                  <div className="mt-1 text-center text-xs">
-                    {palpites[jogo.id] && (
-                      <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded mr-1">
-                        {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
-                      </span>
-                    )}
-                    {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
-                      <span className="inline-block bg-green-50 text-green-600 px-2 py-0.5 rounded">
-                        ✅ {carrinho[jogo.id].map(p => p === '0' ? 'X' : p).join(',')}
-                      </span>
-                    )}
-                  </div>
-                )}
+                
               </div>
             ))}
           </div>
