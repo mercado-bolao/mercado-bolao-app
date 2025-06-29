@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 
@@ -36,6 +36,18 @@ export default function FinalizarAposta() {
   const [whatsapp, setWhatsapp] = useState('');
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
   const [limpandoCarrinho, setLimpandoCarrinho] = useState(false); // Estado para controlar o loading ao limpar o carrinho
+  const [isLoading, setIsLoading] = useState(false);
+
+  const buscarDados = useCallback(async (whatsapp: string) => {
+    if (!whatsapp || isLoading) return;
+
+    setIsLoading(true);
+    try {
+      await buscarPalpitesPendentes(whatsapp);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoading]);
 
   useEffect(() => {
     // Buscar WhatsApp do localStorage ou query params
@@ -44,15 +56,15 @@ export default function FinalizarAposta() {
 
     if (whatsappQuery) {
       setWhatsapp(whatsappQuery);
-      buscarPalpitesPendentes(whatsappQuery);
+      buscarDados(whatsappQuery);
     } else if (whatsappStorage) {
       setWhatsapp(whatsappStorage);
-      buscarPalpitesPendentes(whatsappStorage);
+      buscarDados(whatsappStorage);
     } else {
       setError('WhatsApp não encontrado. Faça uma aposta primeiro.');
       setLoading(false);
     }
-  }, [router.query]);
+  }, [router.query, buscarDados]);
 
   const buscarPalpitesPendentes = async (whatsappUsuario: string) => {
     try {

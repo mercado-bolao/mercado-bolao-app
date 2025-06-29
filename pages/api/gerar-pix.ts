@@ -38,6 +38,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const EfiPay = require('sdk-node-apis-efi');
 
+    // Verificar se certificado está disponível
+  const certificadoDisponivel = process.env.EFI_CERTIFICATE_PASSPHRASE && 
+                                 process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
+
+  // Forçar sandbox se certificado não estiver disponível
+  const isProducao = certificadoDisponivel;
+
+  console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
+  console.log('🔐 Certificado disponível:', certificadoDisponivel ? '✅' : '❌');
+  console.log('🏷️ Modo:', isProducao ? 'PRODUÇÃO' : 'SANDBOX');
+
+  // Configurações baseadas na disponibilidade do certificado
+  const configuracoes = {
+    EFI_SANDBOX: !isProducao,
+    EFI_CLIENT_ID: process.env.EFI_CLIENT_ID,
+    EFI_CLIENT_SECRET: process.env.EFI_CLIENT_SECRET,
+    EFI_PIX_KEY: process.env.EFI_PIX_KEY,
+    EFI_CERTIFICATE_PATH: process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12',
+    EFI_CERTIFICATE_PASSPHRASE: process.env.EFI_CERTIFICATE_PASSPHRASE
+  };
+
+  console.log('📋 Configurações:');
+  console.log('- EFI_SANDBOX:', configuracoes.EFI_SANDBOX);
+  console.log('- EFI_CLIENT_ID:', configuracoes.EFI_CLIENT_ID);
+  console.log('- EFI_CLIENT_SECRET:', configuracoes.EFI_CLIENT_SECRET ? '✅ Definido' : '❌ Vazio');
+  console.log('- EFI_PIX_KEY:', configuracoes.EFI_PIX_KEY);
+
     // Configuração para sandbox ou produção
     let efiConfig: any = {
       client_id: efiClientId,
@@ -45,31 +72,40 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sandbox: isSandbox,
     };
 
-    // Para produção, é obrigatório o certificado
-    if (!isSandbox) {
-      console.log('🔐 Configurando certificado para PRODUÇÃO...');
+    // Configurar certificado apenas se estiver em produção
+  let certificateConfig = {};
 
-      const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
-      const certificatePassphrase = process.env.EFI_CERTIFICATE_PASSPHRASE || '';
+  if (isProducao) {
+    console.log('🔐 Configurando certificado para PRODUÇÃO...');
 
-      if (!fs.existsSync(certificatePath)) {
-        throw new Error(`Certificado não encontrado em: ${certificatePath}`);
-      }
-
-      efiConfig.certificate = certificatePath;
-      // Tratar senha vazia, espaço em branco ou undefined
-      const senha = certificatePassphrase?.trim();
-      efiConfig.passphrase = (senha && senha.length > 0) ? senha : ''; // Senha vazia se não configurada
-
+    if (fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH) && configuracoes.EFI_CERTIFICATE_PASSPHRASE) {
+      certificateConfig = {
+        certificate: configuracoes.EFI_CERTIFICATE_PATH,
+        passphrase: configuracoes.EFI_CERTIFICATE_PASSPHRASE
+      };
       console.log('✅ Certificado configurado para produção');
-      console.log('📁 Caminho do certificado:', certificatePath);
-      console.log('🔑 Senha configurada:', certificatePassphrase ? 'Sim' : 'Não');
     } else {
-      // Para sandbox não precisa de certificado
-      console.log('✅ Modo sandbox - sem certificado');
+      console.log('❌ Certificado ou senha não disponível, forçando SANDBOX...');
+      configuracoes.EFI_SANDBOX = true;
     }
+  } else {
+    console.log('🧪 Modo SANDBOX - certificado não necessário');
+  }
 
-    const efipay = new EfiPay(efiConfig);
+    // Configurar EFÍ
+  const efiConfig2 = {
+    sandbox: configuracoes.EFI_SANDBOX,
+    client_id: configuracoes.EFI_CLIENT_ID,
+    client_secret: configuracoes.EFI_CLIENT_SECRET,
+    ...certificateConfig
+  };
+
+  console.log('⚙️ Config EFI final:');
+  console.log('- sandbox:', efiConfig2.sandbox);
+  console.log('- client_id:', efiConfig2.client_id);
+  console.log('- client_secret:', efiConfig2.client_secret ? '✅' : '❌');
+  console.log('- certificate:', efiConfig2.certificate ? '✅' : '❌');
+    const efipay = new EfiPay(efiConfig2);
 
     // Gerar TXID único
     const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
@@ -132,27 +168,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ ERRO DETALHADO AO GERAR PIX:');
     console.error('📄 Tipo do erro:', typeof error);
-    console.error('📝 Erro completo:', JSON.stringify(error, null, 2));
+    console.error('📝 Erro completo:', error);
 
-    if (error instanceof Error) {
-      console.error('📋 Mensagem do erro:', error.message);
-      console.error('📍 Stack trace:', error.stack);
+    // Tratamento mais específico do erro
+    let mensagemErro = 'Erro desconhecido ao gerar PIX';
+    let statusCode = 500;
+
+    if (typeof error === 'string') {
+      mensagemErro = error;
+      // Se for erro de certificado, forçar sandbox
+      if (error.includes('certificate') || error.includes('sandbox')) {
+        statusCode = 400;
+        mensagemErro = 'Certificado não configurado. Operação em modo sandbox desabilitada.';
+      }
+    } else if (error?.message) {
+      mensagemErro = error.message;
+    } else if (error?.error_description) {
+      mensagemErro = error.error_description;
     }
 
-    // Se for erro da API da EFÍ
-    if (error && typeof error === 'object' && 'response' in error) {
-      console.error('🌐 Resposta da API EFÍ:', JSON.stringify(error.response?.data, null, 2));
-      console.error('📊 Status da resposta:', error.response?.status);
-      console.error('🔗 URL da requisição:', error.config?.url);
-    }
-
-    return res.status(500).json({ 
-      error: 'Erro ao gerar cobrança PIX', 
-      details: error instanceof Error ? error.message : 'Erro desconhecido',
-      ambiente: process.env.EFI_SANDBOX === 'true' ? 'sandbox' : 'produção'
+    return res.status(statusCode).json({
+      error: 'Erro ao gerar PIX',
+      details: mensagemErro,
+      suggestion: statusCode === 400 ? 'Configure o certificado EFI nas variáveis de ambiente' : null,
+      tipo: typeof error
     });
   }
 }
