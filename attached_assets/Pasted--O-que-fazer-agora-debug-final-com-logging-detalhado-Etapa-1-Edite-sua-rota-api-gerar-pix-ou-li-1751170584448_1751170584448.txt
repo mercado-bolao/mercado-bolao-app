@@ -1,0 +1,80 @@
+✅ O que fazer agora: debug final com logging detalhado
+Etapa 1 — Edite sua rota /api/gerar-pix ou lib/criarPagamentoPix.ts com este bloco de tratamento de erro:
+ts
+Copiar
+Editar
+try {
+  const token = await getToken();
+
+  // Criação da cobrança Pix
+  const cobranca = await axios.put(
+    `${BASE_URL}/v2/cob/${txid}`,
+    {
+      calendario: { expiracao: 3600 },
+      devedor: { nome, cpf },
+      valor: { original: valor.toFixed(2) },
+      chave: process.env.EFI_PIX_KEY,
+      solicitacaoPagador: `Pagamento de ${bilhetes} bilhete(s) - Bolão TVLoteca`,
+      infoAdicionais: [...],
+    },
+    {
+      headers: { Authorization: `Bearer ${token}` },
+      httpsAgent: agent, // apenas se estiver em produção
+    }
+  );
+
+  console.log('✅ Cobrança criada com sucesso:', cobranca.data);
+
+  const locationId = cobranca.data.loc?.id;
+  if (!locationId) {
+    console.error('❌ loc.id ausente na resposta da cobrança:', cobranca.data);
+    return res.status(500).json({
+      success: false,
+      error: 'Cobrança criada, mas não foi possível gerar o QR Code.',
+    });
+  }
+
+  const qr = await axios.get(`${BASE_URL}/v2/loc/${locationId}/qrcode`, {
+    headers: { Authorization: `Bearer ${token}` },
+    httpsAgent: agent,
+  });
+
+  return res.status(200).json({
+    success: true,
+    pix: {
+      payload: qr.data.qrcode,
+      imagem: qr.data.imagemQrcode,
+    },
+  });
+} catch (err) {
+  console.error('❌ Erro ao gerar Pix completo:');
+  console.error(JSON.stringify(err?.response?.data || err.message, null, 2));
+
+  return res.status(500).json({
+    success: false,
+    error:
+      err?.response?.data?.message ||
+      err?.response?.data?.descricao ||
+      'Erro inesperado ao gerar o pagamento PIX',
+  });
+}
+Etapa 2 — No frontend (pages/finalizar.tsx), adicione:
+tsx
+Copiar
+Editar
+console.error('Erro detalhado do backend:', data);
+Assim você vai ver exatamente o data.error que o backend está enviando, e poder tratar de forma mais clara.
+
+💡 Provável causa agora:
+Como já validamos que a cobrança foi criada com sucesso (recebeu txid e loc.id), então o erro está na segunda requisição: GET /v2/loc/:id/qrcode.
+
+E isso pode acontecer por:
+
+Token expirado
+
+Falta de permissão "loc > consultar"
+
+Certificado mal referenciado
+
+Falta do httpsAgent em produção
+
