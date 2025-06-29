@@ -723,6 +723,76 @@ export default function ConcursoDetalhes() {
             </div>
           )}
 
+          {/* Bloco de Pagamento - Aparece após primeira adição ao carrinho */}
+          {calcularTotalBilhetes() > 0 && (
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200 p-6 shadow-lg">
+              {/* Badge do Carrinho */}
+              <div className="text-center mb-4">
+                <div className="inline-flex items-center space-x-2 bg-green-100 px-4 py-2 rounded-full border border-green-300">
+                  <span className="text-green-600 font-semibold">🧾 Carrinho: {calcularTotalBilhetes()} bilhete(s)</span>
+                </div>
+                <p className="text-green-700 text-sm mt-2">
+                  👇 Finalize seus dados para gerar o pagamento:
+                </p>
+              </div>
+
+              {/* Campos de dados */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+                  <input
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full px-3 py-3 text-gray-900 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    placeholder="Digite seu nome completo"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full px-3 py-3 text-gray-900 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    placeholder="(11) 99999-9999"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Botão de Gerar Pagamento */}
+              <button
+                onClick={handleGerarPagamento}
+                disabled={!canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento}
+                className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all transform ${
+                  !canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento
+                    ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                    : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg text-white'
+                } flex items-center justify-center space-x-2`}
+              >
+                {processandoPagamento ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Gerando Pagamento...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💳</span>
+                    <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
+                  </>
+                )}
+              </button>
+
+              {/* Resumo compacto */}
+              <div className="mt-3 text-center text-sm text-gray-600">
+                <p>🔒 Pagamento seguro via PIX • R$ 10,00 por bilhete</p>
+              </div>
+            </div>
+          )}
+
 
           {/* Carrinho de Apostas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
@@ -944,7 +1014,7 @@ export default function ConcursoDetalhes() {
                   ) : (
                     <>
                       <span>💳</span>
-                      <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 1).toFixed(2)}</span>
+                      <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
                     </>
                   )}
                 </button>
@@ -954,7 +1024,7 @@ export default function ConcursoDetalhes() {
             {/* Resumo compacto */}
             <div className="mt-2 text-center">
               <span className="text-xs text-gray-600">
-                {calcularTotalBilhetes()} bilhete(s) • R$ 1,00 cada • Total: R$ {(calcularTotalBilhetes() * 1).toFixed(2)}
+                {calcularTotalBilhetes()} bilhete(s) • R$ 10,00 cada • Total: R$ {(calcularTotalBilhetes() * 10).toFixed(2)}
               </span>
             </div>
           </div>
