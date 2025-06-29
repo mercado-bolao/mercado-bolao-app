@@ -890,9 +890,9 @@ export default function ConcursoDetalhes() {
         </div>
       </div>
 
-      {/* Rodapé fixo para pagamento - só aparece se não há palpites encerrados e há bilhetes no carrinho */}
-      {!palpitesEncerrados && calcularTotalBilhetes() > 0 && (
-        <div className="fixed bottom-0 left-0 w-full bg-white border-t-2 border-green-200 shadow-lg p-4 z-50">
+      {/* Rodapé fixo para pagamento - aparece sempre que há palpites ou carrinho */}
+      {!palpitesEncerrados && (Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) && (
+        <div className="fixed bottom-0 left-0 right-0 w-full bg-white border-t-2 border-green-200 shadow-2xl p-4 z-50" style={{ zIndex: 9999 }}>
           <div className="max-w-2xl mx-auto">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
               {/* Campo Nome */}
