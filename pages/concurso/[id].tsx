@@ -695,13 +695,13 @@ export default function ConcursoDetalhes() {
 
           {/* Botões de ação - Adicionar e Limpar */}
           {(Object.keys(palpites).length > 0 || calcularTotalBilhetes() > 0) && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <div className="flex gap-3">
+            <div className="bg-blue-50 rounded-lg p-2 border border-blue-200">
+              <div className="flex gap-2">
                 {Object.keys(palpites).length > 0 && (
                   <button
                     type="button"
                     onClick={adicionarPalpitesAoCarrinho}
-                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                    className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                   >
                     <span>💾</span>
                     <span>ADICIONAR AO CARRINHO</span>
@@ -712,7 +712,7 @@ export default function ConcursoDetalhes() {
                   <button
                     type="button"
                     onClick={limparCarrinho}
-                    className="py-3 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-2"
+                    className="py-2 px-3 bg-red-500 text-white rounded-md text-sm font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-1"
                     title="Limpar carrinho"
                   >
                     <span>🗑️</span>
@@ -725,38 +725,38 @@ export default function ConcursoDetalhes() {
 
           {/* Bloco de Pagamento - Aparece após primeira adição ao carrinho */}
           {calcularTotalBilhetes() > 0 && (
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-xl border-2 border-green-200 p-6 shadow-lg">
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 p-3 shadow-md">
               {/* Badge do Carrinho */}
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center space-x-2 bg-green-100 px-4 py-2 rounded-full border border-green-300">
-                  <span className="text-green-600 font-semibold">🧾 Carrinho: {calcularTotalBilhetes()} bilhete(s)</span>
+              <div className="text-center mb-2">
+                <div className="inline-flex items-center space-x-1 bg-green-100 px-3 py-1 rounded-full border border-green-300">
+                  <span className="text-green-600 text-sm font-medium">🧾 Carrinho: {calcularTotalBilhetes()} bilhete(s)</span>
                 </div>
-                <p className="text-green-700 text-sm mt-2">
+                <p className="text-green-700 text-xs mt-1">
                   👇 Finalize seus dados para gerar o pagamento:
                 </p>
               </div>
 
               {/* Campos de dados */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome completo</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nome completo</label>
                   <input
                     type="text"
                     value={nome}
                     onChange={(e) => setNome(e.target.value)}
-                    className="w-full px-3 py-3 text-gray-900 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    className="w-full px-2 py-2 text-sm text-gray-900 bg-white border border-green-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
                     placeholder="Digite seu nome completo"
                     required
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp</label>
                   <input
                     type="tel"
                     value={whatsapp}
                     onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full px-3 py-3 text-gray-900 bg-white border border-green-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    className="w-full px-2 py-2 text-sm text-gray-900 bg-white border border-green-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
                     placeholder="(11) 99999-9999"
                     required
                   />
@@ -767,16 +767,16 @@ export default function ConcursoDetalhes() {
               <button
                 onClick={handleGerarPagamento}
                 disabled={!canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento}
-                className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all transform ${
+                className={`w-full py-2 px-4 rounded-lg font-medium text-sm transition-all ${
                   !canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento
                     ? 'bg-gray-400 cursor-not-allowed text-gray-700'
-                    : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg text-white'
-                } flex items-center justify-center space-x-2`}
+                    : 'bg-green-600 hover:bg-green-700 shadow-md text-white'
+                } flex items-center justify-center space-x-1`}
               >
                 {processandoPagamento ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span>Gerando Pagamento...</span>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Gerando...</span>
                   </>
                 ) : (
                   <>
@@ -787,7 +787,7 @@ export default function ConcursoDetalhes() {
               </button>
 
               {/* Resumo compacto */}
-              <div className="mt-3 text-center text-sm text-gray-600">
+              <div className="mt-1 text-center text-xs text-gray-600">
                 <p>🔒 Pagamento seguro via PIX • R$ 10,00 por bilhete</p>
               </div>
             </div>
@@ -963,21 +963,21 @@ export default function ConcursoDetalhes() {
       {/* Rodapé fixo para pagamento - aparece quando há palpites pendentes OU carrinho com itens */}
       {!palpitesEncerrados && (
         <div 
-          className="fixed bottom-0 left-0 right-0 w-full bg-white border-t-2 border-green-200 shadow-2xl p-4" 
+          className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-green-200 shadow-lg p-2" 
           style={{ 
             zIndex: 99999,
             display: (Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) ? 'block' : 'none'
           }}
         >
           <div className="max-w-2xl mx-auto">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               {/* Campo Nome */}
               <div className="flex-1 md:max-w-xs">
                 <input
                   type="text"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
                   placeholder="Nome completo"
                   required
                 />
@@ -989,7 +989,7 @@ export default function ConcursoDetalhes() {
                   type="tel"
                   value={whatsapp}
                   onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
                   placeholder="WhatsApp (11) 99999-9999"
                   required
                 />
@@ -1000,21 +1000,21 @@ export default function ConcursoDetalhes() {
                 <button
                   onClick={handleGerarPagamento}
                   disabled={!canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento}
-                  className={`w-full md:w-auto px-6 py-3 rounded-lg font-bold text-sm transition-all ${
+                  className={`w-full md:w-auto px-3 py-1 rounded-md font-medium text-xs transition-all ${
                     !canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento
                       ? 'bg-gray-400 cursor-not-allowed text-gray-700'
                       : 'bg-green-600 hover:bg-green-700 shadow-md text-white'
-                  } flex items-center justify-center space-x-2 whitespace-nowrap`}
+                  } flex items-center justify-center space-x-1 whitespace-nowrap`}
                 >
                   {processandoPagamento ? (
                     <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white"></div>
                       <span>Gerando...</span>
                     </>
                   ) : (
                     <>
                       <span>💳</span>
-                      <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
+                      <span>PAGAR R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
                     </>
                   )}
                 </button>
@@ -1022,7 +1022,7 @@ export default function ConcursoDetalhes() {
             </div>
 
             {/* Resumo compacto */}
-            <div className="mt-2 text-center">
+            <div className="mt-1 text-center">
               <span className="text-xs text-gray-600">
                 {calcularTotalBilhetes()} bilhete(s) • R$ 10,00 cada • Total: R$ {(calcularTotalBilhetes() * 10).toFixed(2)}
               </span>
