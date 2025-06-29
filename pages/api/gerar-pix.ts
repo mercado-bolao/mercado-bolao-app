@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
@@ -382,7 +380,5 @@ Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
       console.error('❌ Erro ao enviar resposta JSON:', jsonError);
       res.status(500).json({ error: 'Erro crítico no servidor', details: 'Falha ao processar resposta' });
     }
-  } finally {
-    await prisma.$disconnect();
   }
 }
