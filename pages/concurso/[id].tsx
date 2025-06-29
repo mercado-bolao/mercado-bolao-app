@@ -80,10 +80,10 @@ export default function ConcursoDetalhes() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Gera todas as combinações possíveis
-    const combinacoes = gerarTodasCombinacoes();
+    // Gera todos os bilhetes individuais
+    const bilhetes = gerarTodosBilhetes();
     
-    if (combinacoes.length === 0) {
+    if (bilhetes.length === 0) {
       alert("Por favor, faça pelo menos um palpite");
       return;
     }
@@ -95,19 +95,19 @@ export default function ConcursoDetalhes() {
       let erros = 0;
       let mensagensErro: string[] = [];
 
-      // Envia cada combinação como um bilhete separado
-      for (let i = 0; i < combinacoes.length; i++) {
-        const combinacao = combinacoes[i];
+      // Envia cada bilhete individual separadamente
+      for (let i = 0; i < bilhetes.length; i++) {
+        const bilhete = bilhetes[i];
         
-        for (const jogoId of Object.keys(combinacao)) {
+        for (const jogoId of Object.keys(bilhete)) {
           const dadosEnvio = {
             jogoId,
-            resultado: combinacao[jogoId],
+            resultado: bilhete[jogoId],
             nome: nome.trim(),
             whatsapp: whatsapp.trim(),
           };
 
-          console.log(`Enviando palpite ${i + 1}/${combinacoes.length} para jogo ${jogoId}:`, dadosEnvio);
+          console.log(`Enviando bilhete ${i + 1}/${bilhetes.length} para jogo ${jogoId}:`, dadosEnvio);
 
           try {
             const response = await fetch("/api/palpites", {
@@ -229,40 +229,36 @@ export default function ConcursoDetalhes() {
     });
   };
 
-  // Função para calcular todas as combinações possíveis
-  const calcularCombinacoes = () => {
+  // Função para calcular o total de bilhetes individuais
+  const calcularTotalBilhetes = () => {
     const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
     
     if (jogosComPalpites.length === 0) return 0;
     
-    return jogosComPalpites.reduce((total, jogoId) => total * carrinho[jogoId].length, 1);
+    // Soma todos os palpites de todos os jogos (cada palpite = 1 bilhete)
+    return jogosComPalpites.reduce((total, jogoId) => total + carrinho[jogoId].length, 0);
   };
 
-  // Função para gerar todas as combinações
-  const gerarTodasCombinacoes = () => {
+  // Função para gerar todos os bilhetes individuais
+  const gerarTodosBilhetes = () => {
     const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
     
     if (jogosComPalpites.length === 0) return [];
     
-    const combinacoes: { [key: string]: string }[] = [];
+    const bilhetes: { [key: string]: string }[] = [];
     
-    const gerarCombinacao = (index: number, combinacaoAtual: { [key: string]: string }) => {
-      if (index === jogosComPalpites.length) {
-        combinacoes.push({ ...combinacaoAtual });
-        return;
-      }
-      
-      const jogoId = jogosComPalpites[index];
+    // Para cada jogo, cria um bilhete separado para cada palpite
+    jogosComPalpites.forEach(jogoId => {
       const palpitesDoJogo = carrinho[jogoId];
       
       palpitesDoJogo.forEach(palpite => {
-        combinacaoAtual[jogoId] = palpite;
-        gerarCombinacao(index + 1, combinacaoAtual);
+        bilhetes.push({
+          [jogoId]: palpite
+        });
       });
-    };
+    });
     
-    gerarCombinacao(0, {});
-    return combinacoes;
+    return bilhetes;
   };
 
   const limparApostas = () => {
@@ -599,10 +595,10 @@ export default function ConcursoDetalhes() {
                 )}
               </div>
               
-              {/* Resumo das combinações */}
+              {/* Resumo dos bilhetes */}
               <div className="border-t border-yellow-200 pt-4">
                 <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo das Combinações</h4>
+                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes</h4>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-yellow-700">Jogos com palpites:</span>
@@ -611,9 +607,9 @@ export default function ConcursoDetalhes() {
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-yellow-700">Total de combinações:</span>
+                      <span className="text-yellow-700">Total de bilhetes:</span>
                       <span className="font-bold text-yellow-900">
-                        {calcularCombinacoes() || 0}
+                        {calcularTotalBilhetes() || 0}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -623,7 +619,7 @@ export default function ConcursoDetalhes() {
                     <div className="flex justify-between">
                       <span className="text-yellow-700">Valor total:</span>
                       <span className="font-bold text-yellow-900 text-lg">
-                        R$ {(calcularCombinacoes() * 10).toFixed(2)}
+                        R$ {(calcularTotalBilhetes() * 10).toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -657,9 +653,9 @@ export default function ConcursoDetalhes() {
                     }, 100);
                   }}
                   className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
-                  disabled={calcularCombinacoes() === 0}
+                  disabled={calcularTotalBilhetes() === 0}
                 >
-                  🎯 FINALIZAR ({calcularCombinacoes()} bilhetes)
+                  🎯 FINALIZAR ({calcularTotalBilhetes()} bilhetes)
                 </button>
               </div>
             </div>
