@@ -49,6 +49,31 @@ export default function PagamentoPix() {
   const [statusPix, setStatusPix] = useState<string>('ATIVA');
   const [bilheteId, setBilheteId] = useState<string>('');
   const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
+  const [verificandoPagamento, setVerificandoPagamento] = useState(false);
+
+  // Função para verificar pagamento manualmente via EFÍ
+  const verificarPagamentoManual = async () => {
+    if (!pixData?.txid) return;
+
+    setVerificandoPagamento(true);
+    try {
+      const response = await fetch(`/api/admin/verificar-status-efi?txid=${pixData.txid}`);
+      const data = await response.json();
+      
+      if (data.success && data.status === 'CONCLUIDA') {
+        // Aguardar um pouco e verificar status do bilhete
+        setTimeout(verificarStatusBilhete, 2000);
+        alert('🎉 Pagamento confirmado pela EFÍ! Aguarde a atualização...');
+      } else {
+        alert(`ℹ️ Status atual: ${data.status || 'Não identificado'}\n\nSe você já realizou o pagamento, aguarde alguns segundos para a confirmação automática.`);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar pagamento:', error);
+      alert('❌ Erro ao consultar status do pagamento. Tente novamente.');
+    } finally {
+      setVerificandoPagamento(false);
+    }
+  };
 
   // Função para verificar status do bilhete
   const verificarStatusBilhete = async () => {
@@ -116,15 +141,33 @@ export default function PagamentoPix() {
       }
     }, 1000);
 
-    // Verificar status do bilhete a cada 3 segundos
-    const statusInterval = setInterval(verificarStatusBilhete, 3000);
+    // Verificar status do bilhete a cada 2 segundos (mais frequente)
+    const statusInterval = setInterval(verificarStatusBilhete, 2000);
     
     // Verificar status imediatamente
     verificarStatusBilhete();
+    
+    // Verificar status via EFÍ a cada 5 segundos se ainda estiver ativo
+    const efiStatusInterval = setInterval(async () => {
+      if (pixData && statusPix === 'ATIVA') {
+        try {
+          const response = await fetch(`/api/admin/verificar-status-efi?txid=${pixData.txid}`);
+          const data = await response.json();
+          
+          if (data.success && data.status === 'CONCLUIDA') {
+            // Recarregar status do bilhete após confirmação da EFÍ
+            setTimeout(verificarStatusBilhete, 1000);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar status na EFÍ:', error);
+        }
+      }
+    }, 5000);
 
     return () => {
       clearInterval(interval);
       clearInterval(statusInterval);
+      clearInterval(efiStatusInterval);
     };
   }, [router]);
 
@@ -367,6 +410,17 @@ export default function PagamentoPix() {
               🏠 Voltar ao Início
             </button>
           </Link>
+          <button 
+            onClick={verificarPagamentoManual}
+            disabled={verificandoPagamento}
+            className={`flex-1 text-white py-3 px-6 rounded-lg font-semibold transition-colors ${
+              verificandoPagamento 
+                ? 'bg-orange-400 cursor-wait' 
+                : 'bg-orange-600 hover:bg-orange-700'
+            }`}
+          >
+            {verificandoPagamento ? '🔄 Verificando...' : '🔍 Verificar Pagamento'}
+          </button>
           <button 
             onClick={() => window.location.reload()}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"

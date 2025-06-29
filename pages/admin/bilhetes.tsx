@@ -36,9 +36,17 @@ export default function BilhetesAdmin() {
   const [senhaAdmin, setSenhaAdmin] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [verificandoStatus, setVerificandoStatus] = useState<string | null>(null);
+  const [verificandoTodos, setVerificandoTodos] = useState(false);
 
   useEffect(() => {
     buscarBilhetes();
+    
+    // Auto-atualizar a cada 10 segundos
+    const autoUpdate = setInterval(() => {
+      buscarBilhetes();
+    }, 10000);
+    
+    return () => clearInterval(autoUpdate);
   }, []);
 
   const buscarBilhetes = async () => {
@@ -85,6 +93,33 @@ export default function BilhetesAdmin() {
       alert('❌ Erro ao consultar EFÍ Pay. Verifique a conexão.');
     } finally {
       setVerificandoStatus(null);
+    }
+  };
+
+  const verificarTodosPendentes = async () => {
+    setVerificandoTodos(true);
+    
+    try {
+      const response = await fetch('/api/verificar-pix-pendentes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        alert(`✅ Verificação concluída!\n\n📊 Bilhetes verificados: ${data.bilhetesVerificados}\n💰 PIX atualizados: ${data.pixAtualizados}`);
+        await buscarBilhetes();
+      } else {
+        alert(`❌ Erro: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar PIX pendentes:', error);
+      alert('❌ Erro ao verificar PIX pendentes');
+    } finally {
+      setVerificandoTodos(false);
     }
   };
 
@@ -282,6 +317,17 @@ export default function BilhetesAdmin() {
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
                 >
                   🔄 Atualizar Lista
+                </button>
+                <button
+                  onClick={verificarTodosPendentes}
+                  disabled={verificandoTodos}
+                  className={`text-white px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                    verificandoTodos
+                      ? 'bg-orange-400 cursor-wait'
+                      : 'bg-orange-600 hover:bg-orange-700'
+                  }`}
+                >
+                  {verificandoTodos ? '🔄 Verificando...' : '🔍 Verificar Todos PIX'}
                 </button>
               </div>
             </div>
