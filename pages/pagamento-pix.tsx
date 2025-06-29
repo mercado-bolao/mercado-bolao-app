@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import QRCode from 'qrcode.react';
+import QRCode from 'qrcode';
 
 interface PixData {
   txid: string;
@@ -11,6 +11,33 @@ interface PixData {
   valor: number;
   expiracao: string;
   ambiente?: string;
+}
+
+// Componente QR Code personalizado
+function QRCodeCanvas({ value }: { value: string }) {
+  const canvasRef = useState<HTMLCanvasElement | null>(null);
+  
+  useEffect(() => {
+    if (canvasRef[0] && value) {
+      QRCode.toCanvas(canvasRef[0], value, {
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      }).catch((error) => {
+        console.error('Erro ao gerar QR Code:', error);
+      });
+    }
+  }, [value, canvasRef]);
+
+  return (
+    <canvas
+      ref={(canvas) => canvasRef[1](canvas)}
+      className="w-64 h-64"
+    />
+  );
 }
 
 export default function PagamentoPix() {
@@ -199,14 +226,7 @@ export default function PagamentoPix() {
                   className="w-64 h-64"
                 />
               ) : (
-                <QRCode 
-                  value={pixData.qrcode}
-                  size={256}
-                  bgColor="#ffffff"
-                  fgColor="#000000"
-                  level="M"
-                  includeMargin={true}
-                />
+                <QRCodeCanvas value={pixData.qrcode} />
               )}
             </div>
           </div>
