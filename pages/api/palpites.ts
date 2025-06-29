@@ -18,7 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    if (!['1', 'X', '2'].includes(resultado)) {
+    // Converte '0' para 'X' se necessário (compatibilidade com frontend)
+    const resultadoFinal = resultado === '0' ? 'X' : resultado;
+    
+    if (!['1', 'X', '2'].includes(resultadoFinal)) {
       console.error('Resultado inválido:', resultado);
       return res.status(400).json({ error: 'Resultado deve ser 1, X ou 2' });
     }
@@ -90,22 +93,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         },
         update: {
-          resultado: resultado,
+          resultado: resultadoFinal,
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0, // Valor fixo de R$ 10,00 por bilhete completo
-          status: "pendente" // Status pendente até pagamento
+          valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
         },
         create: {
           userId: user.id,
           jogoId: jogoId,
-          resultado: resultado,
+          resultado: resultadoFinal,
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0, // Valor fixo de R$ 10,00 por bilhete completo
-          status: "pendente" // Status pendente até pagamento
+          valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
         }
       });
 
