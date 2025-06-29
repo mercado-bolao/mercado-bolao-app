@@ -757,7 +757,7 @@ export default function ConcursoDetalhes() {
                     onClick={adicionarPalpitesAoCarrinho}
                     className="py-3 px-4 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
                   >
-                    <span>💾</span>
+                    <span>+</span>
                     <span>MAIS JOGOS</span>
                   </button>
                 )}
