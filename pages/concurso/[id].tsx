@@ -80,7 +80,7 @@ export default function ConcursoDetalhes() {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Gera todos os bilhetes individuais
+    // Gera todos os bilhetes completos
     const bilhetes = gerarTodosBilhetes();
     
     if (bilhetes.length === 0) {
@@ -95,7 +95,7 @@ export default function ConcursoDetalhes() {
       let erros = 0;
       let mensagensErro: string[] = [];
 
-      // Envia cada bilhete individual separadamente
+      // Envia cada bilhete completo separadamente
       for (let i = 0; i < bilhetes.length; i++) {
         const bilhete = bilhetes[i];
         
@@ -195,10 +195,9 @@ export default function ConcursoDetalhes() {
           newCarrinho[jogoId] = [];
         }
         
-        // Adiciona o palpite se não existir ainda
-        if (!newCarrinho[jogoId].includes(palpite)) {
-          newCarrinho[jogoId].push(palpite);
-        }
+        // CORREÇÃO: Permite adicionar o mesmo resultado múltiplas vezes
+        // Cada adição representa um bilhete diferente
+        newCarrinho[jogoId].push(palpite);
       });
       
       return newCarrinho;
@@ -215,12 +214,12 @@ export default function ConcursoDetalhes() {
   };
 
   // Função para remover um palpite específico do carrinho
-  const removerPalpiteDoCarrinho = (jogoId: string, palpite: string) => {
+  const removerPalpiteDoCarrinho = (jogoId: string, indexPalpite: number) => {
     setCarrinho(prev => {
       const newCarrinho = { ...prev };
       
       if (newCarrinho[jogoId]) {
-        newCarrinho[jogoId] = newCarrinho[jogoId].filter(p => p !== palpite);
+        newCarrinho[jogoId].splice(indexPalpite, 1);
         
         // Remove o jogo completamente se não há mais palpites
         if (newCarrinho[jogoId].length === 0) {
@@ -232,36 +231,53 @@ export default function ConcursoDetalhes() {
     });
   };
 
-  // Função para calcular o total de bilhetes individuais
-  // REGRA: Cada conjunto de 8 palpites = 1 bilhete individual de R$ 10,00
+  // NOVA FUNÇÃO: Calcula quantos bilhetes completos existem
   const calcularTotalBilhetes = () => {
-    const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
+    if (!concurso) return 0;
     
-    if (jogosComPalpites.length === 0) return 0;
+    // Determina o número máximo de palpites em qualquer jogo
+    const maxPalpitesPorJogo = Math.max(
+      ...concurso.jogos.map(jogo => (carrinho[jogo.id]?.length || 0) + (palpites[jogo.id] ? 1 : 0)),
+      0
+    );
     
-    // Conta quantos palpites completos (conjuntos de 8 jogos) existem
-    // Cada palpite adicional para o mesmo jogo = novo bilhete individual
-    return jogosComPalpites.reduce((total, jogoId) => total + carrinho[jogoId].length, 0);
+    return maxPalpitesPorJogo;
   };
 
-  // Função para gerar todos os bilhetes individuais
+  // NOVA FUNÇÃO: Gera bilhetes completos baseados na posição dos palpites
   const gerarTodosBilhetes = () => {
-    const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
+    if (!concurso) return [];
     
-    if (jogosComPalpites.length === 0) return [];
+    const totalBilhetes = calcularTotalBilhetes();
+    if (totalBilhetes === 0) return [];
     
     const bilhetes: { [key: string]: string }[] = [];
     
-    // Para cada jogo, cria um bilhete separado para cada palpite
-    jogosComPalpites.forEach(jogoId => {
-      const palpitesDoJogo = carrinho[jogoId];
+    // Cria um bilhete para cada posição de palpite
+    for (let i = 0; i < totalBilhetes; i++) {
+      const bilhete: { [key: string]: string } = {};
       
-      palpitesDoJogo.forEach(palpite => {
-        bilhetes.push({
-          [jogoId]: palpite
-        });
+      concurso.jogos.forEach(jogo => {
+        const palpitesDoJogo = carrinho[jogo.id] || [];
+        const palpitePendente = palpites[jogo.id];
+        
+        // Combina palpites do carrinho + palpite pendente
+        const todosPalpites = [...palpitesDoJogo];
+        if (palpitePendente) {
+          todosPalpites.push(palpitePendente);
+        }
+        
+        // Se há palpite nesta posição para este jogo, adiciona ao bilhete
+        if (todosPalpites[i]) {
+          bilhete[jogo.id] = todosPalpites[i];
+        }
       });
-    });
+      
+      // Só adiciona bilhetes que tenham pelo menos um palpite
+      if (Object.keys(bilhete).length > 0) {
+        bilhetes.push(bilhete);
+      }
+    }
     
     return bilhetes;
   };
@@ -490,11 +506,11 @@ export default function ConcursoDetalhes() {
 
         <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
 
-          {/* Carrinho de Apostas Múltiplas */}
+          {/* Carrinho de Apostas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-4">
-                🛒 CARRINHO DE BILHETES INDIVIDUAIS
+                🛒 CARRINHO DE BILHETES COMPLETOS
               </h3>
               
               {/* Tabela de palpites múltiplos */}
@@ -503,9 +519,11 @@ export default function ConcursoDetalhes() {
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-2 font-semibold text-gray-700">Jogo</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 1</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 2</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 3</th>
+                      {Array.from({ length: calcularTotalBilhetes() }, (_, i) => (
+                        <th key={i} className="text-center py-3 px-2 font-semibold text-gray-700">
+                          Bilhete {i + 1}
+                        </th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
@@ -513,7 +531,7 @@ export default function ConcursoDetalhes() {
                       const palpitesCarrinho = carrinho[jogo.id] || [];
                       const palpitePendente = palpites[jogo.id];
                       const todosPalpites = [...palpitesCarrinho];
-                      if (palpitePendente && !todosPalpites.includes(palpitePendente)) {
+                      if (palpitePendente) {
                         todosPalpites.push(palpitePendente);
                       }
                       
@@ -527,62 +545,26 @@ export default function ConcursoDetalhes() {
                             </div>
                           </td>
                           
-                          {/* Palpite 1 */}
-                          <td className="py-4 px-2 text-center">
-                            {todosPalpites[0] ? (
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
-                                palpitesCarrinho.includes(todosPalpites[0]) 
-                                  ? (todosPalpites[0] === '1' ? 'bg-blue-600 text-white' :
-                                     (todosPalpites[0] === '0' || todosPalpites[0] === 'X') ? 'bg-gray-600 text-white' :
-                                     'bg-red-600 text-white')
-                                  : (todosPalpites[0] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
-                                     (todosPalpites[0] === '0' || todosPalpites[0] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
-                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
-                              }`}>
-                                {todosPalpites[0] === '0' ? 'X' : todosPalpites[0]}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm">-</span>
-                            )}
-                          </td>
-                          
-                          {/* Palpite 2 */}
-                          <td className="py-4 px-2 text-center">
-                            {todosPalpites[1] ? (
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
-                                palpitesCarrinho.includes(todosPalpites[1]) 
-                                  ? (todosPalpites[1] === '1' ? 'bg-blue-600 text-white' :
-                                     (todosPalpites[1] === '0' || todosPalpites[1] === 'X') ? 'bg-gray-600 text-white' :
-                                     'bg-red-600 text-white')
-                                  : (todosPalpites[1] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
-                                     (todosPalpites[1] === '0' || todosPalpites[1] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
-                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
-                              }`}>
-                                {todosPalpites[1] === '0' ? 'X' : todosPalpites[1]}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm">-</span>
-                            )}
-                          </td>
-                          
-                          {/* Palpite 3 */}
-                          <td className="py-4 px-2 text-center">
-                            {todosPalpites[2] ? (
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
-                                palpitesCarrinho.includes(todosPalpites[2]) 
-                                  ? (todosPalpites[2] === '1' ? 'bg-blue-600 text-white' :
-                                     (todosPalpites[2] === '0' || todosPalpites[2] === 'X') ? 'bg-gray-600 text-white' :
-                                     'bg-red-600 text-white')
-                                  : (todosPalpites[2] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
-                                     (todosPalpites[2] === '0' || todosPalpites[2] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
-                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
-                              }`}>
-                                {todosPalpites[2] === '0' ? 'X' : todosPalpites[2]}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm">-</span>
-                            )}
-                          </td>
+                          {/* Palpites por bilhete */}
+                          {Array.from({ length: calcularTotalBilhetes() }, (_, bilheteIndex) => (
+                            <td key={bilheteIndex} className="py-4 px-2 text-center">
+                              {todosPalpites[bilheteIndex] ? (
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
+                                  palpitesCarrinho.includes(todosPalpites[bilheteIndex]) || bilheteIndex < palpitesCarrinho.length
+                                    ? (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-600 text-white' :
+                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-600 text-white' :
+                                       'bg-red-600 text-white')
+                                    : (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
+                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
+                                       'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
+                                }`}>
+                                  {todosPalpites[bilheteIndex] === '0' ? 'X' : todosPalpites[bilheteIndex]}
+                                </div>
+                              ) : (
+                                <span className="text-gray-400 text-sm">-</span>
+                              )}
+                            </td>
+                          ))}
                         </tr>
                       );
                     })}
@@ -602,21 +584,21 @@ export default function ConcursoDetalhes() {
               {/* Resumo dos bilhetes */}
               <div className="border-t border-yellow-200 pt-4">
                 <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes Individuais</h4>
+                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes Completos</h4>
                   <div className="text-sm mb-3 text-yellow-700 bg-yellow-50 p-2 rounded">
-                    <strong>Regra:</strong> Cada palpite individual = 1 bilhete de R$ 10,00 (não há combinações)
+                    <strong>Nova Regra:</strong> Cada conjunto completo de palpites = 1 bilhete de R$ 10,00
                   </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-yellow-700">Jogos com palpites:</span>
+                      <span className="text-yellow-700">Jogos disponíveis:</span>
                       <span className="font-bold text-yellow-900">
-                        {Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0).length}
+                        {concurso.jogos.length}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-yellow-700">Total de bilhetes:</span>
                       <span className="font-bold text-yellow-900">
-                        {calcularTotalBilhetes() || 0}
+                        {calcularTotalBilhetes()}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -752,10 +734,13 @@ export default function ConcursoDetalhes() {
                 <strong>Como apostar:</strong> 1 = Casa vence, X = Empate, 2 = Fora vence
               </p>
               <p className="text-blue-600 text-xs mt-1">
-                <strong>Regra importante:</strong> Cada palpite individual = 1 bilhete de R$ 10,00 (sem combinações)
+                <strong>Nova regra:</strong> Cada conjunto completo de palpites = 1 bilhete de R$ 10,00
               </p>
               <p className="text-blue-600 text-xs mt-1">
-                Exemplo: 8 palpites diferentes = 8 bilhetes individuais = R$ 80,00 total
+                <strong>Exemplo:</strong> 3 conjuntos diferentes de palpites = 3 bilhetes = R$ 30,00 total
+              </p>
+              <p className="text-blue-600 text-xs mt-1">
+                <strong>Permitido:</strong> Mesmo resultado em palpites diferentes (Ex: Casa em Bilhete 1 e 2)
               </p>
             </div>
           </div>
