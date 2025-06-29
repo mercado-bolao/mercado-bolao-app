@@ -564,7 +564,7 @@ export default function ConcursoDetalhes() {
                     <div className="w-6 h-6 flex-shrink-0">
                       {jogo.fotoMandante ? (
                         <img 
-                          src={jogo.fotoMandante} 
+                          src={jogo.fotoMandante.startsWith('/') ? jogo.fotoMandante : `/concurso/${jogo.fotoMandante}`}
                           alt={jogo.mandante}
                           className="w-full h-full object-contain rounded-full border border-gray-200"
                           onError={(e) => {
@@ -641,7 +641,7 @@ export default function ConcursoDetalhes() {
                     <div className="w-6 h-6 flex-shrink-0">
                       {jogo.fotoVisitante ? (
                         <img 
-                          src={jogo.fotoVisitante} 
+                          src={jogo.fotoVisitante.startsWith('/') ? jogo.fotoVisitante : `/concurso/${jogo.fotoVisitante}`}
                           alt={jogo.visitante}
                           className="w-full h-full object-contain rounded-full border border-gray-200"
                           onError={(e) => {
