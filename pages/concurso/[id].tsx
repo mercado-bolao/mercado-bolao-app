@@ -235,48 +235,58 @@ export default function ConcursoDetalhes() {
   const calcularTotalBilhetes = () => {
     if (!concurso) return 0;
     
-    // Determina o número máximo de palpites em qualquer jogo
-    const maxPalpitesPorJogo = Math.max(
-      ...concurso.jogos.map(jogo => (carrinho[jogo.id]?.length || 0) + (palpites[jogo.id] ? 1 : 0)),
-      0
-    );
+    // Conta todos os palpites no carrinho
+    const palpitesNoCarrinho = Object.values(carrinho).reduce((total, palpitesJogo) => {
+      return total + palpitesJogo.length;
+    }, 0);
     
-    return maxPalpitesPorJogo;
+    // Conta palpites pendentes (um por jogo que tem palpite)
+    const palpitesPendentes = Object.keys(palpites).length;
+    
+    // Se há palpites pendentes, conta como 1 bilhete adicional
+    const bilhetesCarrinho = Math.ceil(palpitesNoCarrinho / concurso.jogos.length);
+    const bilhetesPendentes = palpitesPendentes > 0 ? 1 : 0;
+    
+    return bilhetesCarrinho + bilhetesPendentes;
   };
 
-  // NOVA FUNÇÃO: Gera bilhetes completos baseados na posição dos palpites
+  // NOVA FUNÇÃO: Gera bilhetes completos
   const gerarTodosBilhetes = () => {
     if (!concurso) return [];
     
-    const totalBilhetes = calcularTotalBilhetes();
-    if (totalBilhetes === 0) return [];
-    
     const bilhetes: { [key: string]: string }[] = [];
     
-    // Cria um bilhete para cada posição de palpite
-    for (let i = 0; i < totalBilhetes; i++) {
+    // 1. Adiciona bilhetes do carrinho (agrupados por posição)
+    const maxPalpitesPorJogo = Math.max(
+      ...concurso.jogos.map(jogo => carrinho[jogo.id]?.length || 0),
+      0
+    );
+    
+    for (let i = 0; i < maxPalpitesPorJogo; i++) {
       const bilhete: { [key: string]: string } = {};
       
       concurso.jogos.forEach(jogo => {
         const palpitesDoJogo = carrinho[jogo.id] || [];
-        const palpitePendente = palpites[jogo.id];
-        
-        // Combina palpites do carrinho + palpite pendente
-        const todosPalpites = [...palpitesDoJogo];
-        if (palpitePendente) {
-          todosPalpites.push(palpitePendente);
-        }
-        
-        // Se há palpite nesta posição para este jogo, adiciona ao bilhete
-        if (todosPalpites[i]) {
-          bilhete[jogo.id] = todosPalpites[i];
+        if (palpitesDoJogo[i]) {
+          bilhete[jogo.id] = palpitesDoJogo[i];
         }
       });
       
-      // Só adiciona bilhetes que tenham pelo menos um palpite
+      // Só adiciona se o bilhete tem pelo menos um palpite
       if (Object.keys(bilhete).length > 0) {
         bilhetes.push(bilhete);
       }
+    }
+    
+    // 2. Adiciona bilhete pendente se existir
+    if (Object.keys(palpites).length > 0) {
+      const bilhetePendente: { [key: string]: string } = {};
+      
+      Object.entries(palpites).forEach(([jogoId, palpite]) => {
+        bilhetePendente[jogoId] = palpite;
+      });
+      
+      bilhetes.push(bilhetePendente);
     }
     
     return bilhetes;
