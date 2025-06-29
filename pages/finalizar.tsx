@@ -73,6 +73,8 @@ export default function FinalizarAposta() {
     try {
       setLoading(true);
       console.log('🔍 Buscando palpites para:', whatsappUsuario);
+      console.log('📱 WhatsApp codificado:', encodeURIComponent(whatsappUsuario));
+      console.log('🔗 URL completa:', `/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappUsuario)}`);
 
       const response = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappUsuario)}`);
 
