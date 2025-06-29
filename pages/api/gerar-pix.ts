@@ -3,12 +3,16 @@ import path from 'path';
 import fs from 'fs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Definir headers JSON primeiro
-  res.setHeader('Content-Type', 'application/json');
+  console.log('🔄 Handler iniciado - método:', req.method);
   
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  }
+  try {
+    // Definir headers JSON primeiro
+    res.setHeader('Content-Type', 'application/json');
+    
+    if (req.method !== 'POST') {
+      console.log('❌ Método não permitido:', req.method);
+      return res.status(405).json({ error: 'Método não permitido' });
+    }
 
   const { whatsapp, valorTotal, totalBilhetes } = req.body;
 
@@ -20,7 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
   }
 
-  try {
+  console.log('✅ Método POST confirmado');
+
     // Usar variáveis dos Secrets do Replit
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const efiClientId = process.env.EFI_CLIENT_ID || 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
@@ -209,6 +214,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (jsonError) {
       console.error('❌ Erro ao enviar resposta JSON:', jsonError);
       res.status(500).send('Erro interno do servidor');
+    }
+
+  } catch (globalError: any) {
+    console.error('❌ ERRO GLOBAL CAPTURADO:');
+    console.error('📄 Tipo:', typeof globalError);
+    console.error('📝 Erro:', globalError);
+    console.error('📚 Stack:', globalError?.stack);
+
+    // Garantir que sempre enviamos JSON
+    try {
+      if (!res.headersSent) {
+        res.setHeader('Content-Type', 'application/json');
+        return res.status(500).json({
+          error: 'Erro interno do servidor',
+          details: globalError?.message || 'Erro desconhecido',
+          timestamp: new Date().toISOString(),
+          caught: 'global-handler'
+        });
+      }
+    } catch (finalError) {
+      console.error('❌ Erro final ao enviar resposta:', finalError);
+      if (!res.headersSent) {
+        res.status(500).end('{"error":"Erro crítico do servidor"}');
+      }
     }
   }
 }

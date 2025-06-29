@@ -177,11 +177,29 @@ export default function FinalizarAposta() {
       let data;
       try {
         const responseText = await response.text();
-        console.log('📄 Response text:', responseText);
+        console.log('📄 Response text (primeiros 200 chars):', responseText.substring(0, 200));
+        
+        // Verificar se é HTML (erro de servidor)
+        if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
+          console.error('❌ Servidor retornou HTML ao invés de JSON');
+          throw new Error('O servidor está retornando uma página de erro. Verifique os logs do servidor.');
+        }
+        
+        // Verificar se é JSON válido
+        if (!responseText.trim()) {
+          throw new Error('Resposta vazia do servidor');
+        }
+        
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('❌ Erro ao fazer parse da resposta:', parseError);
-        throw new Error('Resposta inválida do servidor');
+        console.error('❌ Response text completa:', responseText);
+        
+        if (parseError instanceof SyntaxError) {
+          throw new Error('Servidor retornou resposta inválida (não é JSON válido)');
+        } else {
+          throw new Error('Erro ao processar resposta do servidor');
+        }
       }
 
       console.log('📥 Dados recebidos PIX:', data);
