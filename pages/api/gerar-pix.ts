@@ -44,12 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         throw new Error(`Certificado não encontrado em: ${certificatePath}`);
       }
       
-      if (!certificatePassphrase) {
-        throw new Error('Senha do certificado não configurada (EFI_CERTIFICATE_PASSPHRASE)');
-      }
-      
       efiConfig.certificate = certificatePath;
-      efiConfig.passphrase = certificatePassphrase;
+      efiConfig.passphrase = certificatePassphrase || ''; // Senha vazia se não configurada
       
       console.log('✅ Certificado configurado para produção');
     } else {
