@@ -485,11 +485,15 @@ export default function ConcursoDetalhes() {
               <div className="border-t border-yellow-200 pt-3">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-yellow-800">Total de Bilhetes:</span>
-                  <span className="font-bold text-yellow-900">1</span>
+                  <span className="font-bold text-yellow-900">
+                    {Math.ceil((Object.keys(carrinho).length + Object.keys(palpites).length) / concurso.jogos.length) || 1}
+                  </span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="font-semibold text-yellow-800">Valor Total:</span>
-                  <span className="font-bold text-yellow-900 text-lg">R$ 10,00</span>
+                  <span className="font-bold text-yellow-900 text-lg">
+                    R$ {((Math.ceil((Object.keys(carrinho).length + Object.keys(palpites).length) / concurso.jogos.length) || 1) * 10).toFixed(2)}
+                  </span>
                 </div>
               </div>
               
