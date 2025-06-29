@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const bilhetes = await prisma.bilhete.findMany({
       where: {
-        status: { in: ["PENDENTE", "PAGO"] }
+        status: { in: ["PENDENTE", "PAGO", "CANCELADO", "EXPIRADO"] }
       },
       include: {
         pix: {

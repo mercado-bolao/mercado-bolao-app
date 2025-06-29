@@ -100,6 +100,8 @@ model Bilhete {
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   pixId              String?
+  ipAddress          String?
+  userAgent          String?
   concurso           Concurso      @relation(fields: [concursoId], references: [id])
   pix                PixPagamento? @relation(fields: [pixId], references: [id])
   palpites           Palpite[]     @relation("BilhetePalpites")

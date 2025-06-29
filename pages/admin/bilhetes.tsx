@@ -13,6 +13,8 @@ interface Bilhete {
   createdAt: string;
   updatedAt: string;
   expiresAt: string;
+  userAgent?: string;
+  ipAddress?: string;
   pix?: {
     id: string;
     status: string;
@@ -145,6 +147,61 @@ export default function BilhetesAdmin() {
     }
   };
 
+  const getStatusDetalhado = (bilhete: Bilhete) => {
+    const agora = new Date();
+    const expiracao = new Date(bilhete.expiresAt);
+    
+    if (bilhete.status === 'PAGO') {
+      return { status: 'PAGO', cor: 'bg-green-100 text-green-800 border-green-300' };
+    }
+    
+    if (bilhete.status === 'CANCELADO') {
+      return { status: 'CANCELADO', cor: 'bg-red-100 text-red-800 border-red-300' };
+    }
+    
+    if (agora > expiracao) {
+      return { status: 'EXPIRADO', cor: 'bg-gray-100 text-gray-800 border-gray-300' };
+    }
+    
+    return { status: 'PENDENTE', cor: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
+  };
+
+  const formatarDispositivo = (userAgent?: string) => {
+    if (!userAgent) return 'Não informado';
+    
+    let dispositivo = 'Desconhecido';
+    let navegador = 'Desconhecido';
+    
+    // Detectar sistema operacional
+    if (userAgent.includes('Android')) {
+      const androidMatch = userAgent.match(/Android ([0-9._]+)/);
+      dispositivo = androidMatch ? `Android ${androidMatch[1]}` : 'Android';
+    } else if (userAgent.includes('iPhone')) {
+      dispositivo = 'iPhone';
+    } else if (userAgent.includes('iPad')) {
+      dispositivo = 'iPad';
+    } else if (userAgent.includes('Windows')) {
+      dispositivo = 'Windows';
+    } else if (userAgent.includes('Mac')) {
+      dispositivo = 'macOS';
+    } else if (userAgent.includes('Linux')) {
+      dispositivo = 'Linux';
+    }
+    
+    // Detectar navegador
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+      navegador = 'Chrome';
+    } else if (userAgent.includes('Firefox')) {
+      navegador = 'Firefox';
+    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      navegador = 'Safari';
+    } else if (userAgent.includes('Edg')) {
+      navegador = 'Edge';
+    }
+    
+    return `${dispositivo} - ${navegador}`;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -272,67 +329,100 @@ export default function BilhetesAdmin() {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Cliente
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Dispositivo/IP
+                      </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Valor/Palpites
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         TXID
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Data
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Ações
                       </th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {bilhetesFiltrados.map((bilhete) => (
-                      <tr key={bilhete.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">{bilhete.nome}</div>
-                            <div className="text-sm text-gray-500 font-mono">{bilhete.whatsapp}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">R$ {bilhete.valorTotal.toFixed(2)}</div>
-                          <div className="text-sm text-gray-500">{bilhete.quantidadePalpites} palpites</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getStatusColor(bilhete.status)}`}>
-                            {bilhete.status}
-                          </span>
-                          {bilhete.pix && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              PIX: {bilhete.pix.status} ({bilhete.pix.ambiente})
+                    {bilhetesFiltrados.map((bilhete) => {
+                      const statusDetalhado = getStatusDetalhado(bilhete);
+                      return (
+                        <tr key={bilhete.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-4">
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{bilhete.nome}</div>
+                              <div className="text-sm text-gray-500 font-mono flex items-center">
+                                📱 {bilhete.whatsapp}
+                              </div>
                             </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4">
-                          {bilhete.txid ? (
-                            <div className="text-xs font-mono text-gray-600 max-w-32 truncate" title={bilhete.txid}>
-                              {bilhete.txid}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="text-xs">
+                              <div className="text-gray-600 mb-1">
+                                🖥️ {formatarDispositivo(bilhete.userAgent)}
+                              </div>
+                              {bilhete.ipAddress && (
+                                <div className="text-gray-500 font-mono">
+                                  🌐 IP: {bilhete.ipAddress}
+                                </div>
+                              )}
+                              {!bilhete.ipAddress && (
+                                <div className="text-gray-400">
+                                  🌐 IP: Não informado
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <span className="text-xs text-gray-400">Sem TXID</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          <div>{formatarData(bilhete.createdAt)}</div>
-                          {bilhete.status === 'PENDENTE' && (
-                            <div className="text-xs text-red-600">
-                              Expira: {formatarData(bilhete.expiresAt)}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm space-y-2">
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <div className="text-sm text-gray-900">R$ {bilhete.valorTotal.toFixed(2)}</div>
+                            <div className="text-sm text-gray-500">{bilhete.quantidadePalpites} palpites</div>
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${statusDetalhado.cor}`}>
+                              {statusDetalhado.status}
+                            </span>
+                            {bilhete.pix && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                PIX: {bilhete.pix.status} ({bilhete.pix.ambiente})
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            {bilhete.txid ? (
+                              <div className="max-w-40">
+                                <div className="text-xs font-mono text-gray-600 break-all" title={bilhete.txid}>
+                                  {bilhete.txid}
+                                </div>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(bilhete.txid || '')}
+                                  className="text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                  title="Copiar TXID"
+                                >
+                                  📋 Copiar
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-400">Sem TXID</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <div>{formatarData(bilhete.createdAt)}</div>
+                            {(bilhete.status === 'PENDENTE' || statusDetalhado.status === 'PENDENTE') && (
+                              <div className="text-xs text-red-600">
+                                Expira: {formatarData(bilhete.expiresAt)}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 whitespace-nowrap text-sm space-y-2">
                           {/* Botão Verificar Status via EFÍ */}
                           <button
                             onClick={() => verificarStatusEfi(bilhete.txid || '', bilhete.id)}

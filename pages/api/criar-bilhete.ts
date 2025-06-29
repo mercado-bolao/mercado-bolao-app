@@ -19,6 +19,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('🎫 Criando bilhete:', { whatsapp, nome, quantidadePalpites: palpites.length });
 
+    // Capturar informações do cliente
+    const userAgent = req.headers['user-agent'] || null;
+    const ipAddress = req.headers['x-forwarded-for'] || 
+                     req.headers['x-real-ip'] || 
+                     req.connection?.remoteAddress || 
+                     req.socket?.remoteAddress || 
+                     null;
+
     // Calcular valor total (R$ 10,00 por palpite)
     const valorTotal = palpites.length * 10.0;
     
@@ -33,7 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         valorTotal,
         quantidadePalpites: palpites.length,
         status: 'PENDENTE',
-        expiresAt
+        expiresAt,
+        ipAddress: typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : null,
+        userAgent
       }
     });
 
