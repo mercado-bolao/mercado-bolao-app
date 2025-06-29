@@ -8,6 +8,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log('📥 Request headers:', JSON.stringify(req.headers, null, 2));
   console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
 
+  // Testar conexão do Prisma
+  try {
+    console.log('🔍 Testando conexão do Prisma...');
+    await prisma.$connect();
+    console.log('✅ Prisma conectado com sucesso');
+  } catch (prismaError) {
+    console.error('❌ Erro na conexão do Prisma:', prismaError);
+    return res.status(500).json({
+      error: 'Erro de conexão com o banco de dados',
+      details: 'Falha ao conectar com o banco via Prisma'
+    });
+  }
+
   try {
     // Definir headers JSON primeiro
     res.setHeader('Content-Type', 'application/json');
