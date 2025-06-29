@@ -240,6 +240,8 @@ export default function FinalizarAposta() {
           mensagemErro = 'Erro de certificado EFI. Verifique a configuração dos Secrets.';
         } else if (mensagemErro.includes('sandbox')) {
           mensagemErro = 'Erro de configuração do ambiente EFI. Verifique os Secrets.';
+        } else if (mensagemErro.includes('Credenciais EFI Pay inválidas') || mensagemErro.includes('Invalid or inactive credentials')) {
+          mensagemErro = '🔑 Credenciais EFI Pay inválidas ou inativas.\n\n📋 Verifique nos Secrets:\n• EFI_CLIENT_ID\n• EFI_CLIENT_SECRET\n\n💡 As credenciais podem estar incorretas ou sua conta EFI pode estar inativa.';
         } else if (mensagemErro.includes('401')) {
           mensagemErro = 'Credenciais EFI inválidas. Verifique CLIENT_ID e CLIENT_SECRET.';
         } else if (mensagemErro.includes('422')) {

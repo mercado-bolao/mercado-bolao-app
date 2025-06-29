@@ -196,10 +196,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         statusCode = 400;
         mensagemErro = 'Certificado não configurado. Operação em modo sandbox desabilitada.';
       }
-    } else if (error?.message) {
-      mensagemErro = error.message;
+    } else if (error?.error === 'invalid_client') {
+      // Erro específico de credenciais inválidas
+      statusCode = 401;
+      mensagemErro = 'Credenciais EFI Pay inválidas ou inativas. Verifique CLIENT_ID e CLIENT_SECRET nos Secrets.';
     } else if (error?.error_description) {
       mensagemErro = error.error_description;
+      // Determinar status code baseado no tipo de erro
+      if (error.error_description.includes('Invalid or inactive credentials')) {
+        statusCode = 401;
+        mensagemErro = 'Credenciais EFI Pay inválidas ou inativas. Verifique CLIENT_ID e CLIENT_SECRET nos Secrets.';
+      } else if (error.error_description.includes('certificate')) {
+        statusCode = 400;
+        mensagemErro = 'Erro de certificado EFI Pay. Verifique o certificado e senha nos Secrets.';
+      }
+    } else if (error?.message) {
+      mensagemErro = error.message;
     }
 
     // Garantir que sempre retornamos JSON válido
