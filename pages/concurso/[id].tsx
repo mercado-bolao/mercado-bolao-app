@@ -204,11 +204,14 @@ export default function ConcursoDetalhes() {
       return newCarrinho;
     });
     
-    // Limpa os palpites atuais para permitir novas seleções
+    // IMPORTANTE: Limpa TODAS as seleções atuais para permitir novos palpites
     setPalpites({});
     
-    // Scroll para o topo para ver os jogos
+    // Scroll para o topo para ver os jogos e fazer novas seleções
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    
+    // Feedback visual para o usuário
+    console.log('✅ Palpites adicionados ao carrinho e seleções limpas para novos palpites');
   };
 
   // Função para remover um palpite específico do carrinho
