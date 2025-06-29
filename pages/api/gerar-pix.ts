@@ -227,9 +227,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error: any) {
     console.error('❌ ERRO DETALHADO AO GERAR PIX:');
     console.error('📄 Tipo do erro:', typeof error);
-    console.error('📝 Erro completo:', error);
-    console.error('📝 Response data:', error?.response?.data);
+    console.error('📝 Erro completo:', JSON.stringify(error, null, 2));
+    console.error('📝 Response data completa:', JSON.stringify(error?.response?.data, null, 2));
     console.error('📝 Response status:', error?.response?.status);
+    console.error('📝 Response headers:', JSON.stringify(error?.response?.headers, null, 2));
+    console.error('📝 Request config:', JSON.stringify(error?.config, null, 2));
+    console.error('📝 Error message:', error?.message);
+    console.error('📝 Error stack:', error?.stack);
 
     // Tratamento mais específico do erro
     let mensagemErro = 'Erro desconhecido ao gerar PIX';

@@ -206,6 +206,7 @@ export default function FinalizarAposta() {
 
       if (!response.ok) {
         const errorMessage = data.error || data.details || 'Erro ao gerar PIX';
+        console.error('❌ Erro da API PIX (COMPLETO PARA DEBUG):', JSON.stringify(data, null, 2));
         console.error('❌ Erro da API PIX:', {
           status: response.status,
           error: data.error,
