@@ -94,7 +94,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           resultado: resultado,
           nome: nome,
           whatsapp: whatsapp,
-          concursoId: concursoId
+          concursoId: concursoId,
+          valor: 10.0 // Valor fixo de R$ 10,00
         },
         create: {
           userId: user.id,
@@ -102,7 +103,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           resultado: resultado,
           nome: nome,
           whatsapp: whatsapp,
-          concursoId: concursoId
+          concursoId: concursoId,
+          valor: 10.0 // Valor fixo de R$ 10,00
         }
       });
 

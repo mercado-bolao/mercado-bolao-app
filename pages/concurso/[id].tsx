@@ -184,12 +184,20 @@ export default function ConcursoDetalhes() {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">⚽ Apostar</h1>
-            <div className="bg-green-100 rounded-lg p-3">
+            <div className="bg-green-100 rounded-lg p-3 mb-3">
               <p className="text-green-800 font-semibold">
                 Concurso #{concurso.numero}
               </p>
               <p className="text-green-600 text-sm">
                 {new Date(concurso.dataInicio).toLocaleDateString('pt-BR')}
+              </p>
+            </div>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-blue-800 font-semibold text-sm">
+                💰 Valor por palpite: R$ 10,00
+              </p>
+              <p className="text-blue-600 text-xs">
+                Cada jogo apostado custa R$ 10,00
               </p>
             </div>
           </div>
@@ -413,7 +421,7 @@ export default function ConcursoDetalhes() {
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">
                 📊 ENVIAR PALPITES ({Object.keys(palpites).length})
               </h3>
-              <div className="text-sm text-yellow-700 space-y-1">
+              <div className="text-sm text-yellow-700 space-y-1 mb-4">
                 {Object.entries(palpites).map(([jogoId, resultado]) => {
                   const jogo = concurso.jogos.find(j => j.id === jogoId);
                   return (
@@ -423,6 +431,18 @@ export default function ConcursoDetalhes() {
                     </div>
                   );
                 })}
+              </div>
+              <div className="border-t border-yellow-200 pt-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-semibold text-yellow-800">Valor por palpite:</span>
+                  <span className="font-bold text-yellow-900">R$ 10,00</span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="font-semibold text-yellow-800">Total a pagar:</span>
+                  <span className="font-bold text-yellow-900 text-lg">
+                    R$ {(Object.keys(palpites).length * 10).toFixed(2).replace('.', ',')}
+                  </span>
+                </div>
               </div>
             </div>
           )}
