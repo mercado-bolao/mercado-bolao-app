@@ -205,15 +205,25 @@ export default function FinalizarAposta() {
       console.log('📥 Dados recebidos PIX:', data);
 
       if (!response.ok) {
-        const errorMessage = data.error || data.details || 'Erro ao gerar PIX';
-        console.error('❌ Erro da API PIX (COMPLETO PARA DEBUG):', JSON.stringify(data, null, 2));
-        console.error('❌ Erro da API PIX:', {
-          status: response.status,
-          error: data.error,
-          details: data.details,
-          suggestion: data.suggestion
-        });
-        throw new Error(errorMessage);
+        console.error('❌ ERRO COMPLETO DA API PIX:');
+        console.error('- Status:', response.status);
+        console.error('- Headers:', Object.fromEntries(response.headers.entries()));
+        console.error('- Data completa:', JSON.stringify(data, null, 2));
+        
+        const errorMessage = data?.error || data?.details || data?.message || `Erro HTTP ${response.status}`;
+        const errorDetails = data?.details || data?.debug || 'Sem detalhes adicionais';
+        
+        console.error('❌ Mensagem de erro processada:', errorMessage);
+        console.error('❌ Detalhes do erro:', errorDetails);
+        
+        // Mostrar alerta com detalhes mais específicos
+        const alertMessage = `❌ Erro ao gerar PIX (Status: ${response.status})\n\n` +
+                            `Erro: ${errorMessage}\n\n` +
+                            `Detalhes: ${errorDetails}\n\n` +
+                            (data?.suggestion ? `Sugestão: ${data.suggestion}` : '');
+        
+        alert(alertMessage);
+        return; // Não jogar erro, apenas retornar
       }
 
       if (data.success && data.pix) {
@@ -230,36 +240,32 @@ export default function FinalizarAposta() {
       }
 
     } catch (error) {
-      console.error('❌ Erro ao gerar pagamento:', error);
-      console.error('📋 Erro detalhado do backend:', data);
+      console.error('❌ ERRO NO CATCH - Gerar pagamento:');
+      console.error('- Tipo do erro:', typeof error);
+      console.error('- Erro completo:', error);
+      console.error('- Stack trace:', error instanceof Error ? error.stack : 'N/A');
       
-      let mensagemErro = 'Erro desconhecido';
+      let mensagemErro = 'Erro desconhecido ao processar pagamento';
+      
       if (error instanceof Error) {
         mensagemErro = error.message;
+        console.error('- Error.message:', error.message);
         
-        // Mensagens mais específicas baseadas no erro
-        if (mensagemErro.includes('certificado') || mensagemErro.includes('certificate')) {
+        // Tratamento específico para erros de rede/parsing
+        if (error.message.includes('JSON')) {
+          mensagemErro = 'Erro de comunicação com o servidor. A resposta não está no formato esperado.';
+        } else if (error.message.includes('fetch')) {
+          mensagemErro = 'Erro de conexão com o servidor. Verifique sua internet.';
+        } else if (error.message.includes('certificado') || error.message.includes('certificate')) {
           mensagemErro = 'Erro de certificado EFI. Verifique a configuração dos Secrets.';
-        } else if (mensagemErro.includes('sandbox')) {
-          mensagemErro = 'Erro de configuração do ambiente EFI. Verifique os Secrets.';
-        } else if (mensagemErro.includes('Credenciais EFI Pay inválidas') || mensagemErro.includes('Invalid or inactive credentials')) {
-          mensagemErro = '🔑 Credenciais EFI Pay inválidas ou inativas.\n\n📋 Verifique nos Secrets:\n• EFI_CLIENT_ID\n• EFI_CLIENT_SECRET\n\n💡 As credenciais podem estar incorretas ou sua conta EFI pode estar inativa.';
-        } else if (mensagemErro.includes('401')) {
-          mensagemErro = 'Credenciais EFI inválidas. Verifique CLIENT_ID e CLIENT_SECRET.';
-        } else if (mensagemErro.includes('422')) {
-          mensagemErro = 'Erro nos dados enviados para EFI. Verifique a chave PIX.';
+        } else if (error.message.includes('Credenciais EFI Pay inválidas')) {
+          mensagemErro = '🔑 Credenciais EFI Pay inválidas.\n\nVerifique nos Secrets:\n• EFI_CLIENT_ID\n• EFI_CLIENT_SECRET';
         }
       }
       
-      // Se há dados de resposta da API, mostrar detalhes
-      if (data && data.debug) {
-        console.error('🔍 Debug info:', data.debug);
-        if (data.details) {
-          mensagemErro = data.details;
-        }
-      }
+      console.error('❌ Mensagem final de erro:', mensagemErro);
       
-      alert(`❌ Erro ao gerar pagamento PIX:\n\n${mensagemErro}\n\n💡 Dica: Verifique se todos os Secrets da EFI estão configurados corretamente.`);
+      alert(`❌ Erro ao gerar pagamento PIX:\n\n${mensagemErro}\n\n🔧 Para diagnosticar, verifique o console do navegador (F12) e os logs do servidor.`);
     } finally {
       setProcessandoPagamento(false);
     }

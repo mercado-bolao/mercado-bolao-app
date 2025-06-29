@@ -4,6 +4,8 @@ import fs from 'fs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
+  console.log('📥 Request headers:', JSON.stringify(req.headers, null, 2));
+  console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
 
   try {
     // Definir headers JSON primeiro
@@ -346,16 +348,25 @@ Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
 
     // Garantir que sempre retornamos JSON válido
     try {
-      return res.status(statusCode).json({
+      const errorResponse = {
+        success: false,
         error: 'Erro ao gerar PIX',
         details: mensagemErro,
         suggestion: statusCode === 400 ? 'Configure o certificado EFI nas variáveis de ambiente' : 'Verifique os logs do servidor para mais detalhes',
-        tipo: typeof error,
-        timestamp: new Date().toISOString()
-      });
+        debug: {
+          tipo: typeof error,
+          timestamp: new Date().toISOString(),
+          statusCode: statusCode,
+          hasResponseData: !!(error?.response?.data),
+          errorKeys: error && typeof error === 'object' ? Object.keys(error) : []
+        }
+      };
+      
+      console.log('📤 Enviando resposta de erro:', JSON.stringify(errorResponse, null, 2));
+      return res.status(statusCode).json(errorResponse);
     } catch (jsonError) {
       console.error('❌ Erro ao enviar resposta JSON:', jsonError);
-      res.status(500).send('Erro interno do servidor');
+      res.status(500).json({ error: 'Erro crítico no servidor', details: 'Falha ao processar resposta' });
     }
   }
 }
