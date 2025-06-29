@@ -86,7 +86,7 @@ export default function AdminPanel() {
 
       const response = await fetch(`/api/admin/palpites?${params}`);
       const data = await response.json();
-      
+
       // Garantir que sempre seja um array
       setPalpites(Array.isArray(data) ? data : []);
     } catch (error) {
