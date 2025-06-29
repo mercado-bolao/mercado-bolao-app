@@ -135,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const jogosDisponiveis = await prisma.jogo.count({
         where: {
           concurso: { status: 'ATIVO' },
-          dataHora: { gte: new Date() }
+          horario: { gte: new Date() }
         }
       });
       
