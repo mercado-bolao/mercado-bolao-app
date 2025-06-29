@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -52,7 +51,7 @@ export default function ConcursoDetalhes() {
   const handlePalpiteChange = (jogoId: string, resultado: string) => {
     // Converte X para 0 para manter consistência com a explicação
     const resultadoFinal = resultado === 'X' ? '0' : resultado;
-    
+
     // Adiciona ou atualiza nos palpites pendentes
     setPalpites(prev => ({
       ...prev,
@@ -82,7 +81,7 @@ export default function ConcursoDetalhes() {
 
     // Gera todos os bilhetes completos
     const bilhetes = gerarTodosBilhetes();
-    
+
     if (bilhetes.length === 0) {
       alert("Por favor, faça pelo menos um palpite");
       return;
@@ -118,29 +117,31 @@ export default function ConcursoDetalhes() {
       if (response.ok) {
         // Sucesso total
         console.log('✅ Todos os bilhetes foram salvos com sucesso');
-        
+
+        // Salvar WhatsApp no localStorage para usar na página de finalizar
+        localStorage.setItem('whatsapp', whatsapp);
+
         setSucesso(true);
-        // Limpar tudo após sucesso
+
+        // Limpar formulário após sucesso
         setPalpites({});
         setCarrinho({});
-        setNome("");
-        setWhatsapp("");
-        
-        // Esconder mensagem de sucesso após 5 segundos
-        setTimeout(() => setSucesso(false), 5000);
-        
-        alert(`✅ ${result.detalhes?.bilhetesEnviados || bilhetes.length} bilhete(s) enviado(s) com sucesso!\n\n💰 Valor total: R$ ${(bilhetes.length * 10).toFixed(2)}`);
+
+        // Redirecionar para página de finalizar após breve delay
+        setTimeout(() => {
+          router.push('/finalizar');
+        }, 2000);
       } else {
         // Erro parcial ou total
         console.error('❌ Erro ao enviar bilhetes:', result);
-        
+
         let mensagemErro = "❌ Erro ao processar bilhetes.";
         if (result.detalhes?.mensagensErro && result.detalhes.mensagensErro.length > 0) {
           mensagemErro += `\n\nDetalhes:\n${result.detalhes.mensagensErro.join('\n')}`;
         } else if (result.error) {
           mensagemErro += `\n\nErro: ${result.error}`;
         }
-        
+
         alert(mensagemErro);
       }
 
@@ -156,26 +157,26 @@ export default function ConcursoDetalhes() {
     // Adiciona os palpites atuais ao carrinho (múltiplos palpites por jogo)
     setCarrinho(prev => {
       const newCarrinho = { ...prev };
-      
+
       Object.entries(palpites).forEach(([jogoId, palpite]) => {
         if (!newCarrinho[jogoId]) {
           newCarrinho[jogoId] = [];
         }
-        
+
         // CORREÇÃO: Permite adicionar o mesmo resultado múltiplas vezes
         // Cada adição representa um bilhete diferente
         newCarrinho[jogoId].push(palpite);
       });
-      
+
       return newCarrinho;
     });
-    
+
     // IMPORTANTE: Limpa TODAS as seleções atuais para permitir novos palpites
     setPalpites({});
-    
+
     // Scroll para o topo para ver os jogos e fazer novas seleções
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    
+
     // Feedback visual para o usuário
     console.log('✅ Palpites adicionados ao carrinho e seleções limpas para novos palpites');
   };
@@ -184,16 +185,16 @@ export default function ConcursoDetalhes() {
   const removerPalpiteDoCarrinho = (jogoId: string, indexPalpite: number) => {
     setCarrinho(prev => {
       const newCarrinho = { ...prev };
-      
+
       if (newCarrinho[jogoId]) {
         newCarrinho[jogoId].splice(indexPalpite, 1);
-        
+
         // Remove o jogo completamente se não há mais palpites
         if (newCarrinho[jogoId].length === 0) {
           delete newCarrinho[jogoId];
         }
       }
-      
+
       return newCarrinho;
     });
   };
@@ -201,61 +202,61 @@ export default function ConcursoDetalhes() {
   // NOVA FUNÇÃO: Calcula quantos bilhetes completos existem
   const calcularTotalBilhetes = () => {
     if (!concurso) return 0;
-    
+
     // Conta todos os palpites no carrinho
     const palpitesNoCarrinho = Object.values(carrinho).reduce((total, palpitesJogo) => {
       return total + palpitesJogo.length;
     }, 0);
-    
+
     // Conta palpites pendentes (um por jogo que tem palpite)
     const palpitesPendentes = Object.keys(palpites).length;
-    
+
     // Se há palpites pendentes, conta como 1 bilhete adicional
     const bilhetesCarrinho = Math.ceil(palpitesNoCarrinho / concurso.jogos.length);
     const bilhetesPendentes = palpitesPendentes > 0 ? 1 : 0;
-    
+
     return bilhetesCarrinho + bilhetesPendentes;
   };
 
   // NOVA FUNÇÃO: Gera bilhetes completos
   const gerarTodosBilhetes = () => {
     if (!concurso) return [];
-    
+
     const bilhetes: { [key: string]: string }[] = [];
-    
+
     // 1. Adiciona bilhetes do carrinho (agrupados por posição)
     const maxPalpitesPorJogo = Math.max(
       ...concurso.jogos.map(jogo => carrinho[jogo.id]?.length || 0),
       0
     );
-    
+
     for (let i = 0; i < maxPalpitesPorJogo; i++) {
       const bilhete: { [key: string]: string } = {};
-      
+
       concurso.jogos.forEach(jogo => {
         const palpitesDoJogo = carrinho[jogo.id] || [];
         if (palpitesDoJogo[i]) {
           bilhete[jogo.id] = palpitesDoJogo[i];
         }
       });
-      
+
       // Só adiciona se o bilhete tem pelo menos um palpite
       if (Object.keys(bilhete).length > 0) {
         bilhetes.push(bilhete);
       }
     }
-    
+
     // 2. Adiciona bilhete pendente se existir
     if (Object.keys(palpites).length > 0) {
       const bilhetePendente: { [key: string]: string } = {};
-      
+
       Object.entries(palpites).forEach(([jogoId, palpite]) => {
         bilhetePendente[jogoId] = palpite;
       });
-      
+
       bilhetes.push(bilhetePendente);
     }
-    
+
     return bilhetes;
   };
 
@@ -454,7 +455,7 @@ export default function ConcursoDetalhes() {
                             </span>
                           </div>
                         )}
-                        
+
                         {/* Palpites no carrinho */}
                         {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
                           <div>
@@ -489,7 +490,7 @@ export default function ConcursoDetalhes() {
               <h3 className="text-lg font-semibold text-yellow-800 mb-4">
                 🛒 CARRINHO DE BILHETES COMPLETOS
               </h3>
-              
+
               {/* Tabela de palpites múltiplos */}
               <div className="bg-white rounded-lg p-4 mb-4 overflow-x-auto">
                 <table className="w-full min-w-[600px]">
@@ -511,7 +512,7 @@ export default function ConcursoDetalhes() {
                       if (palpitePendente) {
                         todosPalpites.push(palpitePendente);
                       }
-                      
+
                       return (
                         <tr key={jogo.id} className={`border-b border-gray-100 ${todosPalpites.length > 0 ? 'bg-blue-50' : ''}`}>
                           {/* Nome do jogo */}
@@ -521,7 +522,7 @@ export default function ConcursoDetalhes() {
                               {jogo.mandante} x {jogo.visitante}
                             </div>
                           </td>
-                          
+
                           {/* Palpites por bilhete */}
                           {Array.from({ length: calcularTotalBilhetes() }, (_, bilheteIndex) => (
                             <td key={bilheteIndex} className="py-4 px-2 text-center">
@@ -547,7 +548,7 @@ export default function ConcursoDetalhes() {
                     })}
                   </tbody>
                 </table>
-                
+
                 {/* Mensagem quando não há palpites */}
                 {Object.keys(carrinho).length === 0 && Object.keys(palpites).length === 0 && (
                   <div className="text-center py-8 text-gray-500">
@@ -557,7 +558,7 @@ export default function ConcursoDetalhes() {
                   </div>
                 )}
               </div>
-              
+
               {/* Resumo dos bilhetes */}
               <div className="border-t border-yellow-200 pt-4">
                 <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
@@ -591,7 +592,7 @@ export default function ConcursoDetalhes() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Botões de ação do carrinho */}
               <div className="mt-4 flex gap-3">
                 {Object.keys(palpites).length > 0 && (
@@ -631,7 +632,7 @@ export default function ConcursoDetalhes() {
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">🎯 Finalizar Bilhete</h2>
-              
+
               {/* Dados do usuário */}
               <div className="space-y-4 mb-6">
                 <div>

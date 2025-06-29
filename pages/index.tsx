@@ -352,7 +352,7 @@ function CardConcurso({ concurso }) {
                 </p>
               </div>
             </Link>
-            
+
           </div>
         </div>
       </div>
