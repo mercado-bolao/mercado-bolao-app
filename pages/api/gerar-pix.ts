@@ -211,6 +211,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('QR Code não foi gerado pela EFÍ Pay');
     }
 
+    // Salvar dados do PIX no banco de dados
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
+    try {
+      console.log('💾 Salvando dados do PIX no banco...');
+      
+      const pixSalvo = await prisma.pixPagamento.create({
+        data: {
+          txid: pixResponse.txid,
+          whatsapp: whatsapp,
+          valor: valorTotal,
+          status: 'ATIVA',
+          pixCopiaECola: qrCodeResponse.qrcode,
+          pixLocationUrl: pixResponse.loc?.location,
+          imagemQrcode: qrCodeResponse.imagemQrcode,
+          locationId: locationId.toString(),
+          ambiente: isSandbox ? 'sandbox' : 'producao',
+          expiracao: new Date(Date.now() + 3600000), // 1 hora
+        }
+      });
+
+      console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
+
+      // Associar palpites pendentes a este PIX
+      const palpitesAtualizados = await prisma.palpite.updateMany({
+        where: {
+          whatsapp: whatsapp,
+          status: 'pendente'
+        },
+        data: {
+          pixId: pixSalvo.id
+        }
+      });
+
+      console.log('✅ Palpites associados ao PIX:', palpitesAtualizados.count);
+
+    } catch (dbError) {
+      console.error('❌ Erro ao salvar PIX no banco:', dbError);
+      // Continuar mesmo com erro no banco, pois o PIX foi gerado
+    } finally {
+      await prisma.$disconnect();
+    }
+
     return res.status(200).json({
       success: true,
       pix: {

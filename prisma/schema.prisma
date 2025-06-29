@@ -61,4 +61,23 @@ model Palpite {
   user       User?    @relation(fields: [userId], references: [id])
   userId     String?
   jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
+  pixId      String?  // Relacionamento com PIX
+  pix        PixPagamento? @relation(fields: [pixId], references: [id])
+}
+
+model PixPagamento {
+  id               String   @id @default(uuid())
+  txid             String   @unique
+  whatsapp         String
+  valor            Float
+  status           String   @default("ATIVA") // ATIVA, PAGA, EXPIRADA, CANCELADA
+  pixCopiaECola    String   @db.Text
+  pixLocationUrl   String?
+  imagemQrcode     String?  @db.Text
+  locationId       String?
+  ambiente         String?  // sandbox ou producao
+  expiracao        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  palpites         Palpite[]
 }

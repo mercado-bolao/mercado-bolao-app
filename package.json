@@ -15,10 +15,12 @@
     "@tailwindcss/postcss": "^4.1.11",
     "@tailwindcss/typography": "^0.5.16",
     "@types/formidable": "^3.4.5",
+    "@types/qrcode.react": "^1.0.5",
     "formidable": "^3.5.4",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
     "next": "latest",
+    "qrcode.react": "^4.2.0",
     "react": "latest",
     "react-dom": "latest",
     "sdk-node-apis-efi": "^1.2.24"

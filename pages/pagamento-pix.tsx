@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import QRCode from 'qrcode.react';
 
 interface PixData {
   txid: string;
@@ -18,6 +19,28 @@ export default function PagamentoPix() {
   const [whatsapp, setWhatsapp] = useState('');
   const [copiado, setCopiado] = useState(false);
   const [tempoRestante, setTempoRestante] = useState<string>('');
+  const [statusPix, setStatusPix] = useState<string>('ATIVA');
+
+  // Função para verificar status do PIX
+  const verificarStatusPix = async () => {
+    if (!pixData?.txid) return;
+
+    try {
+      const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
+      const data = await response.json();
+      
+      if (data.success && data.pix) {
+        setStatusPix(data.pix.status);
+        
+        if (data.pix.status === 'PAGA') {
+          // PIX foi pago, redirecionar ou mostrar sucesso
+          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status:', error);
+    }
+  };
 
   useEffect(() => {
     // Recuperar dados do PIX do localStorage
@@ -33,7 +56,7 @@ export default function PagamentoPix() {
     setPixData(pix);
     setWhatsapp(whatsappStorage);
 
-    // Timer para expiração
+    // Timer para expiração e verificação de status
     const interval = setInterval(() => {
       const agora = new Date().getTime();
       const expiracao = new Date(pix.expiracao).getTime();
@@ -45,11 +68,18 @@ export default function PagamentoPix() {
         setTempoRestante(`${minutos}:${segundos.toString().padStart(2, '0')}`);
       } else {
         setTempoRestante('Expirado');
+        setStatusPix('EXPIRADA');
         clearInterval(interval);
       }
     }, 1000);
 
-    return () => clearInterval(interval);
+    // Verificar status do PIX a cada 30 segundos
+    const statusInterval = setInterval(verificarStatusPix, 30000);
+
+    return () => {
+      clearInterval(interval);
+      clearInterval(statusInterval);
+    };
   }, [router]);
 
   const copiarPix = async () => {
@@ -103,6 +133,39 @@ export default function PagamentoPix() {
             <span className="text-4xl">💰</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">PIX Gerado com Sucesso!</h2>
+          
+          {/* Status do PIX */}
+          <div className={`rounded-lg p-3 mb-4 border ${
+            statusPix === 'ATIVA' ? 'bg-blue-100 border-blue-400' :
+            statusPix === 'PAGA' ? 'bg-green-100 border-green-400' :
+            statusPix === 'EXPIRADA' ? 'bg-red-100 border-red-400' :
+            'bg-gray-100 border-gray-400'
+          }`}>
+            <p className={`text-sm font-semibold ${
+              statusPix === 'ATIVA' ? 'text-blue-800' :
+              statusPix === 'PAGA' ? 'text-green-800' :
+              statusPix === 'EXPIRADA' ? 'text-red-800' :
+              'text-gray-800'
+            }`}>
+              {statusPix === 'ATIVA' ? '🟢 PIX ATIVO' :
+               statusPix === 'PAGA' ? '✅ PIX PAGO' :
+               statusPix === 'EXPIRADA' ? '🔴 PIX EXPIRADO' :
+               '⚪ STATUS DESCONHECIDO'}
+            </p>
+            <p className={`text-xs ${
+              statusPix === 'ATIVA' ? 'text-blue-700' :
+              statusPix === 'PAGA' ? 'text-green-700' :
+              statusPix === 'EXPIRADA' ? 'text-red-700' :
+              'text-gray-700'
+            }`}>
+              {statusPix === 'ATIVA' ? `Aguardando pagamento • Expira em ${tempoRestante}` :
+               statusPix === 'PAGA' ? 'Pagamento confirmado com sucesso!' :
+               statusPix === 'EXPIRADA' ? 'Este PIX expirou. Gere um novo pagamento.' :
+               'Status não identificado'}
+            </p>
+          </div>
+
+          {/* Ambiente */}
           {pixData?.ambiente === 'sandbox' ? (
             <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-3 mb-4">
               <p className="text-yellow-800 text-sm font-semibold">🧪 AMBIENTE SANDBOX</p>
@@ -126,39 +189,63 @@ export default function PagamentoPix() {
 
         {/* QR Code */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">QR Code PIX</h3>
+          <h3 className="text-lg font-semibold text-gray-800 mb-4 text-center">📱 QR Code PIX</h3>
           <div className="flex justify-center mb-4">
-            <div className="bg-white p-4 rounded-lg border-2 border-gray-200">
-              <img 
-                src={`data:image/png;base64,${pixData.imagemQrcode}`}
-                alt="QR Code PIX"
-                className="w-64 h-64"
-              />
+            <div className="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-inner">
+              {pixData.imagemQrcode ? (
+                <img 
+                  src={`data:image/png;base64,${pixData.imagemQrcode}`}
+                  alt="QR Code PIX"
+                  className="w-64 h-64"
+                />
+              ) : (
+                <QRCode 
+                  value={pixData.qrcode}
+                  size={256}
+                  bgColor="#ffffff"
+                  fgColor="#000000"
+                  level="M"
+                  includeMargin={true}
+                />
+              )}
             </div>
           </div>
           <p className="text-center text-gray-600 text-sm">
-            Abra o app do seu banco e escaneie o QR Code acima
+            📲 Abra o app do seu banco e escaneie o QR Code acima
           </p>
         </div>
 
-        {/* Código PIX */}
+        {/* Código PIX Copia e Cola */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">Código PIX Copia e Cola</h3>
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <div className="text-xs text-gray-600 font-mono break-all">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">📋 Código PIX Copia e Cola</h3>
+          <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 mb-4 border border-gray-200">
+            <div className="text-xs text-gray-700 font-mono break-all leading-relaxed max-h-32 overflow-y-auto">
               {pixData.qrcode}
             </div>
           </div>
-          <button
-            onClick={copiarPix}
-            className={`w-full py-3 px-4 rounded-lg font-semibold transition-all ${
-              copiado
-                ? 'bg-green-600 text-white'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {copiado ? '✅ Código Copiado!' : '📋 Copiar Código PIX'}
-          </button>
+          <div className="flex space-x-3">
+            <button
+              onClick={copiarPix}
+              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 ${
+                copiado
+                  ? 'bg-green-600 text-white shadow-lg'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+              }`}
+            >
+              {copiado ? '✅ Código Copiado!' : '📋 Copiar Código PIX'}
+            </button>
+            <button
+              onClick={() => {
+                const texto = `💰 *PIX GERADO* - Bolão TVLoteca\n\n🔢 *Valor:* R$ ${pixData.valor.toFixed(2)}\n📱 *WhatsApp:* ${whatsapp}\n🆔 *TXID:* ${pixData.txid}\n\n📋 *Código PIX:*\n${pixData.qrcode}\n\n⏰ *Válido até:* ${new Date(pixData.expiracao).toLocaleString('pt-BR')}`;
+                navigator.clipboard.writeText(texto);
+                alert('📱 Dados completos copiados para compartilhar!');
+              }}
+              className="px-4 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold transition-all transform hover:scale-105 shadow-lg"
+              title="Copiar dados completos para WhatsApp"
+            >
+              📱
+            </button>
+          </div>
         </div>
 
         {/* Instruções */}
