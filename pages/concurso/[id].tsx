@@ -51,10 +51,21 @@ export default function ConcursoDetalhes() {
   const handlePalpiteChange = (jogoId: string, resultado: string) => {
     // Converte X para 0 para manter consistência com a explicação
     const resultadoFinal = resultado === 'X' ? '0' : resultado;
-    setPalpites(prev => ({
-      ...prev,
-      [jogoId]: resultadoFinal
-    }));
+    
+    // Verifica se o jogo já está no carrinho
+    if (carrinho[jogoId]) {
+      // Se já está no carrinho, atualiza diretamente no carrinho
+      setCarrinho(prev => ({
+        ...prev,
+        [jogoId]: resultadoFinal
+      }));
+    } else {
+      // Se não está no carrinho, adiciona aos palpites pendentes
+      setPalpites(prev => ({
+        ...prev,
+        [jogoId]: resultadoFinal
+      }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
