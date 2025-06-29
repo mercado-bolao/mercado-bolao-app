@@ -47,55 +47,7 @@ export default function PagamentoPix() {
   const [tempoRestante, setTempoRestante] = useState<string>('');
   const [statusPix, setStatusPix] = useState<string>('ATIVA');
 
-  // Função para verificar status do bilhete
-  const verificarStatusPix = async () => {
-    const bilheteData = localStorage.getItem('bilheteData');
-    if (!bilheteData) return;
-
-    const bilhete = JSON.parse(bilheteData);
-
-    try {
-      const response = await fetch(`/api/consultar-bilhete?bilheteId=${bilhete.id}`);
-      const data = await response.json();
-
-      if (data.success && data.bilhete) {
-        setStatusPix(data.bilhete.status);
-
-        if (data.bilhete.status === 'PAGO') {
-          // Pagamento confirmado
-          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
-          localStorage.removeItem('bilheteData');
-          localStorage.removeItem('pixData');
-          router.push('/');
-        } else if (data.bilhete.status === 'CANCELADO') {
-          // Bilhete cancelado/expirado
-          setStatusPix('EXPIRADA');
-          alert('⏰ O tempo para pagamento expirou. Gere um novo PIX.');
-          localStorage.removeItem('bilheteData');
-          localStorage.removeItem('pixData');
-          router.push('/finalizar');
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar status:', error);
-    }
-
-    try {
-      const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
-      const data = await response.json();
-
-      if (data.success && data.pix) {
-        setStatusPix(data.pix.status);
-
-        if (data.pix.status === 'PAGA') {
-          // PIX foi pago, redirecionar ou mostrar sucesso
-          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar status:', error);
-    }
-  };
+  
 
   const verificarStatus = async () => {
     const bilheteDataStorage = localStorage.getItem('bilheteData');
@@ -175,7 +127,7 @@ export default function PagamentoPix() {
     }, 1000);
 
     // Verificar status do PIX a cada 30 segundos
-    const statusInterval = setInterval(verificarStatusPix, 30000);
+    const statusInterval = setInterval(verificarStatus, 30000);
 
     return () => {
       clearInterval(interval);
