@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -16,7 +15,7 @@ interface PixData {
 // Componente QR Code personalizado
 function QRCodeCanvas({ value }: { value: string }) {
   const canvasRef = useState<HTMLCanvasElement | null>(null);
-  
+
   useEffect(() => {
     if (canvasRef[0] && value) {
       QRCode.toCanvas(canvasRef[0], value, {
@@ -54,14 +53,14 @@ export default function PagamentoPix() {
     if (!bilheteData) return;
 
     const bilhete = JSON.parse(bilheteData);
-    
+
     try {
       const response = await fetch(`/api/consultar-bilhete?bilheteId=${bilhete.id}`);
       const data = await response.json();
-      
+
       if (data.success && data.bilhete) {
         setStatusPix(data.bilhete.status);
-        
+
         if (data.bilhete.status === 'PAGO') {
           // Pagamento confirmado
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
@@ -84,10 +83,10 @@ export default function PagamentoPix() {
     try {
       const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
       const data = await response.json();
-      
+
       if (data.success && data.pix) {
         setStatusPix(data.pix.status);
-        
+
         if (data.pix.status === 'PAGA') {
           // PIX foi pago, redirecionar ou mostrar sucesso
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
@@ -95,6 +94,44 @@ export default function PagamentoPix() {
       }
     } catch (error) {
       console.error('Erro ao verificar status:', error);
+    }
+  };
+
+  const verificarStatus = async () => {
+    const bilheteData = localStorage.getItem('bilheteData');
+    const pixData = localStorage.getItem('pixData');
+    if (!bilheteData || !pixData) return;
+
+    const bilhete = JSON.parse(bilheteData);
+
+    try {
+      console.log('🔍 Verificando status do pagamento...');
+      const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilhete.id}`);
+      const data = await response.json();
+
+      if (data.success) {
+        console.log('📋 Status atual:', data.status);
+        setStatusPix(data.status);
+
+        if (data.status === 'PAGO') {
+          // Pagamento confirmado
+          console.log('✅ Pagamento confirmado!');
+          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
+          localStorage.removeItem('bilheteData');
+          localStorage.removeItem('pixData');
+          router.push('/');
+        } else if (data.status === 'EXPIRADO' || data.status === 'CANCELADO') {
+          // Bilhete cancelado/expirado
+          console.log('⏰ PIX expirado');
+          setStatusPix('EXPIRADA');
+          alert('⏰ O tempo para pagamento expirou. Gere um novo PIX.');
+          localStorage.removeItem('bilheteData');
+          localStorage.removeItem('pixData');
+          router.push('/finalizar');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Erro ao verificar status:', error);
     }
   };
 
@@ -110,7 +147,7 @@ export default function PagamentoPix() {
 
     const bilhete = JSON.parse(bilheteDataStorage);
     const pix = JSON.parse(pixDataStorage);
-    
+
     setPixData(pix);
     setWhatsapp(bilhete.whatsapp || pix.whatsapp);
 
@@ -139,6 +176,15 @@ export default function PagamentoPix() {
       clearInterval(statusInterval);
     };
   }, [router]);
+
+  useEffect(() => {
+    // Verificar imediatamente ao carregar
+    verificarStatus();
+
+    // Depois verificar a cada 10 segundos
+    const interval = setInterval(verificarStatus, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const copiarPix = async () => {
     if (pixData?.qrcode) {
@@ -191,7 +237,7 @@ export default function PagamentoPix() {
             <span className="text-4xl">💰</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">PIX Gerado com Sucesso!</h2>
-          
+
           {/* Status do PIX */}
           <div className={`rounded-lg p-3 mb-4 border ${
             statusPix === 'ATIVA' ? 'bg-blue-100 border-blue-400' :
@@ -309,7 +355,7 @@ export default function PagamentoPix() {
             <li><strong>4.</strong> Confirme o pagamento de R$ {pixData.valor.toFixed(2)}</li>
             <li><strong>5.</strong> Após o pagamento, você receberá a confirmação via WhatsApp</li>
           </ol>
-          
+
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-yellow-800 text-sm">
               <strong>⚠️ Importante:</strong> O PIX expira em 1 hora. Após o vencimento, será necessário gerar um novo pagamento.

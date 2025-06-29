@@ -242,7 +242,7 @@ export default function BilhetesAdmin() {
 
   const verificarEfi = async (bilheteId: string) => {
     try {
-      const response = await fetch(`/api/admin/verificar-status-efi-v2?bilheteId=${bilheteId}`);
+      const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilheteId}`);
       const data = await response.json();
 
       if (data.success) {
