@@ -51,8 +51,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    // Calcular valor total (R$ 10,00 por palpite)
-    const valorTotal = palpites.length * 10.0;
+    // Calcular valor total (R$ 1,00 por palpite)
+    const valorTotal = palpites.length * 1.0;
     
     // Data de expiração: 5 minutos a partir de agora
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
