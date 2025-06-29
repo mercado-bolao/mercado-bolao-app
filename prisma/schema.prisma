@@ -28,6 +28,7 @@ model Concurso {
   fechamentoPalpites    DateTime? // Data/hora limite para apostas
   jogos                 Jogo[]
   palpites              Palpite[] // <- relação reversa com Palpite
+  bilhetes              Bilhete[] // <- relação reversa com Bilhete
 }
 
 model Jogo {
@@ -84,17 +85,23 @@ model PixPagamento {
 }
 
 model Bilhete {
-  id         String   @id @default(uuid())
-  whatsapp   String
-  valor      Float
-  status     String   @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
-  txid       String?
-  orderId    String?
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  palpites   Palpite[]
-  pix        PixPagamento? @relation(fields: [txid], references: [txid])
+  id                  String   @id @default(uuid())
+  whatsapp            String
+  nome                String
+  valorTotal          Float
+  quantidadePalpites  Int
+  status              String   @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
+  txid                String?
+  orderId             String?
+  expiresAt           DateTime
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  ipAddress           String?
+  userAgent           String?
+  concursoId          String
+  concurso            Concurso @relation(fields: [concursoId], references: [id])
+  palpites            Palpite[]
+  pix                 PixPagamento? @relation(fields: [txid], references: [txid])
 }
 
 model WebhookLog {
