@@ -486,13 +486,24 @@ export default function ConcursoDetalhes() {
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-yellow-800">Total de Bilhetes:</span>
                   <span className="font-bold text-yellow-900">
-                    {Math.ceil((Object.keys(carrinho).length + Object.keys(palpites).length) / concurso.jogos.length) || 1}
+                    {(() => {
+                      const totalPalpites = Object.keys(carrinho).length + Object.keys(palpites).length;
+                      const bilhetesCompletos = Math.floor(totalPalpites / concurso.jogos.length);
+                      const palpitesIncompletos = totalPalpites % concurso.jogos.length;
+                      // Se tem palpites incompletos, conta como mais um bilhete
+                      return bilhetesCompletos + (palpitesIncompletos > 0 ? 1 : 0) || 1;
+                    })()}
                   </span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="font-semibold text-yellow-800">Valor Total:</span>
                   <span className="font-bold text-yellow-900 text-lg">
-                    R$ {((Math.ceil((Object.keys(carrinho).length + Object.keys(palpites).length) / concurso.jogos.length) || 1) * 10).toFixed(2)}
+                    R$ {((() => {
+                      const totalPalpites = Object.keys(carrinho).length + Object.keys(palpites).length;
+                      const bilhetesCompletos = Math.floor(totalPalpites / concurso.jogos.length);
+                      const palpitesIncompletos = totalPalpites % concurso.jogos.length;
+                      return bilhetesCompletos + (palpitesIncompletos > 0 ? 1 : 0) || 1;
+                    })() * 10).toFixed(2)}
                   </span>
                 </div>
               </div>
