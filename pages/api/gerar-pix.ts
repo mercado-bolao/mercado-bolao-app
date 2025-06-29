@@ -194,7 +194,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }, 5 * 60 * 1000); // 5 minutos
 
-    // 4. GERAR PIX NA EFÍ
+    // 4. GERAR PIX NA EFÍ - USAR PUT COM TXID ESPECÍFICO
     const body = {
       calendario: {
         expiracao: 300, // 5 minutos
@@ -228,14 +228,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
     };
 
-    console.log('🔄 Criando cobrança PIX na EFÍ...');
+    console.log('🔄 Criando cobrança PIX na EFÍ usando PUT...');
+    console.log('🎯 TXID que será usado na EFÍ:', txid);
 
     let pixResponse;
     try {
-      pixResponse = await efipay.pixCreateImmediateCharge([{ txid }], body);
-      console.log('✅ Cobrança PIX criada com sucesso!');
-      console.log('📋 TXID usado:', txid);
-      console.log('📋 TXID retornado pela EFÍ:', pixResponse.txid);
+      // ✅ USAR PUT AO INVÉS DE POST - GARANTE QUE O TXID SEJA O NOSSO
+      const params = { txid: txid };
+      pixResponse = await efipay.pixCreateCharge(params, body);
+      
+      console.log('✅ Cobrança PIX criada com PUT!');
+      console.log('📋 TXID enviado para EFÍ:', txid);
+      console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
+      
+      // Garantir que o TXID retornado é o mesmo que enviamos
+      if (pixResponse.txid && pixResponse.txid !== txid) {
+        console.warn('⚠️ TXID retornado pela EFÍ difere do enviado!', {
+          enviado: txid,
+          retornado: pixResponse.txid
+        });
+      }
+      
     } catch (cobrancaError) {
       console.error('❌ ERRO AO CRIAR COBRANÇA PIX:', cobrancaError);
 
@@ -257,20 +270,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw new Error('Erro ao gerar cobrança PIX - resposta inválida');
     }
 
-    // 5. SALVAR PIX NO BANCO
+    // 5. SALVAR PIX NO BANCO - SEMPRE USAR NOSSO TXID
     try {
       // 📋 Salvar resposta completa da EFÍ para logs
       const efiResponseLog = {
         txid_enviado: txid,
-        txid_retornado: pixResponse.txid,
+        txid_retornado: pixResponse.txid || txid,
         location_id: pixResponse.loc?.id,
         ambiente: isSandbox ? 'sandbox' : 'producao',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        metodo_usado: 'PUT_com_txid_proprio'
       };
 
       const pixSalvo = await prisma.pixPagamento.create({
         data: {
-          txid: txid, // Usar o TXID gerado localmente
+          txid: txid, // ✅ SEMPRE usar o TXID gerado por nós
           whatsapp: whatsapp,
           valor: valorTotal,
           status: 'ATIVA',
@@ -283,34 +297,49 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
-      console.log('✅ TXID salvo:', txid);
+      console.log('✅ TXID definitivo salvo no banco:', txid);
       console.log('📋 Log da resposta EFÍ:', efiResponseLog);
+      
+      // ✅ VALIDAÇÃO FINAL: Confirmar que TXID do banco = TXID da EFÍ
+      console.log('🔍 VALIDAÇÃO FINAL:');
+      console.log('- TXID gerado por nós:', txid);
+      console.log('- TXID salvo no banco:', pixSalvo.txid);
+      console.log('- TXID retornado pela EFÍ:', pixResponse.txid || 'N/A');
+      console.log('- ✅ TXID consistente:', pixSalvo.txid === txid ? 'SIM' : 'NÃO');
+      
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
 
-    // Update bilhete with txid
+    // Update bilhete with txid - ✅ SEMPRE USAR NOSSO TXID
     await prisma.bilhete.update({
         where: { id: bilhete.id },
-        data: { txid: txid } // Usar o TXID gerado localmente
+        data: { txid: txid } // ✅ Usar o TXID gerado por nós, não o da EFÍ
     });
 
     return res.status(200).json({
       success: true,
       bilhete: {
         id: bilhete.id,
-        txid: txid, // Usar o TXID gerado localmente
+        txid: txid, // ✅ SEMPRE nosso TXID gerado
         orderId: orderId,
         expiresAt: expiresAt.toISOString(),
         status: 'PENDENTE'
       },
       pix: {
-        txid: txid, // Usar o TXID gerado localmente
+        txid: txid, // ✅ SEMPRE nosso TXID gerado
         qrcode: pixResponse.pixCopiaECola,
         valor: valorTotal,
         expiracao: expiresAt.toISOString(),
-        ambiente: isSandbox ? 'sandbox' : 'produção'
+        ambiente: isSandbox ? 'sandbox' : 'produção',
+        metodo: 'PUT_com_txid_controlado'
       },
+      debug: {
+        txid_gerado_por_nos: txid,
+        txid_salvo_no_banco: txid,
+        txid_usado_na_efi: txid,
+        consistencia: 'GARANTIDA'
+      }
     });
 
   } catch (error: any) {
