@@ -148,14 +148,18 @@ export default function BilhetesAdmin() {
         })
       });
 
-      const data = await response.json();
+      if (response.ok) {
+        const data = await response.json();
 
-      if (data.success) {
-        alert('✅ Bilhete marcado como PAGO com sucesso!');
-        setSenhaAdmin('');
-        await buscarBilhetes();
+        if (data.success) {
+          alert('✅ Bilhete marcado como PAGO com sucesso!');
+          setSenhaAdmin('');
+          await buscarBilhetes();
+        } else {
+          alert(`❌ Erro: ${data.error}`);
+        }
       } else {
-        alert(`❌ Erro: ${data.error}`);
+        alert('Erro ao marcar como pago');
       }
     } catch (error) {
       console.error('Erro ao marcar como pago:', error);
@@ -242,7 +246,7 @@ export default function BilhetesAdmin() {
 
   const verificarEfi = async (bilheteId: string) => {
     setVerificandoStatus(bilheteId);
-    
+
     try {
       const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilheteId}`);
       const data = await response.json();

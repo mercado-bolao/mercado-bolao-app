@@ -100,7 +100,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const txid = generateValidTxid();
 
+    // 🔒 VALIDAÇÃO: Verificar se TXID está no formato correto
+    const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+    if (!txidPattern.test(txid)) {
+      console.error('❌ TXID gerado está inválido:', txid);
+      throw new Error(`TXID inválido gerado: ${txid}`);
+    }
+
     console.log('🔑 IDs gerados:', { orderId, txid, txidLength: txid.length });
+    console.log('✅ TXID validado com sucesso:', {
+      txid: txid,
+      comprimento: txid.length,
+      formato: 'alfanumérico 26-35 chars',
+      valido: txidPattern.test(txid)
+    });
 
     // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
@@ -249,6 +262,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 5. SALVAR PIX NO BANCO
     try {
+      // 📋 Salvar resposta completa da EFÍ para logs
+      const efiResponseLog = {
+        txid_enviado: txid,
+        txid_retornado: pixResponse.txid,
+        location_id: pixResponse.loc?.id,
+        ambiente: isSandbox ? 'sandbox' : 'producao',
+        timestamp: new Date().toISOString()
+      };
+
       const pixSalvo = await prisma.pixPagamento.create({
         data: {
           txid: txid, // Usar o TXID gerado localmente
@@ -265,6 +287,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
       console.log('✅ TXID salvo:', txid);
+      console.log('📋 Log da resposta EFÍ:', efiResponseLog);
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
