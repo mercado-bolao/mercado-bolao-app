@@ -78,7 +78,7 @@ export default function PagamentoPix() {
       }
     } catch (error) {
       console.error('Erro ao verificar status:', error);
-    }n;
+    }
 
     try {
       const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
