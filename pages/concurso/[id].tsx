@@ -812,6 +812,39 @@ export default function ConcursoDetalhes() {
                 </div>
               </div>
 
+              {/* Campos obrigatórios para pagamento */}
+              <div className="mt-6 space-y-4 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-3">📝 Dados obrigatórios para pagamento</h4>
+                
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-2">
+                    Nome completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500"
+                    placeholder="Digite seu nome completo"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-blue-700 mb-2">
+                    WhatsApp *
+                  </label>
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500"
+                    placeholder="(11) 99999-9999"
+                    required
+                  />
+                </div>
+              </div>
+
               {/* Botões de ação do carrinho */}
               <div className="mt-4 flex gap-2">
                 {Object.keys(palpites).length > 0 && (
@@ -835,7 +868,10 @@ export default function ConcursoDetalhes() {
                     🗑️
                   </button>
                 )}
+              </div>
 
+              {/* Botão principal de gerar pagamento */}
+              <div className="mt-4">
                 <button
                   onClick={handleGerarPagamento}
                   disabled={!canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento}
@@ -861,77 +897,7 @@ export default function ConcursoDetalhes() {
             </div>
           )}
 
-          {/* Finalização do Bilhete */}
-          {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
-            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6">
-              <h2 className="text-xl font-semibold text-gray-800 mb-4">🎯 Finalizar Bilhete</h2>
-
-              {/* Dados do usuário */}
-              <div className="space-y-4 mb-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome completo
-                  </label>
-                  <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
-                    placeholder="Digite seu nome completo"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Botões de ação */}
-              <div className="flex gap-4">
-                <button
-                  type="button"
-                  onClick={limparApostas}
-                  className="flex-1 py-4 px-6 bg-gray-500 text-white rounded-xl font-semibold text-lg hover:bg-gray-600 transition-colors"
-                >
-                  🗑️ LIMPAR CARRINHO
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={enviando}
-                  className="flex-1 py-4 px-6 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                >
-                  {enviando ? "SALVANDO..." : "✅ FINALIZAR BILHETE"}
-                </button>
-              </div>
-
-              {/* Mensagem de sucesso */}
-              {sucesso && (
-                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mt-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <span className="text-2xl">✅</span>
-                    </div>
-                    <div className="ml-3">
-                      <p className="font-semibold">Bilhete salvo como pendente!</p>
-                      <p className="text-sm">Seus palpites foram registrados e estão aguardando pagamento.</p>
-                      <p className="text-sm font-medium mt-1">💰 Valor do bilhete: R$ 10,00</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </form>
-          )}
+          
         </div>
 
         {/* Dica */}
