@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       data: {
         whatsapp: whatsapp,
         nome: nomeUsuario,
-        valor: valorTotal,
+        valorTotal: valorTotal,
         status: 'PENDENTE',
         orderId: orderId,
         expiresAt: expiresAt,
