@@ -232,21 +232,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Salvar dados do PIX no banco de dados
-    const { PrismaClient } = require('@prisma/client');
-    
-    // Usar singleton pattern para Prisma
-    const globalForPrisma = globalThis as unknown as {
-      prisma: PrismaClient | undefined
-    }
-    
-    const prisma = globalForPrisma.prisma ?? new PrismaClient()
-    
-    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+    const { prisma } = require('../../../lib/prisma');
+
+    let pixSalvo = null;
 
     try {
       console.log('💾 Salvando dados do PIX no banco...');
 
-      const pixSalvo = await prisma.pixPagamento.create({
+      pixSalvo = await prisma.pixPagamento.create({
         data: {
           txid: pixResponse.txid,
           whatsapp: whatsapp,
@@ -288,8 +281,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
       // Continuar mesmo com erro no banco, pois o PIX foi gerado
-    } finally {
-      await prisma.$disconnect();
     }
 
     return res.status(200).json({

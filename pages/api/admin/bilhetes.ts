@@ -1,15 +1,6 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-
-// Usar singleton pattern para Prisma em desenvolvimento
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined
-}
-
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+import { prisma } from '../../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -48,7 +39,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Erro ao buscar bilhetes',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
