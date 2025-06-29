@@ -1,6 +1,6 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import EfiPay from 'sdk-typescript-efipay';
+import EfiPay from 'sdk-node-efi';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       valor: {
         original: valorTotal.toFixed(2),
       },
-      chave: process.env.EFI_PIX_KEY || process.env.EFI_CLIENT_ID, // Usar sua chave PIX aqui
+      chave: process.env.EFI_PIX_KEY,
       solicitacaoPagador: `Pagamento de ${totalBilhetes} bilhete(s) - Bolão TVLoteca`,
       infoAdicionais: [
         {
