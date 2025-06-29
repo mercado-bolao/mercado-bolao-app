@@ -38,6 +38,7 @@ export default function ConcursoDetalhes() {
   const [isLoading, setIsLoading] = useState(false);
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
   const [canSubmit, setCanSubmit] = useState(false);
+  const [mostrarCarrinho, setMostrarCarrinho] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -783,71 +784,7 @@ export default function ConcursoDetalhes() {
             </div>
           )}
 
-          {/* Carrinho detalhado - separado e mais compacto */}
-          {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
-            <div className="bg-yellow-50 rounded-lg border border-yellow-200 p-3">
-              <h3 className="text-sm font-semibold text-yellow-800 mb-2 flex items-center">
-                🛒 Detalhes do Carrinho ({calcularTotalBilhetes()} bilhetes)
-              </h3>
-
-              {/* Tabela compacta de palpites */}
-              <div className="bg-white rounded-lg border p-2 overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-100">
-                      <th className="text-left py-1 px-1 font-medium text-gray-600">Jogo</th>
-                      {Array.from({ length: calcularTotalBilhetes() }, (_, i) => (
-                        <th key={i} className="text-center py-1 px-1 font-medium text-gray-600">
-                          B{i + 1}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {concurso.jogos.map((jogo, index) => {
-                      const palpitesCarrinho = carrinho[jogo.id] || [];
-                      const palpitePendente = palpites[jogo.id];
-                      const todosPalpites = [...palpitesCarrinho];
-                      if (palpitePendente) {
-                        todosPalpites.push(palpitePendente);
-                      }
-
-                      return (
-                        <tr key={jogo.id} className="border-b border-gray-50 last:border-b-0">
-                          <td className="py-1 px-1">
-                            <div className="text-xs text-gray-500">#{index + 1}</div>
-                            <div className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
-                              {jogo.mandante.substring(0, 3)} x {jogo.visitante.substring(0, 3)}
-                            </div>
-                          </td>
-
-                          {Array.from({ length: calcularTotalBilhetes() }, (_, bilheteIndex) => (
-                            <td key={bilheteIndex} className="py-1 px-1 text-center">
-                              {todosPalpites[bilheteIndex] ? (
-                                <div className={`w-5 h-5 rounded flex items-center justify-center font-bold text-xs mx-auto ${
-                                  palpitesCarrinho.includes(todosPalpites[bilheteIndex]) || bilheteIndex < palpitesCarrinho.length
-                                    ? (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-500 text-white' :
-                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-500 text-white' :
-                                       'bg-red-500 text-white')
-                                    : (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-100 border border-blue-300 text-blue-700' :
-                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-100 border border-gray-300 text-gray-700' :
-                                       'bg-red-100 border border-red-300 text-red-700')
-                                }`}>
-                                  {todosPalpites[bilheteIndex] === '0' ? 'X' : todosPalpites[bilheteIndex]}
-                                </div>
-                              ) : (
-                                <span className="text-gray-300 text-xs">-</span>
-                              )}
-                            </td>
-                          ))}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
+          
 
         </div>
 
@@ -944,6 +881,193 @@ export default function ConcursoDetalhes() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Botão fixo do carrinho - aparece quando há palpites */}
+      {!palpitesEncerrados && calcularTotalBilhetes() > 0 && (
+        <button
+          onClick={() => setMostrarCarrinho(true)}
+          className="fixed bottom-5 right-5 bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-4 py-3 rounded-lg shadow-lg z-40 flex items-center space-x-2 transition-all transform hover:scale-105"
+        >
+          <span>🛒</span>
+          <span>Carrinho ({calcularTotalBilhetes()})</span>
+        </button>
+      )}
+
+      {/* Popout lateral do carrinho */}
+      {mostrarCarrinho && (
+        <>
+          {/* Overlay para fechar clicando fora */}
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setMostrarCarrinho(false)}
+          ></div>
+
+          {/* Popout lateral */}
+          <div className="fixed right-0 top-0 h-full w-80 bg-white shadow-xl border-l z-50 overflow-y-auto">
+            <div className="p-4">
+              {/* Header do carrinho */}
+              <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200">
+                <h2 className="font-bold text-lg text-gray-800">
+                  🛒 Carrinho ({calcularTotalBilhetes()} bilhetes)
+                </h2>
+                <button
+                  onClick={() => setMostrarCarrinho(false)}
+                  className="text-gray-500 hover:text-gray-700 text-xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100"
+                >
+                  ×
+                </button>
+              </div>
+
+              {/* Campos de dados */}
+              <div className="mb-4">
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Nome completo</label>
+                  <input
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    placeholder="Digite seu nome completo"
+                    required
+                  />
+                </div>
+                
+                <div className="mb-3">
+                  <label className="block text-xs font-medium text-gray-700 mb-1">WhatsApp</label>
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                    placeholder="(11) 99999-9999"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Tabela detalhada de palpites */}
+              <div className="bg-gray-50 rounded-lg border p-3 mb-4">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Detalhes dos Bilhetes</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-2 px-1 font-medium text-gray-600">Jogo</th>
+                        {Array.from({ length: calcularTotalBilhetes() }, (_, i) => (
+                          <th key={i} className="text-center py-2 px-1 font-medium text-gray-600">
+                            B{i + 1}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {concurso.jogos.map((jogo, index) => {
+                        const palpitesCarrinho = carrinho[jogo.id] || [];
+                        const palpitePendente = palpites[jogo.id];
+                        const todosPalpites = [...palpitesCarrinho];
+                        if (palpitePendente) {
+                          todosPalpites.push(palpitePendente);
+                        }
+
+                        return (
+                          <tr key={jogo.id} className="border-b border-gray-100 last:border-b-0">
+                            <td className="py-2 px-1">
+                              <div className="text-xs text-gray-500">#{index + 1}</div>
+                              <div className="text-xs font-medium text-gray-700">
+                                {jogo.mandante.substring(0, 3)} x {jogo.visitante.substring(0, 3)}
+                              </div>
+                            </td>
+
+                            {Array.from({ length: calcularTotalBilhetes() }, (_, bilheteIndex) => (
+                              <td key={bilheteIndex} className="py-2 px-1 text-center">
+                                {todosPalpites[bilheteIndex] ? (
+                                  <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs mx-auto ${
+                                    palpitesCarrinho.includes(todosPalpites[bilheteIndex]) || bilheteIndex < palpitesCarrinho.length
+                                      ? (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-500 text-white' :
+                                         (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-500 text-white' :
+                                         'bg-red-500 text-white')
+                                      : (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-100 border border-blue-300 text-blue-700' :
+                                         (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-100 border border-gray-300 text-gray-700' :
+                                         'bg-red-100 border border-red-300 text-red-700')
+                                  }`}>
+                                    {todosPalpites[bilheteIndex] === '0' ? 'X' : todosPalpites[bilheteIndex]}
+                                  </div>
+                                ) : (
+                                  <span className="text-gray-300 text-xs">-</span>
+                                )}
+                              </td>
+                            ))}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="space-y-3">
+                {/* Botão principal de Gerar Pagamento */}
+                <button
+                  onClick={handleGerarPagamento}
+                  disabled={!canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento}
+                  className={`w-full py-3 px-4 rounded-lg font-medium text-sm transition-all ${
+                    !canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                      : 'bg-green-600 hover:bg-green-700 shadow-md text-white'
+                  } flex items-center justify-center space-x-2`}
+                >
+                  {processandoPagamento ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Gerando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💳</span>
+                      <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
+                    </>
+                  )}
+                </button>
+
+                {/* Botões secundários */}
+                <div className="flex gap-2">
+                  {/* Botão Adicionar ao Carrinho */}
+                  {Object.keys(palpites).length > 0 && (
+                    <button
+                      type="button"
+                      onClick={adicionarPalpitesAoCarrinho}
+                      className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-1"
+                    >
+                      <span>+</span>
+                      <span>MAIS JOGOS</span>
+                    </button>
+                  )}
+
+                  {/* Botão Limpar */}
+                  <button
+                    type="button"
+                    onClick={limparCarrinho}
+                    className="flex-1 py-2 px-3 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-1"
+                  >
+                    <span>🗑️</span>
+                    <span>LIMPAR</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Resumo */}
+              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                <div className="text-center text-sm text-green-800">
+                  <p className="font-semibold">Total: R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</p>
+                  <p className="text-xs">{calcularTotalBilhetes()} bilhete(s) × R$ 10,00 cada</p>
+                  <p className="text-xs mt-1">🔒 Pagamento seguro via PIX</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
