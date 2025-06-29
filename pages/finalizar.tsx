@@ -231,6 +231,7 @@ export default function FinalizarAposta() {
 
     } catch (error) {
       console.error('❌ Erro ao gerar pagamento:', error);
+      console.error('📋 Erro detalhado do backend:', data);
       
       let mensagemErro = 'Erro desconhecido';
       if (error instanceof Error) {
@@ -247,6 +248,14 @@ export default function FinalizarAposta() {
           mensagemErro = 'Credenciais EFI inválidas. Verifique CLIENT_ID e CLIENT_SECRET.';
         } else if (mensagemErro.includes('422')) {
           mensagemErro = 'Erro nos dados enviados para EFI. Verifique a chave PIX.';
+        }
+      }
+      
+      // Se há dados de resposta da API, mostrar detalhes
+      if (data && data.debug) {
+        console.error('🔍 Debug info:', data.debug);
+        if (data.details) {
+          mensagemErro = data.details;
         }
       }
       

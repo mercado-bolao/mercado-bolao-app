@@ -129,40 +129,101 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     console.log('🔄 Criando cobrança PIX na EFÍ...');
-    const pixResponse = await efipay.pixCreateImmediateCharge([], body);
-
-    console.log('📋 Resposta completa da cobrança PIX:', JSON.stringify(pixResponse, null, 2));
+    console.log('📤 Body da requisição:', JSON.stringify(body, null, 2));
+    
+    let pixResponse;
+    try {
+      pixResponse = await efipay.pixCreateImmediateCharge([], body);
+      console.log('✅ Cobrança PIX criada com sucesso!');
+      console.log('📋 Resposta COMPLETA da cobrança PIX:', JSON.stringify(pixResponse, null, 2));
+    } catch (cobrancaError) {
+      console.error('❌ ERRO AO CRIAR COBRANÇA PIX:');
+      console.error('📝 Erro completo:', JSON.stringify(cobrancaError, null, 2));
+      console.error('📝 Response data:', JSON.stringify(cobrancaError?.response?.data, null, 2));
+      console.error('📝 Status:', cobrancaError?.response?.status);
+      console.error('📝 Message:', cobrancaError?.message);
+      throw cobrancaError;
+    }
 
     if (!pixResponse || !pixResponse.txid) {
+      console.error('❌ Resposta da cobrança inválida:', pixResponse);
       throw new Error('Erro ao gerar cobrança PIX - resposta inválida');
     }
 
-    console.log('✅ Cobrança PIX criada:', pixResponse.txid);
+    console.log('🆔 TXID da cobrança:', pixResponse.txid);
 
     // Verificar se loc.id está presente
     const locationId = pixResponse.loc?.id;
-    console.log('📍 Location ID:', locationId);
-    console.log('📍 Campo loc completo:', JSON.stringify(pixResponse.loc, null, 2));
+    console.log('📍 Verificando locationId:');
+    console.log('- locationId extraído:', locationId);
+    console.log('- Tipo do locationId:', typeof locationId);
+    console.log('- loc completo:', JSON.stringify(pixResponse.loc, null, 2));
 
     if (!locationId) {
-      console.error('❌ ERRO: loc.id não foi retornado na resposta da cobrança');
-      console.error('📋 Resposta recebida:', JSON.stringify(pixResponse, null, 2));
-      throw new Error('Cobrança PIX criada, mas loc.id não foi retornado pela EFÍ Pay');
+      console.error('❌ CRÍTICO: loc.id não foi retornado na resposta da cobrança');
+      console.error('🔍 Análise da resposta:');
+      console.error('- pixResponse existe:', !!pixResponse);
+      console.error('- pixResponse.loc existe:', !!pixResponse.loc);
+      console.error('- Chaves em pixResponse:', Object.keys(pixResponse));
+      console.error('- Chaves em pixResponse.loc:', pixResponse.loc ? Object.keys(pixResponse.loc) : 'N/A');
+      console.error('📋 Resposta COMPLETA:', JSON.stringify(pixResponse, null, 2));
+      
+      return res.status(500).json({
+        error: 'Cobrança PIX criada, mas loc.id não foi retornado',
+        details: 'A EFÍ Pay criou a cobrança mas não retornou o campo loc.id necessário para gerar o QR Code',
+        debug: {
+          hasPixResponse: !!pixResponse,
+          hasLoc: !!pixResponse?.loc,
+          txid: pixResponse?.txid,
+          locKeys: pixResponse?.loc ? Object.keys(pixResponse.loc) : null,
+          responseKeys: pixResponse ? Object.keys(pixResponse) : null
+        }
+      });
     }
 
-    console.log('🔄 Gerando QR Code com locationId:', locationId);
+    console.log('🔄 Gerando QR Code...');
+    console.log('📤 Parâmetros para QR Code:', { id: locationId });
 
-    const qrCodeResponse = await efipay.pixGenerateQRCode({
-      id: locationId,
-    });
-
-    console.log('✅ QR Code gerado com sucesso!');
-    console.log('📋 Resposta do QR Code:', JSON.stringify(qrCodeResponse, null, 2));
+    let qrCodeResponse;
+    try {
+      qrCodeResponse = await efipay.pixGenerateQRCode({
+        id: locationId,
+      });
+      console.log('✅ QR Code gerado com sucesso!');
+      console.log('📋 Resposta COMPLETA do QR Code:', JSON.stringify(qrCodeResponse, null, 2));
+    } catch (qrError) {
+      console.error('❌ ERRO AO GERAR QR CODE:');
+      console.error('📝 Erro completo:', JSON.stringify(qrError, null, 2));
+      console.error('📝 Response data:', JSON.stringify(qrError?.response?.data, null, 2));
+      console.error('📝 Status:', qrError?.response?.status);
+      console.error('📝 Message:', qrError?.message);
+      console.error('📝 LocationId usado:', locationId);
+      
+      return res.status(500).json({
+        error: 'Erro ao gerar QR Code',
+        details: qrError?.response?.data?.message || qrError?.response?.data?.descricao || qrError?.message || 'Erro desconhecido ao gerar QR Code',
+        debug: {
+          locationId: locationId,
+          errorStatus: qrError?.response?.status,
+          errorData: qrError?.response?.data
+        }
+      });
+    }
 
     // Verificar se o QR Code foi realmente gerado
-    if (!qrCodeResponse.qrcode) {
+    if (!qrCodeResponse || !qrCodeResponse.qrcode) {
       console.error('❌ QR Code não foi gerado - resposta inválida');
-      throw new Error('QR Code não foi gerado pela EFÍ Pay');
+      console.error('📋 Resposta recebida:', JSON.stringify(qrCodeResponse, null, 2));
+      
+      return res.status(500).json({
+        error: 'QR Code não foi gerado',
+        details: 'A EFÍ Pay não retornou o código QR',
+        debug: {
+          hasResponse: !!qrCodeResponse,
+          responseKeys: qrCodeResponse ? Object.keys(qrCodeResponse) : null,
+          hasQrcode: !!qrCodeResponse?.qrcode
+        }
+      });
     }
 
     // Salvar dados do PIX no banco de dados
