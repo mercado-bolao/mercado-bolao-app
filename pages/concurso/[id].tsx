@@ -495,7 +495,7 @@ export default function ConcursoDetalhes() {
                       </button>
                       <button
                         type="button"
-                        onClick={()={() => handlePalpiteChange(jogo.id, "2")}
+                        onClick={() => handlePalpiteChange(jogo.id, "2")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
                           palpites[jogo.id] === "2"
                             ? "bg-red-600 text-white shadow-lg transform scale-105"
