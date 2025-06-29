@@ -28,8 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   console.log('✅ Método POST confirmado');
 
-    // Usar variáveis dos Secrets do Replit - FORÇANDO SANDBOX
-    const efiSandbox = 'true'; // TEMPORÁRIO: Forçando sandbox até resolver permissões
+    // Usar variáveis dos Secrets do Replit - PRODUÇÃO REAL
+    const efiSandbox = process.env.EFI_SANDBOX || 'false'; // Produção real
     const efiClientId = process.env.EFI_CLIENT_ID;
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
     const efiPixKey = process.env.EFI_PIX_KEY;
@@ -74,9 +74,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     client_secret: efiClientSecret
   };
 
-  // Configurar certificado apenas para produção
+  // Configurar certificado para produção
   if (!isSandbox) {
-    const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
+    const certificatePath = path.resolve('./certs/certificado-efi.p12');
+    
+    console.log('🔍 Verificando certificado:');
+    console.log('- Caminho:', certificatePath);
+    console.log('- Existe:', fs.existsSync(certificatePath));
+    console.log('- Passphrase configurada:', !!process.env.EFI_CERTIFICATE_PASSPHRASE);
     
     if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
       efiConfig.certificate = certificatePath;
@@ -85,11 +90,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       return res.status(400).json({
         error: 'Certificado não configurado para PRODUÇÃO',
-        details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets'
+        details: 'Para usar produção, o certificado deve estar na pasta certs/certificado-efi.p12 e a senha EFI_CERTIFICATE_PASSPHRASE nos Secrets',
+        debug: {
+          certificateExists: fs.existsSync(certificatePath),
+          hasPassphrase: !!process.env.EFI_CERTIFICATE_PASSPHRASE,
+          certificatePath: certificatePath
+        }
       });
     }
   } else {
-    // Para sandbox, garantir que não há configuração de certificado
+    // Para sandbox, não configurar certificado
     console.log('✅ Modo sandbox - sem certificado');
   }
 
