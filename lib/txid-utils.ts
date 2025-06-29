@@ -38,15 +38,16 @@ export class TxidUtils {
    * @returns TXID seguro para EFI Pay
    */
   static gerarTxidSeguro(length: number = 32): string {
-    // Apenas caracteres que a EFI aceita com certeza
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    if (length < 26 || length > 35) {
+      throw new Error(`Comprimento do TXID deve estar entre 26 e 35 caracteres. Recebido: ${length}`);
+    }
+
+    // Caracteres aceitos pela EFI Pay
+    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let txid = '';
 
-    // Garantir que sempre comece com letra
-    txid += caracteres.charAt(Math.floor(Math.random() * 52)); // Apenas letras
-
-    // Completar o resto
-    for (let i = 1; i < length; i++) {
+    // Gerar TXID completamente aleatório
+    for (let i = 0; i < length; i++) {
       txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
     }
 
@@ -59,7 +60,8 @@ export class TxidUtils {
       txid: txid,
       comprimento: txid.length,
       valido: this.validarTxid(txid),
-      formato: 'alfanumérico mixed case'
+      formato: 'alfanumérico mixed case',
+      caracteresUsados: caracteres.length
     });
 
     return txid;
