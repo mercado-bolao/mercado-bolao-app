@@ -234,19 +234,16 @@ export default function ConcursoDetalhes() {
   const calcularTotalBilhetes = () => {
     if (!concurso) return 0;
 
-    // Conta todos os palpites no carrinho
-    const palpitesNoCarrinho = Object.values(carrinho).reduce((total, palpitesJogo) => {
-      return total + palpitesJogo.length;
-    }, 0);
-
-    // Conta palpites pendentes (um por jogo que tem palpite)
-    const palpitesPendentes = Object.keys(palpites).length;
+    // Encontra o maior número de palpites por jogo no carrinho
+    const maxPalpitesPorJogo = Math.max(
+      ...concurso.jogos.map(jogo => carrinho[jogo.id]?.length || 0),
+      0
+    );
 
     // Se há palpites pendentes, conta como 1 bilhete adicional
-    const bilhetesCarrinho = Math.ceil(palpitesNoCarrinho / concurso.jogos.length);
-    const bilhetesPendentes = palpitesPendentes > 0 ? 1 : 0;
+    const bilhetesPendentes = Object.keys(palpites).length > 0 ? 1 : 0;
 
-    return bilhetesCarrinho + bilhetesPendentes;
+    return maxPalpitesPorJogo + bilhetesPendentes;
   };
 
   // NOVA FUNÇÃO: Gera bilhetes completos
@@ -687,7 +684,7 @@ export default function ConcursoDetalhes() {
           )}
 
           {/* Seção principal de carrinho - aparece quando há palpites */}
-          {(Object.keys(palpites).length > 0 || calcularTotalBilhetes() > 0) && (
+          {(Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) && (
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 p-4 shadow-md">
               {/* Badge do Carrinho */}
               <div className="text-center mb-3">
@@ -813,12 +810,11 @@ export default function ConcursoDetalhes() {
       </div>
 
       {/* Rodapé fixo para pagamento - aparece quando há palpites pendentes OU carrinho com itens */}
-      {!palpitesEncerrados && (
+      {!palpitesEncerrados && (Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) && (
         <div 
           className="fixed bottom-0 left-0 right-0 w-full bg-white border-t border-green-200 shadow-lg p-2" 
           style={{ 
-            zIndex: 99999,
-            display: (Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) ? 'block' : 'none'
+            zIndex: 99999
           }}
         >
           <div className="max-w-2xl mx-auto">
@@ -884,7 +880,7 @@ export default function ConcursoDetalhes() {
       )}
 
       {/* Botão fixo do carrinho - aparece quando há palpites */}
-      {!palpitesEncerrados && calcularTotalBilhetes() > 0 && (
+      {!palpitesEncerrados && (Object.keys(palpites).length > 0 || Object.keys(carrinho).length > 0) && (
         <button
           onClick={() => setMostrarCarrinho(true)}
           className="fixed bottom-5 right-5 bg-yellow-400 hover:bg-yellow-500 text-black font-bold px-4 py-3 rounded-lg shadow-lg z-40 flex items-center space-x-2 transition-all transform hover:scale-105"
