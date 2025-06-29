@@ -30,7 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const nomeUsuario = nome || `Cliente ${whatsapp}`;
 
     // Usar variáveis dos Secrets do Replit
-    const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const efiClientId = process.env.EFI_CLIENT_ID;
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
     const efiPixKey = process.env.EFI_PIX_KEY;
@@ -45,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Verificar se está em sandbox ou produção
-    const efiSandbox = process.env.EFI_SANDBOX || 'true'; // Padrão sandbox para testes
+    const efiSandbox = process.env.EFI_SANDBOX || 'false'; // Padrão produção
     const isSandbox = efiSandbox === 'true';
     const EfiPay = require('sdk-node-apis-efi');
 
