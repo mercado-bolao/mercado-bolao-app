@@ -24,29 +24,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
   }
 
+  // Validar credenciais obrigatórias para produção
+  if (!efiClientId || !efiClientSecret || !efiPixKey) {
+    console.error('❌ Credenciais EFI não configuradas:', {
+      clientId: !!efiClientId,
+      clientSecret: !!efiClientSecret,
+      pixKey: !!efiPixKey
+    });
+    return res.status(400).json({
+      error: 'Credenciais EFI Pay não configuradas',
+      details: 'Configure EFI_CLIENT_ID, EFI_CLIENT_SECRET e EFI_PIX_KEY nos Secrets',
+      missing: {
+        EFI_CLIENT_ID: !efiClientId,
+        EFI_CLIENT_SECRET: !efiClientSecret,
+        EFI_PIX_KEY: !efiPixKey
+      }
+    });
+  }
+
   console.log('✅ Método POST confirmado');
 
-    // Usar variáveis dos Secrets do Replit
+    // Usar variáveis dos Secrets do Replit - PRODUÇÃO
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
-    const efiClientId = process.env.EFI_CLIENT_ID || 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
-    const efiClientSecret = process.env.EFI_CLIENT_SECRET || 'Client_Secret_6e2c43d197c350a3d88df81530bcd27eb0818719';
-    const efiPixKey = process.env.EFI_PIX_KEY || '1fe7c162-b80d-464a-b57e-26c7da638223';
+    const efiClientId = process.env.EFI_CLIENT_ID;
+    const efiClientSecret = process.env.EFI_CLIENT_SECRET;
+    const efiPixKey = process.env.EFI_PIX_KEY;
 
     const isSandbox = efiSandbox === 'true';
 
     console.log(`🔄 Gerando PIX ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'} para:`, { whatsapp, valorTotal, totalBilhetes });
-    console.log('📋 Configurações atuais:');
-    console.log('- EFI_SANDBOX:', efiSandbox, '(from env:', process.env.EFI_SANDBOX, ')');
-    console.log('- EFI_CLIENT_ID:', efiClientId);
-    console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅ Definido' : '❌ Não definido');
-    console.log('- EFI_PIX_KEY:', efiPixKey);
-    console.log('🔍 Debug completo das variáveis:');
-    console.log('- process.env.EFI_SANDBOX:', process.env.EFI_SANDBOX);
-    console.log('- process.env.EFI_CLIENT_ID:', process.env.EFI_CLIENT_ID);
-    console.log('- process.env.EFI_CLIENT_SECRET:', process.env.EFI_CLIENT_SECRET ? 'Existe' : 'Undefined');
-    console.log('- process.env.EFI_PIX_KEY:', process.env.EFI_PIX_KEY);
-    console.log('- process.env.EFI_CERTIFICATE_PATH:', process.env.EFI_CERTIFICATE_PATH);
-    console.log('- process.env.EFI_CERTIFICATE_PASSPHRASE:', process.env.EFI_CERTIFICATE_PASSPHRASE ? 'Existe' : 'Undefined');
+    console.log('📋 Configurações:');
+    console.log('- Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
+    console.log('- EFI_CLIENT_ID:', efiClientId ? '✅' : '❌');
+    console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅' : '❌');
+    console.log('- EFI_PIX_KEY:', efiPixKey ? '✅' : '❌');
+    console.log('- Certificado:', process.env.EFI_CERTIFICATE_PASSPHRASE ? '✅' : '❌');
 
     const EfiPay = require('sdk-node-apis-efi');
 

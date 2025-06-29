@@ -409,6 +409,10 @@ export default function FinalizarAposta() {
           <div className="mt-4 text-center text-sm text-gray-600">
             <p>🔒 Pagamento seguro via PIX</p>
             <p>As instruções serão enviadas para seu WhatsApp</p>
+            <div className="mt-2 bg-green-100 border border-green-400 rounded-lg p-2">
+              <p className="text-green-800 text-xs font-semibold">💰 AMBIENTE PRODUÇÃO ATIVO</p>
+              <p className="text-green-700 text-xs">Pagamentos reais serão processados</p>
+            </div>
           </div>
         </div>
 
