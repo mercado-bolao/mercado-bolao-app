@@ -113,6 +113,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           const efipay = new EfiPay(efiConfig);
 
+          // Log detalhado da requisição
+          console.log('🔧 Preparando requisição para EFÍ:', {
+            txidOriginal: bilhete.txid,
+            txidLimpo: txidLimpo,
+            comprimento: txidLimpo.length,
+            encoding: Buffer.from(txidLimpo).toString('hex'),
+            isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
+          });
+
           // Consultar PIX na EFÍ usando TXID limpo
           const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
 
