@@ -35,7 +35,7 @@ export default async function handler(
 
           // Contar palpites totais baseado nos IDs dos jogos
           const totalPalpites = await prisma.palpite.count({
-            where: { 
+            where: {
               jogo: {
                 concursoId: concurso.id
               }
@@ -64,20 +64,72 @@ export default async function handler(
     const { nome, numero, dataInicio, dataFim, status, premioEstimado, fechamentoPalpites } = req.body;
 
     try {
+      // Validar campos obrigatórios
+      if (!nome || !numero || !dataInicio || !dataFim || !status) {
+        return res.status(400).json({
+          error: "Campos obrigatórios faltando",
+          details: "nome, numero, dataInicio, dataFim e status são obrigatórios"
+        });
+      }
+
+      // Validar e converter datas
+      let dataInicioObj: Date;
+      let dataFimObj: Date;
+      let fechamentoPalpitesObj: Date | null = null;
+
+      try {
+        dataInicioObj = new Date(dataInicio);
+        dataFimObj = new Date(dataFim);
+        if (fechamentoPalpites) {
+          fechamentoPalpitesObj = new Date(fechamentoPalpites);
+        }
+
+        // Validar se as datas são válidas
+        if (isNaN(dataInicioObj.getTime())) {
+          throw new Error("Data de início inválida");
+        }
+        if (isNaN(dataFimObj.getTime())) {
+          throw new Error("Data de fim inválida");
+        }
+        if (fechamentoPalpitesObj && isNaN(fechamentoPalpitesObj.getTime())) {
+          throw new Error("Data de fechamento de palpites inválida");
+        }
+
+        // Validar a ordem das datas
+        if (dataFimObj <= dataInicioObj) {
+          throw new Error("A data de fim deve ser posterior à data de início");
+        }
+        if (fechamentoPalpitesObj && fechamentoPalpitesObj <= dataInicioObj) {
+          throw new Error("A data de fechamento de palpites deve ser posterior à data de início");
+        }
+        if (fechamentoPalpitesObj && fechamentoPalpitesObj >= dataFimObj) {
+          throw new Error("A data de fechamento de palpites deve ser anterior à data de fim");
+        }
+      } catch (error) {
+        return res.status(400).json({
+          error: "Erro na validação das datas",
+          details: error instanceof Error ? error.message : "Formato de data inválido"
+        });
+      }
+
       const concurso = await prisma.concurso.create({
         data: {
           nome,
           numero: parseInt(numero),
-          dataInicio: new Date(dataInicio),
-          dataFim: new Date(dataFim),
+          dataInicio: dataInicioObj,
+          dataFim: dataFimObj,
           status,
           premioEstimado: premioEstimado ? parseFloat(premioEstimado) : null,
-          fechamentoPalpites: fechamentoPalpites ? new Date(fechamentoPalpites) : null,
+          fechamentoPalpites: fechamentoPalpitesObj,
         },
       });
       return res.status(201).json(concurso);
     } catch (error) {
-      return res.status(500).json({ error: "Erro ao criar concurso" });
+      console.error('Erro ao criar concurso:', error);
+      return res.status(500).json({
+        error: "Erro ao criar concurso",
+        details: error instanceof Error ? error.message : "Erro interno do servidor"
+      });
     }
   }
 

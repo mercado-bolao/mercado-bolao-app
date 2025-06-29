@@ -91,6 +91,107 @@ export default function AdminConcursos() {
     }
   };
 
+  const formatarDataParaInput = (data: string): string => {
+    if (!data) return '';
+    try {
+      const dataObj = new Date(data);
+      if (isNaN(dataObj.getTime())) return '';
+
+      // Ajusta para o fuso horário local
+      const dataLocal = new Date(dataObj.getTime() - (dataObj.getTimezoneOffset() * 60000));
+      return dataLocal.toISOString().slice(0, 16);
+    } catch {
+      return '';
+    }
+  };
+
+  const formatarDataParaAPI = (data: string): string => {
+    if (!data) return '';
+    try {
+      // Converte a data para objeto Date
+      const dataObj = new Date(data);
+      if (isNaN(dataObj.getTime())) {
+        console.error('Data inválida:', data);
+        throw new Error('Data inválida');
+      }
+
+      // Ajusta para UTC mantendo o horário local
+      const dataUTC = new Date(dataObj.getTime() - (dataObj.getTimezoneOffset() * 60000));
+      return dataUTC.toISOString();
+    } catch (error) {
+      console.error('Erro ao formatar data para API:', error);
+      return '';
+    }
+  };
+
+  const corrigirFormatoData = (data: string): string => {
+    if (!data) return '';
+    try {
+      // Remove dígitos extras do ano se houver (ex: 202500 -> 2025)
+      return data.replace(/^(\d{4})\d{2}/, '$1');
+    } catch (error) {
+      console.error('Erro ao corrigir formato da data:', error);
+      return data;
+    }
+  };
+
+  const validarDatas = (dataInicio: string, dataFim: string, fechamentoPalpites?: string): boolean => {
+    try {
+      console.log('Validando datas:', { dataInicio, dataFim, fechamentoPalpites });
+
+      const inicio = new Date(dataInicio);
+      const fim = new Date(dataFim);
+
+      if (isNaN(inicio.getTime()) || isNaN(fim.getTime())) {
+        alert('❌ Data de início ou fim inválida');
+        console.error('Data inválida:', { inicio, fim });
+        return false;
+      }
+
+      if (fim <= inicio) {
+        alert('❌ A data de fim deve ser posterior à data de início');
+        console.error('Data fim menor ou igual a data início:', { inicio, fim });
+        return false;
+      }
+
+      if (fechamentoPalpites) {
+        const fechamento = new Date(fechamentoPalpites);
+        if (isNaN(fechamento.getTime())) {
+          alert('❌ Data de fechamento de palpites inválida');
+          console.error('Data de fechamento inválida:', fechamento);
+          return false;
+        }
+
+        // Validação mais rigorosa para o fechamento de palpites
+        if (fechamento <= inicio) {
+          alert('❌ A data de fechamento deve ser posterior à data de início');
+          console.error('Fechamento anterior ao início:', { fechamento, inicio });
+          return false;
+        }
+
+        if (fechamento >= fim) {
+          alert('❌ A data de fechamento deve ser anterior à data de fim');
+          console.error('Fechamento posterior ao fim:', { fechamento, fim });
+          return false;
+        }
+
+        // Garante que há pelo menos 1 hora entre o início e o fechamento
+        const umahora = 60 * 60 * 1000;
+        if (fechamento.getTime() - inicio.getTime() < umahora) {
+          alert('❌ Deve haver pelo menos 1 hora entre o início e o fechamento dos palpites');
+          return false;
+        }
+      }
+
+      console.log('✅ Datas validadas com sucesso');
+      return true;
+    } catch (error) {
+      console.error('Erro ao validar datas:', error);
+      alert('❌ Erro ao validar datas');
+      return false;
+    }
+  };
+
   const abrirModal = (concurso?: Concurso) => {
     if (concurso) {
       setEditingConcurso(concurso);
@@ -426,11 +527,47 @@ export default function AdminConcursos() {
     e.preventDefault();
 
     try {
+      console.log('📝 Dados recebidos:', formData);
+
+      // Corrige o formato das datas antes de processar
+      const dataInicioCorrigida = corrigirFormatoData(formData.dataInicio);
+      const dataFimCorrigida = corrigirFormatoData(formData.dataFim);
+      const fechamentoPalpitesCorrigido = formData.fechamentoPalpites ? corrigirFormatoData(formData.fechamentoPalpites) : undefined;
+
+      console.log('📅 Datas corrigidas:', {
+        dataInicio: dataInicioCorrigida,
+        dataFim: dataFimCorrigida,
+        fechamentoPalpites: fechamentoPalpitesCorrigido
+      });
+
+      // Validar datas
+      if (!validarDatas(dataInicioCorrigida, dataFimCorrigida, fechamentoPalpitesCorrigido)) {
+        console.error('❌ Erro na validação de datas');
+        return;
+      }
+
+      const dadosFormatados = {
+        ...formData,
+        dataInicio: formatarDataParaAPI(dataInicioCorrigida),
+        dataFim: formatarDataParaAPI(dataFimCorrigida),
+        fechamentoPalpites: fechamentoPalpitesCorrigido ? formatarDataParaAPI(fechamentoPalpitesCorrigido) : null,
+        numero: parseInt(formData.numero),
+        premioEstimado: formData.premioEstimado ? parseFloat(formData.premioEstimado) : null
+      };
+
+      console.log('📦 Dados formatados para API:', dadosFormatados);
+
       const url = "/api/admin/concursos";
       const method = editingConcurso ? "PUT" : "POST";
       const body = editingConcurso
-        ? { ...formData, id: editingConcurso.id }
-        : formData;
+        ? { ...dadosFormatados, id: editingConcurso.id }
+        : dadosFormatados;
+
+      console.log('🚀 Enviando requisição:', {
+        method,
+        url,
+        body: JSON.stringify(body)
+      });
 
       const response = await fetch(url, {
         method,
@@ -440,16 +577,20 @@ export default function AdminConcursos() {
         body: JSON.stringify(body),
       });
 
-      if (response.ok) {
-        await buscarConcursos();
-        fecharModal();
-        alert(editingConcurso ? 'Concurso atualizado com sucesso!' : 'Concurso criado com sucesso!');
-      } else {
-        alert('Erro ao salvar concurso');
+      console.log('📨 Status da resposta:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Erro da API:', errorData);
+        throw new Error(errorData.error || 'Erro ao salvar concurso');
       }
+
+      await buscarConcursos();
+      fecharModal();
+      alert(editingConcurso ? 'Concurso atualizado com sucesso!' : 'Concurso criado com sucesso!');
     } catch (error) {
-      console.error('Erro ao salvar concurso:', error);
-      alert('Erro ao salvar concurso');
+      console.error('❌ Erro completo ao salvar concurso:', error);
+      alert(error instanceof Error ? error.message : 'Erro ao salvar concurso');
     }
   };
 
@@ -691,8 +832,8 @@ export default function AdminConcursos() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${concurso.status === 'ativo'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
                           }`}>
                           {concurso.status}
                         </span>
@@ -859,8 +1000,8 @@ export default function AdminConcursos() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${jogo.resultado
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-yellow-100 text-yellow-800'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-yellow-100 text-yellow-800'
                               }`}>
                               {jogo.resultado ? 'Finalizado' : 'Pendente'}
                             </span>
@@ -916,8 +1057,8 @@ export default function AdminConcursos() {
               {editingConcurso ? 'Editar Concurso' : 'Novo Concurso'}
             </h3>
 
-            <form onSubmit={salvarConcurso}>
-              <div className="mb-4">
+            <form onSubmit={salvarConcurso} className="space-y-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nome do Concurso
                 </label>
@@ -925,13 +1066,13 @@ export default function AdminConcursos() {
                   type="text"
                   value={formData.nome}
                   onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: Copa do Mundo 2024"
                   required
                 />
               </div>
 
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Número do Concurso
                 </label>
@@ -939,39 +1080,45 @@ export default function AdminConcursos() {
                   type="number"
                   value={formData.numero}
                   onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 1"
                   required
                 />
               </div>
 
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data de Início
                 </label>
                 <input
                   type="datetime-local"
-                  value={formData.dataInicio}
+                  value={formatarDataParaInput(formData.dataInicio)}
                   onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Formato: DD/MM/AAAA HH:MM
+                </p>
               </div>
 
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Data de Fim
                 </label>
                 <input
                   type="datetime-local"
-                  value={formData.dataFim}
+                  value={formatarDataParaInput(formData.dataFim)}
                   onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Formato: DD/MM/AAAA HH:MM
+                </p>
               </div>
 
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Prêmio Estimado (R$)
                 </label>
@@ -981,34 +1128,34 @@ export default function AdminConcursos() {
                   min="0"
                   value={formData.premioEstimado}
                   onChange={(e) => setFormData({ ...formData, premioEstimado: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Ex: 10000.00"
                 />
               </div>
 
-              <div className="mb-4">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Fechamento de Apostas
                 </label>
                 <input
                   type="datetime-local"
-                  value={formData.fechamentoPalpites}
+                  value={formatarDataParaInput(formData.fechamentoPalpites)}
                   onChange={(e) => setFormData({ ...formData, fechamentoPalpites: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Após este horário, novos palpites serão bloqueados
+                  Formato: DD/MM/AAAA HH:MM - Após este horário, novos palpites serão bloqueados
                 </p>
               </div>
 
-              <div className="mb-6">
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
                 <select
                   value={formData.status}
                   onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="ativo">Ativo</option>
                   <option value="encerrado">Encerrado</option>
@@ -1016,7 +1163,7 @@ export default function AdminConcursos() {
                 </select>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-4">
                 <button
                   type="button"
                   onClick={fecharModal}
@@ -1237,7 +1384,7 @@ export default function AdminConcursos() {
                 <div className="flex flex-col items-center space-y-2">
                   <span className="font-black text-blue-900 text-lg text-center">{editingJogo.visitante}</span>
                   {editingJogo.fotoVisitante && (
-                    <Image src={editingJogo.fotoVisitante} alt={editingJogo.visitante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
+                    <Image src={editingJogo.fotoVisitante} alt={editingJogo.visitante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-purple-400 shadow-lg" />
                   )}
                 </div>
               </div>
@@ -1332,8 +1479,8 @@ export default function AdminConcursos() {
 
               {/* Estado de preenchimento */}
               <div className={`text-center p-4 rounded-xl border-2 ${resultData.golsCasa !== '' && resultData.golsVisitante !== ''
-                  ? 'bg-green-50 border-green-300'
-                  : 'bg-red-50 border-red-300'
+                ? 'bg-green-50 border-green-300'
+                : 'bg-red-50 border-red-300'
                 }`}>
                 <p className={`text-lg font-bold ${resultData.golsCasa !== '' && resultData.golsVisitante !== '' ? 'text-green-700' : 'text-red-700'
                   }`}>
@@ -1358,8 +1505,8 @@ export default function AdminConcursos() {
                   type="submit"
                   disabled={!resultData.golsCasa || !resultData.golsVisitante || loadingFinalizar}
                   className={`flex-1 px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-lg transform ${resultData.golsCasa && resultData.golsVisitante && !loadingFinalizar
-                      ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     }`}
                 >
                   {loadingFinalizar ? (
@@ -1421,8 +1568,8 @@ export default function AdminConcursos() {
                           </div>
                         </div>
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${concurso.status === 'ativo'
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
                           }`}>
                           #{concurso.numero}
                         </span>
@@ -1483,8 +1630,8 @@ export default function AdminConcursos() {
                   onClick={handleDeleteSelectedConcursos}
                   disabled={selectedConcursosToDelete.length === 0}
                   className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedConcursosToDelete.length === 0
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-red-600 text-white hover:bg-red-700'
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-red-600 text-white hover:bg-red-700'
                     }`}
                 >
                   🗑️ Deletar {selectedConcursosToDelete.length > 0 ? `(${selectedConcursosToDelete.length})` : ''}
