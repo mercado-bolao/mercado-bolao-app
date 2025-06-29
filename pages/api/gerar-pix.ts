@@ -26,8 +26,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   console.log('✅ Método POST confirmado');
 
-    // Usar variáveis dos Secrets do Replit - PRODUÇÃO
-    const efiSandbox = process.env.EFI_SANDBOX || 'false';
+    // Usar variáveis dos Secrets do Replit - FORÇANDO SANDBOX
+    const efiSandbox = 'true'; // TEMPORÁRIO: Forçando sandbox até resolver permissões
     const efiClientId = process.env.EFI_CLIENT_ID;
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
     const efiPixKey = process.env.EFI_PIX_KEY;
