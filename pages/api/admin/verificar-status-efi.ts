@@ -86,18 +86,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const efipay = new EfiPay(efiConfig);
 
+    // Preparar TXID para URL
+    const cleanTxid = encodeURIComponent(txidLimpo);
+    
     // Log detalhado da requisição
     console.log('🔧 Preparando requisição para EFÍ:', {
       txidOriginal: txid,
       txidLimpo: txidLimpo,
+      txidEncoded: cleanTxid,
       comprimento: txidLimpo.length,
       encoding: Buffer.from(txidLimpo).toString('hex'),
-      isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo),
-      parametros: { txid: txidLimpo }
+      isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
     });
 
-    // Consultar PIX na EFÍ usando TXID limpo
-    console.log('📡 Consultando PIX na EFÍ Pay...', { txidLimpo });
+    // Consultar PIX na EFÍ usando TXID diretamente na URL
+    console.log('📡 Consultando PIX na EFÍ Pay...', { txidLimpo, cleanTxid });
+    console.log('🔗 URL final da EFÍ:', `v2/pix/${cleanTxid}`);
+    
     const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
 
     console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
