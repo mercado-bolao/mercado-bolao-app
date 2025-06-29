@@ -15,20 +15,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // No Replit, usar as variáveis definidas nos Secrets
-    const efiSandbox = process.env.EFI_SANDBOX || 'false';
-    const efiClientId = process.env.EFI_CLIENT_ID || 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
-    const efiClientSecret = process.env.EFI_CLIENT_SECRET || 'Client_Secret_6e2c43d197c350a3d88df81530bcd27eb0818719';
-    const efiPixKey = process.env.EFI_PIX_KEY || '1fe7c162-b80d-464a-b57e-26c7da638223';
+    // Forçar uso dos valores de produção (já que estão configurados nos Secrets)
+    const efiSandbox = 'false'; // Sempre produção
+    const efiClientId = 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
+    const efiClientSecret = 'Client_Secret_6e2c43d197c350a3d88df81530bcd27eb0818719';
+    const efiPixKey = '1fe7c162-b80d-464a-b57e-26c7da638223';
     
     const isSandbox = efiSandbox === 'true';
     
     console.log(`🔄 Gerando PIX ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'} para:`, { whatsapp, valorTotal, totalBilhetes });
-    console.log('📋 Variáveis de ambiente:');
+    console.log('📋 Configurações forçadas para PRODUÇÃO:');
     console.log('- EFI_SANDBOX:', efiSandbox);
-    console.log('- EFI_CLIENT_ID:', efiClientId ? '✅ Definido' : '❌ Não definido');
+    console.log('- EFI_CLIENT_ID:', efiClientId);
     console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅ Definido' : '❌ Não definido');
-    console.log('- EFI_PIX_KEY:', efiPixKey ? '✅ Definido' : '❌ Não definido');
+    console.log('- EFI_PIX_KEY:', efiPixKey);
+    console.log('🔧 Variáveis do process.env (para debug):');
+    console.log('- process.env.EFI_SANDBOX:', process.env.EFI_SANDBOX);
+    console.log('- process.env.EFI_CLIENT_ID:', process.env.EFI_CLIENT_ID);
+    console.log('- process.env.EFI_CLIENT_SECRET:', process.env.EFI_CLIENT_SECRET ? 'Existe' : 'Não existe');
+    console.log('- process.env.EFI_PIX_KEY:', process.env.EFI_PIX_KEY);
     
     const EfiPay = require('sdk-node-apis-efi');
     
