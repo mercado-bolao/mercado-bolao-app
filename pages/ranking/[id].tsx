@@ -449,11 +449,11 @@ export default function RankingConcurso() {
                             {jogo.fotoMandante && (
                               <img src={jogo.fotoMandante} alt={jogo.mandante} className="w-6 h-6 rounded" />
                             )}
-                            <span className="font-semibold text-sm">{jogo.mandante}</span>
+                            <span className="font-semibold text-sm text-black">{jogo.mandante}</span>
                           </div>
                           <span className="text-gray-500">vs</span>
                           <div className="flex items-center space-x-2">
-                            <span className="font-semibold text-sm">{jogo.visitante}</span>
+                            <span className="font-semibold text-sm text-black">{jogo.visitante}</span>
                             {jogo.fotoVisitante && (
                               <img src={jogo.fotoVisitante} alt={jogo.visitante} className="w-6 h-6 rounded" />
                             )}
