@@ -413,11 +413,11 @@ export default function ConcursoDetalhes() {
               <h2 className="text-xl font-semibold text-blue-800 mb-3">💰 Informações de Pagamento</h2>
               <div className="bg-white rounded-lg p-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-blue-700 font-medium">Valor por palpite:</span>
+                  <span className="text-blue-700 font-medium">Valor por bilhete:</span>
                   <span className="text-blue-900 font-bold text-lg">R$ 10,00</span>
                 </div>
                 <p className="text-blue-600 text-sm">
-                  Cada jogo apostado custa R$ 10,00
+                  1 bilhete inclui todos os palpites da rodada
                 </p>
               </div>
             </div>
@@ -450,14 +450,12 @@ export default function ConcursoDetalhes() {
               </div>
               <div className="border-t border-yellow-200 pt-3">
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-yellow-800">Valor por palpite:</span>
-                  <span className="font-bold text-yellow-900">R$ 10,00</span>
+                  <span className="font-semibold text-yellow-800">Palpites no bilhete:</span>
+                  <span className="font-bold text-yellow-900">{Object.keys(palpites).length} jogos</span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
-                  <span className="font-semibold text-yellow-800">Total a pagar:</span>
-                  <span className="font-bold text-yellow-900 text-lg">
-                    R$ {(Object.keys(palpites).length * 10).toFixed(2).replace('.', ',')}
-                  </span>
+                  <span className="font-semibold text-yellow-800">Valor do bilhete:</span>
+                  <span className="font-bold text-yellow-900 text-lg">R$ 10,00</span>
                 </div>
               </div>
             </div>
@@ -494,7 +492,7 @@ export default function ConcursoDetalhes() {
                 <div className="ml-3">
                   <p className="font-semibold">Palpites salvos como pendentes!</p>
                   <p className="text-sm">Seus palpites foram registrados e estão aguardando pagamento.</p>
-                  <p className="text-sm font-medium mt-1">💰 Total: R$ {(Object.keys(palpites).length * 10).toFixed(2).replace('.', ',')}</p>
+                  <p className="text-sm font-medium mt-1">💰 Valor do bilhete: R$ 10,00</p>
                 </div>
               </div>
             </div>

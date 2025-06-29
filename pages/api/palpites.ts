@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -26,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       console.log('Buscando jogo com ID:', jogoId);
-      
+
       // Buscar o jogo para pegar o concursoId
       const jogo = await prisma.jogo.findUnique({
         where: { id: jogoId },
@@ -95,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0, // Valor fixo de R$ 10,00
+          valor: 10.0, // Valor fixo de R$ 10,00 por bilhete completo
           status: "pendente" // Status pendente até pagamento
         },
         create: {
@@ -105,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0, // Valor fixo de R$ 10,00
+          valor: 10.0, // Valor fixo de R$ 10,00 por bilhete completo
           status: "pendente" // Status pendente até pagamento
         }
       });
@@ -122,7 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('=== ERRO NA API PALPITES ===');
       console.error('Erro completo:', error);
       console.error('Stack trace:', error instanceof Error ? error.stack : 'N/A');
-      
+
       // Verificar se é erro de conexão com banco
       if (error instanceof Error && error.message.includes('connect')) {
         return res.status(503).json({ 
