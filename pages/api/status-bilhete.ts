@@ -1,8 +1,5 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
-
-const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -45,11 +42,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const expirou = bilhete.pix && new Date(bilhete.pix.expiracao) < agora;
 
     let status = bilhete.status;
-    
+
     // Se expirou e ainda está pendente, marcar como cancelado
     if (expirou && status === 'PENDENTE') {
       status = 'CANCELADO';
-      
+
       // Atualizar no banco
       await prisma.bilhete.update({
         where: { id: bilhete.id },
