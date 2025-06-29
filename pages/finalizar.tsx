@@ -39,7 +39,7 @@ export default function FinalizarAposta() {
   const [isLoading, setIsLoading] = useState(false);
 
   const buscarDados = useCallback(async (whatsapp: string) => {
-    if (!whatsapp || isLoading) return;
+    if (!whatsapp) return;
 
     setIsLoading(true);
     try {
@@ -47,24 +47,27 @@ export default function FinalizarAposta() {
     } finally {
       setIsLoading(false);
     }
-  }, [isLoading]);
+  }, []);
 
   useEffect(() => {
+    // Evitar múltiplas execuções
+    if (isLoading) return;
+
     // Buscar WhatsApp do localStorage ou query params
     const whatsappStorage = localStorage.getItem('whatsapp');
     const whatsappQuery = router.query.whatsapp as string;
 
-    if (whatsappQuery) {
+    if (whatsappQuery && whatsappQuery !== whatsapp) {
       setWhatsapp(whatsappQuery);
       buscarDados(whatsappQuery);
-    } else if (whatsappStorage) {
+    } else if (whatsappStorage && !whatsappQuery && whatsappStorage !== whatsapp) {
       setWhatsapp(whatsappStorage);
       buscarDados(whatsappStorage);
-    } else {
+    } else if (!whatsappQuery && !whatsappStorage && !error) {
       setError('WhatsApp não encontrado. Faça uma aposta primeiro.');
       setLoading(false);
     }
-  }, [router.query, buscarDados]);
+  }, [router.query.whatsapp, buscarDados, whatsapp, isLoading, error]);
 
   const buscarPalpitesPendentes = async (whatsappUsuario: string) => {
     try {
