@@ -108,9 +108,9 @@ model Bilhete {
 
 model WebhookLog {
   id        String   @id @default(uuid())
-  evento    String   // tipo do evento (pix.received, etc)
+  evento    String   @default("unknown") // tipo do evento (pix.received, etc)
   txid      String?
-  dados     Json     // dados completos do webhook
+  dados     Json     @default("{}") // dados completos do webhook
   processado Boolean @default(false)
   createdAt DateTime @default(now())
 }
