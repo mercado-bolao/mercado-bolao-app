@@ -48,7 +48,7 @@ export default function PagamentoPix() {
   const [tempoRestante, setTempoRestante] = useState<string>('');
   const [statusPix, setStatusPix] = useState<string>('ATIVA');
 
-  
+
 
   const verificarStatus = useCallback(async () => {
     const bilheteDataStorage = localStorage.getItem('bilheteData');
@@ -311,7 +311,7 @@ export default function PagamentoPix() {
           <h4 className="font-semibold text-blue-800 mb-3">📋 Como pagar:</h4>
           <ol className="text-sm text-blue-700 space-y-2">
             <li><strong>1.</strong> Abra o app do seu banco</li>
-            <li><strong>2.</strong> Procure pela opção "PIX" ou "Pagar com QR Code"</li>
+            <li><strong>2.</strong> Procure pela opção &quot;PIX&quot; ou &quot;Pagar com QR Code&quot;</li>
             <li><strong>3.</strong> Escaneie o QR Code acima OU copie e cole o código PIX</li>
             <li><strong>4.</strong> Confirme o pagamento de R$ {pixData.valor.toFixed(2)}</li>
             <li><strong>5.</strong> Após o pagamento, você receberá a confirmação via WhatsApp</li>
