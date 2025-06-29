@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
@@ -20,9 +19,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const efiClientId = process.env.EFI_CLIENT_ID || 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
     const efiClientSecret = process.env.EFI_CLIENT_SECRET || 'Client_Secret_6e2c43d197c350a3d88df81530bcd27eb0818719';
     const efiPixKey = process.env.EFI_PIX_KEY || '1fe7c162-b80d-464a-b57e-26c7da638223';
-    
+
     const isSandbox = efiSandbox === 'true';
-    
+
     console.log(`🔄 Gerando PIX ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'} para:`, { whatsapp, valorTotal, totalBilhetes });
     console.log('📋 Configurações atuais:');
     console.log('- EFI_SANDBOX:', efiSandbox, '(from env:', process.env.EFI_SANDBOX, ')');
@@ -36,9 +35,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('- process.env.EFI_PIX_KEY:', process.env.EFI_PIX_KEY);
     console.log('- process.env.EFI_CERTIFICATE_PATH:', process.env.EFI_CERTIFICATE_PATH);
     console.log('- process.env.EFI_CERTIFICATE_PASSPHRASE:', process.env.EFI_CERTIFICATE_PASSPHRASE ? 'Existe' : 'Undefined');
-    
+
     const EfiPay = require('sdk-node-apis-efi');
-    
+
     // Configuração para sandbox ou produção
     let efiConfig: any = {
       client_id: efiClientId,
@@ -49,19 +48,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Para produção, é obrigatório o certificado
     if (!isSandbox) {
       console.log('🔐 Configurando certificado para PRODUÇÃO...');
-      
+
       const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
       const certificatePassphrase = process.env.EFI_CERTIFICATE_PASSPHRASE || '';
-      
+
       if (!fs.existsSync(certificatePath)) {
         throw new Error(`Certificado não encontrado em: ${certificatePath}`);
       }
-      
+
       efiConfig.certificate = certificatePath;
-      if (certificatePassphrase && certificatePassphrase.trim() !== '') {
-        efiConfig.passphrase = certificatePassphrase;
-      }
-      
+      // Tratar senha vazia, espaço em branco ou undefined
+      const senha = certificatePassphrase?.trim();
+      efiConfig.passphrase = (senha && senha.length > 0) ? senha : ''; // Senha vazia se não configurada
+
       console.log('✅ Certificado configurado para produção');
       console.log('📁 Caminho do certificado:', certificatePath);
       console.log('🔑 Senha configurada:', certificatePassphrase ? 'Sim' : 'Não');
