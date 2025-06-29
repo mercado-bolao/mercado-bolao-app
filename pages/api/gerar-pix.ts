@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
@@ -232,8 +233,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Salvar dados do PIX no banco de dados
-    const { prisma } = require('../../../lib/prisma');
-
     let pixSalvo = null;
 
     try {
