@@ -53,6 +53,7 @@ model Palpite {
   whatsapp   String
   resultado  String
   valor      Float    @default(10.0) // Valor fixo de R$ 10,00 por palpite
+  status     String   @default("pendente") // Status: pendente, pago, cancelado
   jogoId     String
   concursoId String // ✅ adicionado
   createdAt  DateTime @default(now())

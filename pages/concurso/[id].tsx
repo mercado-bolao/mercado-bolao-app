@@ -427,8 +427,16 @@ export default function ConcursoDetalhes() {
           {Object.keys(palpites).length > 0 && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">
-                📊 ENVIAR PALPITES ({Object.keys(palpites).length})
+                🛒 CARRINHO DE PALPITES ({Object.keys(palpites).length})
               </h3>
+              <div className="bg-yellow-100 rounded-lg p-3 mb-4">
+                <p className="text-yellow-800 text-sm font-medium">
+                  ⏳ Status: <span className="font-bold">PENDENTE</span>
+                </p>
+                <p className="text-yellow-700 text-xs">
+                  Seus palpites serão salvos como pendentes até a confirmação do pagamento
+                </p>
+              </div>
               <div className="text-sm text-yellow-700 space-y-1 mb-4">
                 {Object.entries(palpites).map(([jogoId, resultado]) => {
                   const jogo = concurso.jogos.find(j => j.id === jogoId);
@@ -470,22 +478,23 @@ export default function ConcursoDetalhes() {
             <button
               type="submit"
               disabled={enviando || Object.keys(palpites).length === 0}
-              className="flex-1 py-4 px-6 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+              className="flex-1 py-4 px-6 bg-yellow-600 text-white rounded-xl font-semibold text-lg hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              {enviando ? "ENVIANDO..." : "✅ ENVIAR PALPITES"}
+              {enviando ? "SALVANDO..." : "🛒 SALVAR PALPITES (PENDENTE)"}
             </button>
           </div>
 
           {/* Mensagem de sucesso logo após o botão */}
           {sucesso && (
-            <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg">
+            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <span className="text-2xl">✅</span>
+                  <span className="text-2xl">⏳</span>
                 </div>
                 <div className="ml-3">
-                  <p className="font-semibold">Palpites enviados com sucesso!</p>
-                  <p className="text-sm">Boa sorte no concurso!</p>
+                  <p className="font-semibold">Palpites salvos como pendentes!</p>
+                  <p className="text-sm">Seus palpites foram registrados e estão aguardando pagamento.</p>
+                  <p className="text-sm font-medium mt-1">💰 Total: R$ {(Object.keys(palpites).length * 10).toFixed(2).replace('.', ',')}</p>
                 </div>
               </div>
             </div>

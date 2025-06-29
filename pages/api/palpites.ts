@@ -95,7 +95,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0 // Valor fixo de R$ 10,00
+          valor: 10.0, // Valor fixo de R$ 10,00
+          status: "pendente" // Status pendente até pagamento
         },
         create: {
           userId: user.id,
@@ -104,7 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           nome: nome,
           whatsapp: whatsapp,
           concursoId: concursoId,
-          valor: 10.0 // Valor fixo de R$ 10,00
+          valor: 10.0, // Valor fixo de R$ 10,00
+          status: "pendente" // Status pendente até pagamento
         }
       });
 
