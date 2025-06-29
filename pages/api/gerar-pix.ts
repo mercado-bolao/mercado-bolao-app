@@ -109,14 +109,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else {
     console.log('🧪 Modo SANDBOX - certificado não necessário');
+    // Para sandbox, explicitamente definir certificate como false
+    efiConfig2.certificate = false;
   }
 
   console.log('⚙️ Config EFI final:');
   console.log('- sandbox:', efiConfig2.sandbox);
   console.log('- client_id:', efiConfig2.client_id);
   console.log('- client_secret:', efiConfig2.client_secret ? '✅' : '❌');
-  console.log('- certificate:', efiConfig2.certificate ? '✅' : '❌');
-    const efipay = new EfiPay(efiConfig2);
+  console.log('- certificate:', efiConfig2.certificate);
+  
+  const efipay = new EfiPay(efiConfig2);
 
     // Gerar TXID único
     const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
