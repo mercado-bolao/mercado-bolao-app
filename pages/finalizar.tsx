@@ -159,6 +159,19 @@ export default function FinalizarAposta() {
         totalBilhetes: palpitesPendentes.totalBilhetes,
       });
 
+      // Buscar palpites pendentes
+      console.log('🔍 Buscando palpites pendentes para PIX...');
+      const palpitesResponse = await fetch(`/api/palpites-pendentes?whatsapp=${whatsapp}`);
+      const palpitesData = await palpitesResponse.json();
+
+      if (!palpitesData.success || !palpitesData.palpites || palpitesData.palpites.length === 0) {
+        alert('❌ Nenhum palpite pendente encontrado');
+        setProcessandoPagamento(false);
+        return;
+      }
+
+      console.log('📋 Palpites encontrados:', palpitesData.palpites.length);
+
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
@@ -168,6 +181,7 @@ export default function FinalizarAposta() {
           whatsapp: whatsapp,
           valorTotal: palpitesPendentes.valorTotal,
           totalBilhetes: palpitesPendentes.totalBilhetes,
+          palpites: palpitesData.palpites
         }),
       });
 
