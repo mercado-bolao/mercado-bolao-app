@@ -84,33 +84,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       sandbox: isSandbox,
     };
 
-    // Configurar certificado apenas se estiver em produção
-  let certificateConfig = {};
+    // Configurar EFÍ baseado no ambiente
+  let efiConfig2: any = {
+    sandbox: !isProducao,
+    client_id: configuracoes.EFI_CLIENT_ID,
+    client_secret: configuracoes.EFI_CLIENT_SECRET
+  };
 
+  // Só adicionar certificado se estiver em PRODUÇÃO
   if (isProducao) {
     console.log('🔐 Configurando certificado para PRODUÇÃO...');
 
     if (fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH) && configuracoes.EFI_CERTIFICATE_PASSPHRASE) {
-      certificateConfig = {
-        certificate: configuracoes.EFI_CERTIFICATE_PATH,
-        passphrase: configuracoes.EFI_CERTIFICATE_PASSPHRASE
-      };
+      efiConfig2.certificate = configuracoes.EFI_CERTIFICATE_PATH;
+      efiConfig2.passphrase = configuracoes.EFI_CERTIFICATE_PASSPHRASE;
       console.log('✅ Certificado configurado para produção');
     } else {
-      console.log('❌ Certificado ou senha não disponível, forçando SANDBOX...');
-      configuracoes.EFI_SANDBOX = true;
+      console.log('❌ Certificado não disponível, não é possível usar PRODUÇÃO');
+      return res.status(400).json({
+        error: 'Certificado não configurado',
+        details: 'Para usar produção, configure o certificado e senha nos Secrets',
+        suggestion: 'Configure EFI_CERTIFICATE_PASSPHRASE nos Secrets'
+      });
     }
   } else {
     console.log('🧪 Modo SANDBOX - certificado não necessário');
   }
-
-    // Configurar EFÍ
-  const efiConfig2 = {
-    sandbox: configuracoes.EFI_SANDBOX,
-    client_id: configuracoes.EFI_CLIENT_ID,
-    client_secret: configuracoes.EFI_CLIENT_SECRET,
-    ...certificateConfig
-  };
 
   console.log('⚙️ Config EFI final:');
   console.log('- sandbox:', efiConfig2.sandbox);
