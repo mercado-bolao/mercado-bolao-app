@@ -54,8 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const certificadoDisponivel = process.env.EFI_CERTIFICATE_PASSPHRASE && 
                                  process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
 
-  // TEMPORÁRIO: Forçar sandbox para testar credenciais
-  const isProducao = false; // certificadoDisponivel;
+  // Usar modo produção se sandbox=false E certificado disponível
+  const isProducao = efiSandbox === 'false' && certificadoDisponivel;
 
   console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
   console.log('🔐 Certificado disponível:', certificadoDisponivel ? '✅' : '❌');
@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     client_secret: configuracoes.EFI_CLIENT_SECRET
   };
 
-  // Só adicionar certificado se estiver em PRODUÇÃO
+  // Configurar certificado baseado no modo
   if (isProducao) {
     console.log('🔐 Configurando certificado para PRODUÇÃO...');
 
@@ -100,17 +100,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       efiConfig2.passphrase = configuracoes.EFI_CERTIFICATE_PASSPHRASE;
       console.log('✅ Certificado configurado para produção');
     } else {
-      console.log('❌ Certificado não disponível, não é possível usar PRODUÇÃO');
+      console.log('❌ Certificado não disponível para PRODUÇÃO');
+      console.log('📁 Caminho do certificado:', configuracoes.EFI_CERTIFICATE_PATH);
+      console.log('🔑 Senha disponível:', !!configuracoes.EFI_CERTIFICATE_PASSPHRASE);
+      console.log('📂 Arquivo existe:', fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH));
+      
       return res.status(400).json({
-        error: 'Certificado não configurado',
-        details: 'Para usar produção, configure o certificado e senha nos Secrets',
-        suggestion: 'Configure EFI_CERTIFICATE_PASSPHRASE nos Secrets'
+        error: 'Certificado não configurado para PRODUÇÃO',
+        details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets',
+        suggestion: 'Verifique se o arquivo certificado-efi.p12 está na pasta certs/ e EFI_CERTIFICATE_PASSPHRASE está nos Secrets',
+        debug: {
+          certificatePath: configuracoes.EFI_CERTIFICATE_PATH,
+          certificateExists: fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH),
+          hasPassphrase: !!configuracoes.EFI_CERTIFICATE_PASSPHRASE
+        }
       });
     }
   } else {
     console.log('🧪 Modo SANDBOX - certificado não necessário');
-    // Para sandbox, explicitamente definir certificate como false
-    efiConfig2.certificate = false;
+    // Para sandbox, não incluir certificate no config
   }
 
   console.log('⚙️ Config EFI final:');
