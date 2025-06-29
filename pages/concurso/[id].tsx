@@ -694,20 +694,20 @@ export default function ConcursoDetalhes() {
 
           {/* Carrinho de Apostas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
-            <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
-              <h3 className="text-lg font-semibold text-yellow-800 mb-4">
-                🛒 CARRINHO DE BILHETES COMPLETOS
+            <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
+              <h3 className="text-base font-semibold text-yellow-800 mb-3 flex items-center">
+                🛒 Carrinho ({calcularTotalBilhetes()} bilhetes)
               </h3>
 
-              {/* Tabela de palpites múltiplos */}
-              <div className="bg-white rounded-lg p-4 mb-4 overflow-x-auto">
-                <table className="w-full min-w-[600px]">
+              {/* Tabela compacta de palpites */}
+              <div className="bg-white rounded-lg border p-3 mb-3 overflow-x-auto">
+                <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-2 font-semibold text-gray-700">Jogo</th>
+                    <tr className="border-b border-gray-100">
+                      <th className="text-left py-2 px-1 font-medium text-gray-600">Jogo</th>
                       {Array.from({ length: calcularTotalBilhetes() }, (_, i) => (
-                        <th key={i} className="text-center py-3 px-2 font-semibold text-gray-700">
-                          Bilhete {i + 1}
+                        <th key={i} className="text-center py-2 px-1 font-medium text-gray-600">
+                          B{i + 1}
                         </th>
                       ))}
                     </tr>
@@ -722,32 +722,30 @@ export default function ConcursoDetalhes() {
                       }
 
                       return (
-                        <tr key={jogo.id} className={`border-b border-gray-100 ${todosPalpites.length > 0 ? 'bg-blue-50' : ''}`}>
-                          {/* Nome do jogo */}
-                          <td className="py-4 px-2">
-                            <div className="text-xs font-bold text-gray-500 mb-1">JOGO {index + 1}</div>
-                            <div className="text-sm font-semibold text-gray-800">
-                              {jogo.mandante} x {jogo.visitante}
+                        <tr key={jogo.id} className="border-b border-gray-50 last:border-b-0">
+                          <td className="py-2 px-1">
+                            <div className="text-xs text-gray-500">#{index + 1}</div>
+                            <div className="text-xs font-medium text-gray-700 truncate max-w-[80px]">
+                              {jogo.mandante.substring(0, 3)} x {jogo.visitante.substring(0, 3)}
                             </div>
                           </td>
 
-                          {/* Palpites por bilhete */}
                           {Array.from({ length: calcularTotalBilhetes() }, (_, bilheteIndex) => (
-                            <td key={bilheteIndex} className="py-4 px-2 text-center">
+                            <td key={bilheteIndex} className="py-2 px-1 text-center">
                               {todosPalpites[bilheteIndex] ? (
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
+                                <div className={`w-6 h-6 rounded flex items-center justify-center font-bold text-xs mx-auto ${
                                   palpitesCarrinho.includes(todosPalpites[bilheteIndex]) || bilheteIndex < palpitesCarrinho.length
-                                    ? (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-600 text-white' :
-                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-600 text-white' :
-                                       'bg-red-600 text-white')
-                                    : (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
-                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
-                                       'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
+                                    ? (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-500 text-white' :
+                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-500 text-white' :
+                                       'bg-red-500 text-white')
+                                    : (todosPalpites[bilheteIndex] === '1' ? 'bg-blue-100 border border-blue-300 text-blue-700' :
+                                       (todosPalpites[bilheteIndex] === '0' || todosPalpites[bilheteIndex] === 'X') ? 'bg-gray-100 border border-gray-300 text-gray-700' :
+                                       'bg-red-100 border border-red-300 text-red-700')
                                 }`}>
                                   {todosPalpites[bilheteIndex] === '0' ? 'X' : todosPalpites[bilheteIndex]}
                                 </div>
                               ) : (
-                                <span className="text-gray-400 text-sm">-</span>
+                                <span className="text-gray-300 text-xs">-</span>
                               )}
                             </td>
                           ))}
@@ -756,103 +754,75 @@ export default function ConcursoDetalhes() {
                     })}
                   </tbody>
                 </table>
-
-                {/* Mensagem quando não há palpites */}
-                {Object.keys(carrinho).length === 0 && Object.keys(palpites).length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <div className="text-4xl mb-2">🎯</div>
-                    <div className="font-medium">Nenhum palpite adicionado ainda</div>
-                    <div className="text-sm mt-1">Escolha seus palpites nos jogos acima</div>
-                  </div>
-                )}
               </div>
 
-              {/* Resumo dos bilhetes */}
-              <div className="border-t border-yellow-200 pt-4">
-                <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes Completos</h4>
-                  <div className="text-sm mb-3 text-yellow-700 bg-yellow-50 p-2 rounded">
-                    <strong>Nova Regra:</strong> Cada conjunto completo de palpites = 1 bilhete de R$ 10,00
+              {/* Resumo compacto e dados obrigatórios */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Resumo financeiro compacto */}
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-3 border border-green-200">
+                  <div className="text-xs font-medium text-green-700 mb-1">💰 Resumo</div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Jogos:</span>
+                      <span className="font-medium">{concurso.jogos.length}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Bilhetes:</span>
+                      <span className="font-medium">{calcularTotalBilhetes()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Valor unit:</span>
+                      <span className="font-medium">R$ 10,00</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-green-700 font-medium">Total:</span>
+                      <span className="font-bold text-green-800">R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
+                    </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-yellow-700">Jogos disponíveis:</span>
-                      <span className="font-bold text-yellow-900">
-                        {concurso.jogos.length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-yellow-700">Total de bilhetes:</span>
-                      <span className="font-bold text-yellow-900">
-                        {calcularTotalBilhetes()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-yellow-700">Valor por bilhete:</span>
-                      <span className="font-bold text-yellow-900">R$ 10,00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-yellow-700">Valor total:</span>
-                      <span className="font-bold text-yellow-900 text-lg">
-                        R$ {(calcularTotalBilhetes() * 10).toFixed(2)}
-                      </span>
-                    </div>
+                </div>
+
+                {/* Dados obrigatórios compactos */}
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                  <div className="text-xs font-medium text-blue-700 mb-2">📝 Dados para pagamento</div>
+                  <div className="space-y-2">
+                    <input
+                      type="text"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="w-full px-2 py-2 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="Nome completo"
+                      required
+                    />
+                    <input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={(e) => setWhatsapp(e.target.value)}
+                      className="w-full px-2 py-2 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="WhatsApp (11) 99999-9999"
+                      required
+                    />
                   </div>
                 </div>
               </div>
 
-              {/* Campos obrigatórios para pagamento */}
-              <div className="mt-6 space-y-4 bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-3">📝 Dados obrigatórios para pagamento</h4>
-                
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-2">
-                    Nome completo *
-                  </label>
-                  <input
-                    type="text"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500"
-                    placeholder="Digite seu nome completo"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-blue-700 mb-2">
-                    WhatsApp *
-                  </label>
-                  <input
-                    type="tel"
-                    value={whatsapp}
-                    onChange={(e) => setWhatsapp(e.target.value)}
-                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white placeholder-gray-500"
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Botões de ação do carrinho */}
-              <div className="mt-4 flex gap-2">
+              {/* Botões de ação compactos */}
+              <div className="mt-3 flex gap-2">
                 {Object.keys(palpites).length > 0 && (
                   <button
                     type="button"
                     onClick={adicionarPalpitesAoCarrinho}
-                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                    className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                   >
-                    💾 ADICIONAR AO CARRINHO
+                    💾 Adicionar
                   </button>
                 )}
 
-                {/* Botão para limpar carrinho */}
                 {calcularTotalBilhetes() > 0 && (
                   <button
                     type="button"
                     onClick={limparCarrinho}
-                    className="py-3 px-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
-                    title="Limpar todo o carrinho"
+                    className="py-2 px-3 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
+                    title="Limpar carrinho"
                   >
                     🗑️
                   </button>
@@ -860,29 +830,27 @@ export default function ConcursoDetalhes() {
               </div>
 
               {/* Botão principal de gerar pagamento */}
-              <div className="mt-4">
-                <button
-                  onClick={handleGerarPagamento}
-                  disabled={!canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento}
-                  className={`w-full py-4 px-8 rounded-xl font-bold text-lg transition-all transform ${
-                    !canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento
-                      ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
-                  } text-white flex items-center justify-center space-x-2`}
-                >
-                  {isLoading || processandoPagamento ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>{processandoPagamento ? 'Gerando Pagamento...' : 'Enviando...'}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>💳</span>
-                      <span>GERAR PAGAMENTO ({calcularTotalBilhetes()} bilhetes - R$ {(calcularTotalBilhetes() * 10).toFixed(2)})</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleGerarPagamento}
+                disabled={!canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento}
+                className={`w-full mt-3 py-3 px-4 rounded-lg font-bold text-sm transition-all ${
+                  !canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700 shadow-md'
+                } text-white flex items-center justify-center space-x-2`}
+              >
+                {isLoading || processandoPagamento ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>{processandoPagamento ? 'Gerando...' : 'Enviando...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>💳</span>
+                    <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 10).toFixed(2)}</span>
+                  </>
+                )}
+              </button>
             </div>
           )}
 
