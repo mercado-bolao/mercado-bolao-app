@@ -54,9 +54,17 @@ export default async function handler(
 
     console.log(`Encontrados ${palpites.length} palpites`);
 
-    return res.status(200).json(palpites);
+    return res.status(200).json({
+      success: true,
+      palpites: palpites,
+      total: palpites.length
+    });
   } catch (error) {
     console.error('Erro ao buscar palpites:', error);
-    return res.status(500).json({ error: "Erro ao buscar palpites", details: error.message });
+    return res.status(500).json({ 
+      success: false,
+      error: "Erro ao buscar palpites", 
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
+    });
   }
 }
