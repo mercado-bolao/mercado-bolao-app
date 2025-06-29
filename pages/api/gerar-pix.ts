@@ -1,9 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
@@ -234,12 +232,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       imagemQrcode: null // Será null até conseguir gerar QR Code
     };
 
-    // Salvar dados do PIX no banco de dados
+    // Salvar dados do PIX no banco de dados e criar bilhetes
     let pixSalvo = null;
+    let bilhetesCriados = [];
 
     try {
       console.log('💾 Salvando dados do PIX no banco...');
 
+      // 1. Salvar PIX
       pixSalvo = await prisma.pixPagamento.create({
         data: {
           txid: pixResponse.txid,
@@ -257,10 +257,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
 
-      // Agora criar os bilhetes com os palpites pendentes
-      console.log('🎫 Criando bilhetes para os palpites pendentes...');
-      
-      // Buscar palpites pendentes do usuário
+      // 2. Buscar palpites pendentes do usuário
+      console.log('🎫 Buscando palpites pendentes...');
       const palpitesPendentes = await prisma.palpite.findMany({
         where: {
           whatsapp: whatsapp,
@@ -275,50 +273,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`📊 Encontrados ${palpitesPendentes.length} palpites pendentes`);
 
       if (palpitesPendentes.length > 0) {
-        // Buscar concurso ativo
+        // 3. Buscar concurso ativo
         const concursoAtivo = await prisma.concurso.findFirst({
           where: { status: 'ativo' }
         });
 
-        if (concursoAtivo) {
-          // Criar um bilhete para todos os palpites
-          const bilhete = await prisma.bilhete.create({
-            data: {
-              nome: `Cliente WhatsApp ${whatsapp}`,
-              telefone: whatsapp,
-              whatsapp: whatsapp,
-              concursoId: concursoAtivo.id,
-              quantidadePalpites: palpitesPendentes.length,
-              valorTotal: valorTotal,
-              status: 'PENDENTE',
-              txid: pixResponse.txid,
-              orderId: locationId.toString(),
-              pixId: pixSalvo.id,
-              expiresAt: new Date(Date.now() + 300000), // 5 minutos
-            }
-          });
-
-          console.log('✅ Bilhete criado com ID:', bilhete.id);
-
-          // Associar palpites ao bilhete
-          await prisma.palpite.updateMany({
-            where: {
-              id: { in: palpitesPendentes.map(p => p.id) }
-            },
-            data: {
-              bilheteId: bilhete.id,
-              nome: `Cliente WhatsApp ${whatsapp}`,
-              status: 'pendente'
-            }
-          });
-
-          console.log('✅ Palpites associados ao bilhete');
+        if (!concursoAtivo) {
+          console.error('❌ Nenhum concurso ativo encontrado');
+          throw new Error('Nenhum concurso ativo encontrado');
         }
+
+        console.log('🏆 Concurso ativo encontrado:', concursoAtivo.id);
+
+        // 4. Criar bilhete com status PENDENTE
+        const bilhete = await prisma.bilhete.create({
+          data: {
+            nome: `Cliente WhatsApp ${whatsapp}`,
+            telefone: whatsapp,
+            whatsapp: whatsapp,
+            concursoId: concursoAtivo.id,
+            quantidadePalpites: palpitesPendentes.length,
+            valorTotal: valorTotal,
+            status: 'PENDENTE', // Status será alterado para PAGO no webhook
+            txid: pixResponse.txid,
+            orderId: locationId.toString(),
+            pixId: pixSalvo.id,
+            expiresAt: new Date(Date.now() + 300000), // 5 minutos
+          }
+        });
+
+        console.log('✅ Bilhete criado com ID:', bilhete.id, 'e status:', bilhete.status);
+        bilhetesCriados.push(bilhete);
+
+        // 5. Associar palpites ao bilhete
+        const updateResult = await prisma.palpite.updateMany({
+          where: {
+            id: { in: palpitesPendentes.map(p => p.id) }
+          },
+          data: {
+            bilheteId: bilhete.id,
+            nome: `Cliente WhatsApp ${whatsapp}`,
+            status: 'pendente'
+          }
+        });
+
+        console.log(`✅ ${updateResult.count} palpites associados ao bilhete ${bilhete.id}`);
+      } else {
+        console.log('⚠️ Nenhum palpite pendente encontrado para o usuário');
       }
 
     } catch (dbError) {
-      console.error('❌ Erro ao salvar PIX no banco:', dbError);
-      // Continuar mesmo com erro no banco, pois o PIX foi gerado
+      console.error('❌ Erro ao salvar PIX/bilhetes no banco:', dbError);
+      console.error('📝 Detalhes do erro:', dbError instanceof Error ? dbError.message : 'Erro desconhecido');
+      // Continuar mesmo com erro no banco, pois o PIX foi gerado na EFI
     }
 
     return res.status(200).json({
@@ -419,7 +426,5 @@ Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
       console.error('❌ Erro ao enviar resposta JSON:', jsonError);
       res.status(500).json({ error: 'Erro crítico no servidor', details: 'Falha ao processar resposta' });
     }
-  } finally {
-    await prisma.$disconnect();
   }
 }
