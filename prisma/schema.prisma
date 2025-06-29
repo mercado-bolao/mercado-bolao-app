@@ -63,6 +63,8 @@ model Palpite {
   jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
   pixId      String?  // Relacionamento com PIX
   pix        PixPagamento? @relation(fields: [pixId], references: [id])
+  bilheteId  String?  // Relacionamento com Bilhete
+  bilhete    Bilhete? @relation("BilhetePalpites", fields: [bilheteId], references: [id])
 }
 
 model PixPagamento {
@@ -80,4 +82,42 @@ model PixPagamento {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   palpites         Palpite[]
+  bilhetes         Bilhete[]
+}
+
+model Bilhete {
+  id               String   @id @default(uuid())
+  whatsapp         String
+  nome             String
+  valorTotal       Float
+  quantidadePalpites Int
+  status           String   @default("PENDENTE") // PENDENTE, PAGO, CANCELADO, EXPIRADO
+  txid             String?
+  orderId          String?
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  // Relacionamentos
+  pixId            String?
+  pix              PixPagamento? @relation(fields: [pixId], references: [id])
+  palpites         Palpite[] @relation("BilhetePalpites")
+  
+  @@index([txid])
+  @@index([orderId])
+  @@index([status])
+}
+
+model WebhookLog {
+  id               String   @id @default(uuid())
+  tipo             String   // "pix_payment", "pix_webhook", etc
+  txid             String?
+  payload          String   @db.Text
+  status           String   // "SUCCESS", "ERROR", "PROCESSED"
+  errorMessage     String?
+  processedAt      DateTime?
+  createdAt        DateTime @default(now())
+  
+  @@index([txid])
+  @@index([tipo])
 }

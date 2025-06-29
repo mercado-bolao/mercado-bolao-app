@@ -16,10 +16,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Método não permitido' });
     }
 
-  const { whatsapp, valorTotal, totalBilhetes } = req.body;
+  const { whatsapp, valorTotal, totalBilhetes, bilheteId } = req.body;
 
   console.log('🔄 Iniciando geração de PIX...');
-  console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes });
+  console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes, bilheteId });
 
   if (!whatsapp || !valorTotal || !totalBilhetes) {
     console.error('❌ Dados obrigatórios não fornecidos:', { whatsapp, valorTotal, totalBilhetes });
@@ -276,6 +276,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
 
+      // Se foi fornecido bilheteId, associar o PIX ao bilhete
+      if (bilheteId) {
+        await prisma.bilhete.update({
+          where: { id: bilheteId },
+          data: { pixId: pixSalvo.id }
+        });
+        console.log('✅ PIX associado ao bilhete:', bilheteId);
+      }
+
       // Associar palpites pendentes a este PIX
       const palpitesAtualizados = await prisma.palpite.updateMany({
         where: {
@@ -298,6 +307,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       success: true,
+      pixId: pixSalvo ? pixSalvo.id : null,
       pix: {
         txid: pixResponse.txid,
         locationId: locationId,
