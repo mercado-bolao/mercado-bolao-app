@@ -417,7 +417,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "1")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "1" || (carrinho[jogo.id] && carrinho[jogo.id].includes("1")))
+                          palpites[jogo.id] === "1"
                             ? "bg-blue-600 text-white shadow-lg transform scale-105"
                             : "bg-blue-100 text-blue-800 hover:bg-blue-200"
                         }`}
@@ -428,8 +428,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "X")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0" || 
-                           (carrinho[jogo.id] && (carrinho[jogo.id].includes("X") || carrinho[jogo.id].includes("0"))))
+                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0")
                             ? "bg-gray-600 text-white shadow-lg transform scale-105"
                             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                         }`}
@@ -440,7 +439,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "2")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "2" || (carrinho[jogo.id] && carrinho[jogo.id].includes("2")))
+                          palpites[jogo.id] === "2"
                             ? "bg-red-600 text-white shadow-lg transform scale-105"
                             : "bg-red-100 text-red-800 hover:bg-red-200"
                         }`}
