@@ -402,84 +402,78 @@ export default function ConcursoDetalhes() {
                 🛒 CARRINHO DE APOSTAS
               </h3>
               
-              {/* Tabela de Palpites */}
-              <div className="bg-white rounded-lg p-3 mb-4 overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-1 text-gray-600 font-medium">Status</th>
-                      <th className="text-left py-1 text-gray-600 font-medium">Jogo</th>
-                      <th className="text-center py-1 text-gray-600 font-medium">Palpite</th>
-                      <th className="text-center py-1 text-gray-600 font-medium">Ação</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {/* Palpites já no carrinho */}
-                    {Object.entries(carrinho).map(([jogoId, resultado]) => {
-                      const jogo = concurso.jogos.find(j => j.id === jogoId);
-                      return (
-                        <tr key={jogoId} className="border-b border-gray-100 bg-green-50">
-                          <td className="py-1">
-                            <span className="text-green-600 text-xs font-medium">✅ SALVO</span>
-                          </td>
-                          <td className="py-1 text-gray-700 text-xs">
-                            {jogo?.mandante.substring(0, 8)}... x {jogo?.visitante.substring(0, 8)}...
-                          </td>
-                          <td className="py-1 text-center">
-                            <span className="bg-green-100 px-2 py-1 rounded text-xs font-bold">{resultado}</span>
-                          </td>
-                          <td className="py-1 text-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newCarrinho = { ...carrinho };
-                                delete newCarrinho[jogoId];
-                                setCarrinho(newCarrinho);
-                              }}
-                              className="text-red-600 hover:text-red-800 text-xs"
-                            >
-                              ❌
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    
-                    {/* Palpites atuais (ainda não salvos no carrinho) */}
-                    {Object.entries(palpites).map(([jogoId, resultado]) => {
-                      // Não mostrar se já está no carrinho
-                      if (carrinho[jogoId]) return null;
-                      
-                      const jogo = concurso.jogos.find(j => j.id === jogoId);
-                      return (
-                        <tr key={jogoId} className="border-b border-gray-100 bg-blue-50">
-                          <td className="py-1">
-                            <span className="text-blue-600 text-xs font-medium">⏳ ATUAL</span>
-                          </td>
-                          <td className="py-1 text-gray-700 text-xs">
-                            {jogo?.mandante.substring(0, 8)}... x {jogo?.visitante.substring(0, 8)}...
-                          </td>
-                          <td className="py-1 text-center">
-                            <span className="bg-blue-100 px-2 py-1 rounded text-xs font-bold">{resultado}</span>
-                          </td>
-                          <td className="py-1 text-center">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newPalpites = { ...palpites };
-                                delete newPalpites[jogoId];
-                                setPalpites(newPalpites);
-                              }}
-                              className="text-red-600 hover:text-red-800 text-xs"
-                            >
-                              ❌
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {/* Lista de Palpites em formato vertical */}
+              <div className="bg-white rounded-lg p-3 mb-4 space-y-2">
+                {/* Palpites já no carrinho */}
+                {Object.entries(carrinho).map(([jogoId, resultado]) => {
+                  const jogo = concurso.jogos.find(j => j.id === jogoId);
+                  return (
+                    <div key={jogoId} className="flex items-center justify-between bg-green-50 p-2 rounded border-l-4 border-green-500">
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-gray-700">
+                          {jogo?.mandante} x {jogo?.visitante}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-green-100 px-2 py-1 rounded text-xs font-bold text-green-800">
+                          {resultado}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newCarrinho = { ...carrinho };
+                            delete newCarrinho[jogoId];
+                            setCarrinho(newCarrinho);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-xs p-1"
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Palpites atuais (ainda não salvos no carrinho) */}
+                {Object.entries(palpites).map(([jogoId, resultado]) => {
+                  // Não mostrar se já está no carrinho
+                  if (carrinho[jogoId]) return null;
+                  
+                  const jogo = concurso.jogos.find(j => j.id === jogoId);
+                  return (
+                    <div key={jogoId} className="flex items-center justify-between bg-blue-50 p-2 rounded border-l-4 border-blue-500">
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-gray-700">
+                          {jogo?.mandante} x {jogo?.visitante}
+                        </div>
+                        <div className="text-xs text-blue-600 font-medium">⏳ PALPITE ATUAL</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="bg-blue-100 px-2 py-1 rounded text-xs font-bold text-blue-800">
+                          {resultado}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPalpites = { ...palpites };
+                            delete newPalpites[jogoId];
+                            setPalpites(newPalpites);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-xs p-1"
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Mensagem quando não há palpites */}
+                {Object.keys(carrinho).length === 0 && Object.keys(palpites).length === 0 && (
+                  <div className="text-center py-4 text-gray-500 text-sm">
+                    Nenhum palpite adicionado ainda
+                  </div>
+                )}
               </div>
               
               <div className="border-t border-yellow-200 pt-3">
