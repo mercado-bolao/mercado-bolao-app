@@ -89,16 +89,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
 
+    // Buscar o concurso ativo para associar ao bilhete
+    const concursoAtivo = await prisma.concurso.findFirst({
+      where: { status: 'ativo' },
+      orderBy: { dataInicio: 'desc' }
+    });
+
+    if (!concursoAtivo) {
+      console.error('❌ Nenhum concurso ativo encontrado');
+      return res.status(400).json({ error: 'Nenhum concurso ativo encontrado' });
+    }
+
     console.log('💾 Criando bilhete...');
     const bilhete = await prisma.bilhete.create({
       data: {
         whatsapp: whatsapp,
         nome: nomeUsuario,
-        valor: valorTotal,
+        valorTotal: valorTotal,
         status: 'PENDENTE',
         orderId: orderId,
         expiresAt: expiresAt,
-        quantidadePalpites: palpites.length
+        quantidadePalpites: palpites.length,
+        concursoId: concursoAtivo.id
       }
     });
 
