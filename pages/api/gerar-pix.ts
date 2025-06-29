@@ -221,7 +221,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         mensagemErro = 'Erro de certificado EFI Pay. Verifique o certificado e senha nos Secrets.';
       } else if (error.error_description.includes('insufficient scope')) {
         statusCode = 403;
-        mensagemErro = 'Sua conta EFI Pay não tem permissões de PIX habilitadas. Entre em contato com a EFI Pay para habilitar as APIs de PIX.';
+        mensagemErro = `🔒 PERMISSÕES INSUFICIENTES
+
+Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
+
+📞 AÇÕES NECESSÁRIAS:
+1. Entre em contato com a EFI Pay: 0800 775 0040
+2. Solicite habilitação das APIs de PIX para PRODUÇÃO
+3. Informe que você tem certificado digital válido
+
+💡 TEMPORÁRIO: Volte para SANDBOX configurando EFI_SANDBOX=true nos Secrets`;
       }
     } else if (error?.message) {
       mensagemErro = error.message;
