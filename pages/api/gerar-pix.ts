@@ -4,11 +4,11 @@ import fs from 'fs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
-  
+
   try {
     // Definir headers JSON primeiro
     res.setHeader('Content-Type', 'application/json');
-    
+
     if (req.method !== 'POST') {
       console.log('❌ Método não permitido:', req.method);
       return res.status(405).json({ error: 'Método não permitido' });
@@ -104,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('📁 Caminho do certificado:', configuracoes.EFI_CERTIFICATE_PATH);
       console.log('🔑 Senha disponível:', !!configuracoes.EFI_CERTIFICATE_PASSPHRASE);
       console.log('📂 Arquivo existe:', fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH));
-      
+
       return res.status(400).json({
         error: 'Certificado não configurado para PRODUÇÃO',
         details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets',
@@ -126,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   console.log('- client_id:', efiConfig2.client_id);
   console.log('- client_secret:', efiConfig2.client_secret ? '✅' : '❌');
   console.log('- certificate:', efiConfig2.certificate);
-  
+
   const efipay = new EfiPay(efiConfig2);
 
     // Gerar TXID único
@@ -219,6 +219,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else if (error.error_description.includes('certificate')) {
         statusCode = 400;
         mensagemErro = 'Erro de certificado EFI Pay. Verifique o certificado e senha nos Secrets.';
+      } else if (error.error_description.includes('insufficient scope')) {
+        statusCode = 403;
+        mensagemErro = 'Sua conta EFI Pay não tem permissões de PIX habilitadas. Entre em contato com a EFI Pay para habilitar as APIs de PIX.';
       }
     } else if (error?.message) {
       mensagemErro = error.message;
