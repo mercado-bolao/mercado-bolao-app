@@ -153,6 +153,11 @@ export default function FinalizarAposta() {
     setProcessandoPagamento(true);
     try {
       console.log('🔄 Gerando PIX para pagamento...');
+      console.log('📤 Dados enviados:', {
+        whatsapp: whatsapp,
+        valorTotal: palpitesPendentes.valorTotal,
+        totalBilhetes: palpitesPendentes.totalBilhetes,
+      });
 
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
@@ -166,10 +171,30 @@ export default function FinalizarAposta() {
         }),
       });
 
-      const data = await response.json();
+      console.log('📡 Response status PIX:', response.status);
+      console.log('📡 Response headers PIX:', response.headers.get('content-type'));
+
+      let data;
+      try {
+        const responseText = await response.text();
+        console.log('📄 Response text:', responseText);
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Erro ao fazer parse da resposta:', parseError);
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      console.log('📥 Dados recebidos PIX:', data);
 
       if (!response.ok) {
-        throw new Error(data.error || 'Erro ao gerar PIX');
+        const errorMessage = data.error || data.details || 'Erro ao gerar PIX';
+        console.error('❌ Erro da API PIX:', {
+          status: response.status,
+          error: data.error,
+          details: data.details,
+          suggestion: data.suggestion
+        });
+        throw new Error(errorMessage);
       }
 
       if (data.success && data.pix) {
@@ -187,7 +212,24 @@ export default function FinalizarAposta() {
 
     } catch (error) {
       console.error('❌ Erro ao gerar pagamento:', error);
-      alert(`Erro ao gerar pagamento PIX: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nTente novamente.`);
+      
+      let mensagemErro = 'Erro desconhecido';
+      if (error instanceof Error) {
+        mensagemErro = error.message;
+        
+        // Mensagens mais específicas baseadas no erro
+        if (mensagemErro.includes('certificado') || mensagemErro.includes('certificate')) {
+          mensagemErro = 'Erro de certificado EFI. Verifique a configuração dos Secrets.';
+        } else if (mensagemErro.includes('sandbox')) {
+          mensagemErro = 'Erro de configuração do ambiente EFI. Verifique os Secrets.';
+        } else if (mensagemErro.includes('401')) {
+          mensagemErro = 'Credenciais EFI inválidas. Verifique CLIENT_ID e CLIENT_SECRET.';
+        } else if (mensagemErro.includes('422')) {
+          mensagemErro = 'Erro nos dados enviados para EFI. Verifique a chave PIX.';
+        }
+      }
+      
+      alert(`❌ Erro ao gerar pagamento PIX:\n\n${mensagemErro}\n\n💡 Dica: Verifique se todos os Secrets da EFI estão configurados corretamente.`);
     } finally {
       setProcessandoPagamento(false);
     }

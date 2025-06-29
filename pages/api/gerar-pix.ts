@@ -3,13 +3,20 @@ import path from 'path';
 import fs from 'fs';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Definir headers JSON primeiro
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
   const { whatsapp, valorTotal, totalBilhetes } = req.body;
 
+  console.log('🔄 Iniciando geração de PIX...');
+  console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes });
+
   if (!whatsapp || !valorTotal || !totalBilhetes) {
+    console.error('❌ Dados obrigatórios não fornecidos:', { whatsapp, valorTotal, totalBilhetes });
     return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
   }
 
@@ -190,11 +197,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       mensagemErro = error.error_description;
     }
 
-    return res.status(statusCode).json({
-      error: 'Erro ao gerar PIX',
-      details: mensagemErro,
-      suggestion: statusCode === 400 ? 'Configure o certificado EFI nas variáveis de ambiente' : null,
-      tipo: typeof error
-    });
+    // Garantir que sempre retornamos JSON válido
+    try {
+      return res.status(statusCode).json({
+        error: 'Erro ao gerar PIX',
+        details: mensagemErro,
+        suggestion: statusCode === 400 ? 'Configure o certificado EFI nas variáveis de ambiente' : 'Verifique os logs do servidor para mais detalhes',
+        tipo: typeof error,
+        timestamp: new Date().toISOString()
+      });
+    } catch (jsonError) {
+      console.error('❌ Erro ao enviar resposta JSON:', jsonError);
+      res.status(500).send('Erro interno do servidor');
+    }
   }
 }
