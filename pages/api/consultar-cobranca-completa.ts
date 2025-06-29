@@ -62,6 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const isSandbox = efiSandbox === 'true';
+
       let efiConfig: any = {
         sandbox: isSandbox,
         client_id: process.env.EFI_CLIENT_ID,
