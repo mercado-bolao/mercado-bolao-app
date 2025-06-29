@@ -1,4 +1,3 @@
-
 // Tipos principais do sistema
 export interface User {
   id: string
@@ -11,15 +10,18 @@ export interface User {
 
 export interface Concurso {
   id: string
+  nome: string | null
   numero: number
-  nome: string
+  status: string
   dataInicio: Date
   dataFim: Date
-  status: 'ativo' | 'encerrado' | 'suspenso'
-  premioEstimado?: number
-  fechamentoPalpites: Date
+  premioEstimado: number | null
+  fechamentoPalpites: Date | null
   jogos?: Jogo[]
-  palpites?: Palpite[]
+  _count?: {
+    palpites: number
+    jogos: number
+  }
   createdAt: Date
   updatedAt: Date
 }
@@ -28,13 +30,10 @@ export interface Jogo {
   id: string
   mandante: string
   visitante: string
-  horario: Date
-  resultadoFinal?: 'Vitória Mandante' | 'Empate' | 'Vitória Visitante'
-  fotoMandante?: string
-  fotoVisitante?: string
+  data: Date
+  resultado: string | null
   concursoId: string
   concurso?: Concurso
-  palpites?: Palpite[]
   createdAt: Date
   updatedAt: Date
 }
@@ -43,16 +42,36 @@ export interface Palpite {
   id: string
   nome: string
   whatsapp: string
-  resultado: 'Vitória Mandante' | 'Empate' | 'Vitória Visitante'
-  pontos?: number
+  resultado: string
+  valor: number
+  status: string
   jogoId: string
-  jogo?: Jogo
   concursoId: string
-  concurso?: Concurso
-  userId?: string
-  user?: User
   createdAt: Date
+  userId: string | null
+  pixId: string | null
+  bilheteId: string | null
+  jogo?: Jogo
+  concurso?: Concurso
   updatedAt: Date
+}
+
+export interface Bilhete {
+  id: string
+  nome: string
+  whatsapp: string
+  status: string
+  concursoId: string
+  createdAt: Date
+  valorTotal: number
+  quantidadePalpites: number
+  txid: string | null
+  orderId: string | null
+  expiresAt: Date
+  updatedAt: Date
+  ipAddress: string | null
+  userAgent: string | null
+  palpites?: Palpite[]
 }
 
 // Tipos para componentes
@@ -95,19 +114,33 @@ export interface BadgeProps {
 }
 
 // Tipos para API responses
-export interface ApiResponse<T> {
+export interface APIResponse<T = any> {
   success: boolean
   data?: T
   error?: string
+  details?: string | null | Record<string, any>
   message?: string
 }
 
-export interface PaginatedResponse<T> {
-  data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+export interface ErrorWithMessage {
+  message: string
+  name?: string
+}
+
+export interface TestResult {
+  status: 'OK' | 'ERROR' | 'WARNING' | 'unknown'
+  details: null | string | Record<string, any>
+}
+
+export interface SystemTestResults {
+  database: TestResult
+  txidGeneration: TestResult
+  efiCredentials: TestResult
+  concursos: TestResult
+  jogos: TestResult
+  palpites?: TestResult
+  pixGeneration?: TestResult
+  webhookConfig?: TestResult
 }
 
 // Tipos para formulários
@@ -198,4 +231,13 @@ export interface AppConfig {
     notifications: boolean
     realTime: boolean
   }
+}
+
+export interface WebhookLog {
+  id: string;
+  evento: string;
+  txid: string | null;
+  dados: any;
+  processado: boolean;
+  createdAt: Date;
 }

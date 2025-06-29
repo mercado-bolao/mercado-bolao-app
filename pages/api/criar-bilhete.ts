@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -11,9 +10,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { whatsapp, nome, palpites } = req.body;
 
     if (!whatsapp || !nome || !palpites || !Array.isArray(palpites) || palpites.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Dados obrigatórios não fornecidos',
         details: 'whatsapp, nome e palpites são obrigatórios'
+      });
+    }
+
+    // Buscar concurso ativo
+    const concursoAtivo = await prisma.concurso.findFirst({
+      where: {
+        status: 'ATIVO',
+        dataFim: {
+          gt: new Date()
+        }
+      }
+    });
+
+    if (!concursoAtivo) {
+      return res.status(400).json({
+        error: 'Nenhum concurso ativo encontrado',
+        details: 'Não é possível criar bilhetes no momento'
       });
     }
 
@@ -21,10 +37,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Capturar informações do cliente
     const userAgent = req.headers['user-agent'] || 'Não informado';
-    
+
     // Captura mais robusta do IP
     let ipAddress = null;
-    
+
     if (req.headers['x-forwarded-for']) {
       // Pega o primeiro IP da lista se houver múltiplos
       ipAddress = req.headers['x-forwarded-for'].toString().split(',')[0].trim();
@@ -53,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Calcular valor total (R$ 1,00 por palpite)
     const valorTotal = palpites.length * 1.0;
-    
+
     // Data de expiração: 5 minutos a partir de agora
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
@@ -67,7 +83,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: 'PENDENTE',
         expiresAt,
         ipAddress: ipAddress,
-        userAgent: userAgent
+        userAgent: userAgent,
+        concursoId: concursoAtivo.id
       }
     });
 
@@ -91,7 +108,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Gerar PIX
     console.log('💰 Gerando PIX para o bilhete...');
-    
+
     const pixResponse = await fetch(`${req.headers.origin}/api/gerar-pix`, {
       method: 'POST',
       headers: {
@@ -125,8 +142,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id: bilhete.id },
       data: {
         txid: pixData.pix.txid,
-        orderId: pixData.pix.locationId,
-        pixId: pixData.pixId
+        orderId: pixData.pix.locationId
       },
       include: {
         palpites: {
@@ -143,14 +159,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     setTimeout(async () => {
       try {
         console.log(`⏰ Verificando expiração do bilhete ${bilhete.id}...`);
-        
+
         const bilheteAtual = await prisma.bilhete.findUnique({
           where: { id: bilhete.id }
         });
 
         if (bilheteAtual && bilheteAtual.status === 'PENDENTE') {
           console.log(`🔴 Cancelando bilhete expirado: ${bilhete.id}`);
-          
+
           await prisma.bilhete.update({
             where: { id: bilhete.id },
             data: { status: 'EXPIRADO' }

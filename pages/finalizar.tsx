@@ -167,7 +167,7 @@ export default function FinalizarAposta() {
       const palpitesData = await palpitesResponse.json();
 
       console.log('📋 Resposta dos palpites:', palpitesData);
-      
+
       if (!palpitesData.palpites || palpitesData.palpites.length === 0) {
         alert('❌ Nenhum palpite pendente encontrado');
         setProcessandoPagamento(false);
@@ -215,7 +215,7 @@ export default function FinalizarAposta() {
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('❌ Erro ao fazer parse da resposta:', parseError);
-        console.error('❌ Response text completa:', responseText);
+        console.error('❌ Response completa:', response);
 
         if (parseError instanceof SyntaxError) {
           throw new Error('Servidor retornou resposta inválida (não é JSON válido)');
@@ -240,9 +240,9 @@ export default function FinalizarAposta() {
 
         // Mostrar alerta com detalhes mais específicos
         const alertMessage = `❌ Erro ao gerar PIX (Status: ${response.status})\n\n` +
-                            `Erro: ${errorMessage}\n\n` +
-                            `Detalhes: ${errorDetails}\n\n` +
-                            (data?.suggestion ? `Sugestão: ${data.suggestion}` : '');
+          `Erro: ${errorMessage}\n\n` +
+          `Detalhes: ${errorDetails}\n\n` +
+          (data?.suggestion ? `Sugestão: ${data.suggestion}` : '');
 
         alert(alertMessage);
         return; // Não jogar erro, apenas retornar
@@ -401,11 +401,10 @@ export default function FinalizarAposta() {
             <button
               onClick={gerarPagamento}
               disabled={processandoPagamento || limpandoCarrinho}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${
-                processandoPagamento || limpandoCarrinho
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
-              } text-white flex items-center space-x-2`}
+              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${processandoPagamento || limpandoCarrinho
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
+                } text-white flex items-center space-x-2`}
             >
               {processandoPagamento ? (
                 <>
@@ -423,11 +422,10 @@ export default function FinalizarAposta() {
             <button
               onClick={limparCarrinho}
               disabled={limpandoCarrinho || processandoPagamento}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${
-                limpandoCarrinho || processandoPagamento
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-red-600 hover:bg-red-700 hover:scale-105 shadow-lg'
-              } text-white flex items-center space-x-2`}
+              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${limpandoCarrinho || processandoPagamento
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-red-600 hover:bg-red-700 hover:scale-105 shadow-lg'
+                } text-white flex items-center space-x-2`}
             >
               {limpandoCarrinho ? (
                 <>

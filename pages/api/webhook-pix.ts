@@ -1,61 +1,41 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
+import { APIResponse, WebhookLog } from '../../types';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('🔔 Webhook PIX recebido');
-  console.log('📥 Method:', req.method);
-  console.log('📥 Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('📥 Body:', JSON.stringify(req.body, null, 2));
-
-  const prisma = new PrismaClient();
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<APIResponse>
+) {
+  console.log('📥 Webhook PIX recebido');
+  console.log('📋 Headers:', JSON.stringify(req.headers, null, 2));
 
   try {
+    // Verificar método
     if (req.method !== 'POST') {
-      return res.status(405).json({ error: 'Método não permitido' });
+      console.log('❌ Método inválido:', req.method);
+      return res.status(405).json({
+        success: false,
+        error: 'Método não permitido'
+      });
     }
 
-    // Extrair dados do webhook da EFÍ - suportar múltiplos formatos
-    let pixData;
-    let txid;
-    let valor;
-    let status;
+    // Log do payload recebido
+    console.log('📦 Payload recebido:', JSON.stringify(req.body, null, 2));
 
-    // Formato padrão: { pix: [{ txid, valor, status }] }
-    if (req.body.pix && req.body.pix[0]) {
-      pixData = req.body.pix[0];
-      txid = pixData.txid;
-      valor = parseFloat(pixData.valor || pixData.value || 0);
-      status = pixData.status;
-    }
-    // Formato direto: { txid, valor, status }
-    else if (req.body.txid) {
-      pixData = req.body;
-      txid = req.body.txid;
-      valor = parseFloat(req.body.valor || req.body.value || 0);
-      status = req.body.status;
-    }
-    // Formato EFI alternativo
-    else if (req.body.evento && req.body.data_criacao) {
-      // Webhook de evento EFI
-      pixData = req.body;
-      txid = req.body.txid;
-      valor = parseFloat(req.body.valor || 0);
-      status = 'PAGA'; // Se chegou aqui, provavelmente foi pago
-    }
-    else {
-      console.log('❌ Dados do PIX não encontrados no webhook');
-      console.log('📥 Formato recebido:', JSON.stringify(req.body, null, 2));
-      return res.status(400).json({ error: 'Dados do PIX não encontrados' });
+    // Extrair dados do webhook
+    const { txid, pix } = req.body;
+
+    if (!txid) {
+      console.log('❌ TXID não fornecido no webhook');
+      return res.status(400).json({
+        success: false,
+        error: 'TXID não fornecido'
+      });
     }
 
-    console.log('💰 PIX recebido via webhook:');
-    console.log('- TXID:', txid);
-    console.log('- Valor:', valor);
-    console.log('- Status:', status);
-
-    // 1. REGISTRAR LOG DO WEBHOOK
-    const webhookLog = await prisma.webhookLog.create({
+    // Registrar log do webhook antes de qualquer processamento
+    console.log('📝 Registrando log do webhook...');
+    await prisma.webhookLog.create({
       data: {
         evento: 'pix.received',
         txid: txid,
@@ -64,130 +44,124 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-    console.log('📝 Webhook log criado:', webhookLog.id);
+    console.log('🔍 Buscando bilhete com TXID:', txid);
 
-    // 2. VERIFICAR SE É UM PAGAMENTO (status = PAGA)
-    if (status !== 'PAGA') {
-      console.log('ℹ️ Webhook recebido mas PIX não está pago ainda. Status:', status);
-      return res.status(200).json({ 
-        message: 'Webhook recebido, mas PIX não confirmado',
-        status: status 
-      });
-    }
-
-    // 3. BUSCAR BILHETE PELO TXID
+    // Buscar bilhete
     const bilhete = await prisma.bilhete.findFirst({
-      where: {
-        txid: txid,
-        status: 'PENDENTE'
-      },
+      where: { txid },
       include: {
-        palpites: true
+        palpites: true,
+        pix: true
       }
     });
 
     if (!bilhete) {
-      console.log('❌ Bilhete não encontrado ou já processado para TXID:', txid);
-      
-      // Marcar webhook como processado mesmo assim
-      await prisma.webhookLog.update({
-        where: { id: webhookLog.id },
+      console.log('❌ Bilhete não encontrado para TXID:', txid);
+      return res.status(404).json({
+        success: false,
+        error: 'Bilhete não encontrado'
+      });
+    }
+
+    // Verificar se já está pago
+    if (bilhete.status === 'PAGO') {
+      console.log('⚠️ Bilhete já está marcado como pago:', bilhete.id);
+
+      // Atualizar log como processado
+      await prisma.webhookLog.updateMany({
+        where: { txid: txid, processado: false },
         data: { processado: true }
       });
 
-      return res.status(404).json({ 
-        error: 'Bilhete não encontrado ou já processado',
-        txid: txid 
+      return res.status(200).json({
+        success: true,
+        message: 'Bilhete já processado anteriormente',
+        data: {
+          id: bilhete.id,
+          status: 'PAGO',
+          valorTotal: bilhete.valorTotal,
+          whatsapp: bilhete.whatsapp
+        }
       });
     }
 
-    console.log('🎫 Bilhete encontrado:', bilhete.id);
-    console.log('👥 Palpites associados:', bilhete.palpites?.length || 0);
+    // Verificar status na EFI antes de processar
+    try {
+      console.log('🔍 Verificando status na EFI antes de processar...');
+      const efiResponse = await fetch(`${req.headers.origin}/api/admin/verificar-status-efi?txid=${txid}`);
+      const efiData = await efiResponse.json();
 
-    // 4. ATUALIZAR STATUS DO BILHETE PARA PAGO
-    const bilheteAtualizado = await prisma.bilhete.update({
+      if (!efiData.success || efiData.status !== 'CONCLUIDA') {
+        console.log('⚠️ Status na EFI não é CONCLUIDA:', efiData.status);
+        return res.status(200).json({
+          success: false,
+          error: 'Pagamento ainda não confirmado na EFI',
+          data: {
+            statusEfi: efiData.status
+          }
+        });
+      }
+    } catch (efiError) {
+      console.error('⚠️ Erro ao verificar na EFI:', efiError);
+    }
+
+    console.log('💾 Atualizando status do bilhete para PAGO...');
+
+    // Atualizar status do bilhete
+    await prisma.bilhete.update({
       where: { id: bilhete.id },
-      data: { 
+      data: {
         status: 'PAGO',
         updatedAt: new Date()
       }
     });
 
-    console.log('✅ Bilhete atualizado para PAGO');
+    console.log('💾 Atualizando status dos palpites...');
 
-    // 5. ATUALIZAR PALPITES PARA PAGO
-    if (bilhete.palpites && bilhete.palpites.length > 0) {
-      const palpitesIds = bilhete.palpites.map(p => p.id);
-      
-      const palpitesAtualizados = await prisma.palpite.updateMany({
-        where: {
-          id: { in: palpitesIds }
-        },
-        data: {
-          status: 'pago'
-        }
-      });
-
-      console.log('✅ Palpites atualizados para PAGO:', palpitesAtualizados.count);
-    }
-
-    // 6. ATUALIZAR STATUS DO PIX
-    await prisma.pixPagamento.updateMany({
-      where: { txid: txid },
-      data: { 
-        status: 'PAGA',
-        updatedAt: new Date()
-      }
+    // Atualizar status dos palpites
+    await prisma.palpite.updateMany({
+      where: { bilheteId: bilhete.id },
+      data: { status: 'pago' }
     });
 
-    console.log('✅ PIX atualizado para PAGA');
+    // Atualizar PIX se existir
+    if (bilhete.pix) {
+      console.log('💾 Atualizando registro do PIX...');
+      await prisma.pixPagamento.update({
+        where: { id: bilhete.pix.id },
+        data: {
+          status: 'PAGA',
+          updatedAt: new Date()
+        }
+      });
+    }
 
-    // 7. MARCAR WEBHOOK COMO PROCESSADO
-    await prisma.webhookLog.update({
-      where: { id: webhookLog.id },
+    // Marcar webhook como processado
+    await prisma.webhookLog.updateMany({
+      where: { txid: txid, processado: false },
       data: { processado: true }
     });
 
-    console.log('🎉 PAGAMENTO CONFIRMADO COM SUCESSO!');
-    console.log('📊 Resumo:');
-    console.log('- Bilhete:', bilhete.id, '→ PAGO');
-    console.log('- Palpites:', bilhete.palpites?.length || 0, '→ PAGOS');
-    console.log('- Valor:', `R$ ${valor.toFixed(2)}`);
-    console.log('- WhatsApp:', bilhete.whatsapp);
+    console.log('✅ Webhook processado com sucesso!');
 
-    // Retornar sucesso para a EFÍ
     return res.status(200).json({
       success: true,
-      message: 'Pagamento confirmado com sucesso',
-      bilhete: {
+      message: 'Pagamento processado com sucesso',
+      data: {
         id: bilhete.id,
         status: 'PAGO',
-        valor: bilhete.valor,
+        valorTotal: bilhete.valorTotal,
         whatsapp: bilhete.whatsapp
-      },
-      palpites_confirmados: bilhete.palpites?.length || 0
+      }
     });
 
   } catch (error) {
-    console.error('❌ ERRO NO WEBHOOK PIX:', error);
-
-    try {
-      // Tentar registrar erro no log
-      await prisma.webhookLog.create({
-        data: {
-          evento: 'error',
-          dados: { error: error instanceof Error ? error.message : 'Erro desconhecido', body: req.body },
-          processado: false
-        }
-      });
-    } catch (logError) {
-      console.error('❌ Erro ao registrar log de erro:', logError);
-    }
-
+    console.error('❌ Erro ao processar webhook:', error);
+    const err = error as Error;
     return res.status(500).json({
       success: false,
-      error: 'Erro interno do servidor',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      error: 'Erro ao processar webhook',
+      details: err.message
     });
   } finally {
     await prisma.$disconnect();

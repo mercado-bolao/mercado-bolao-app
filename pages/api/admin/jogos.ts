@@ -26,8 +26,8 @@ export default async function handler(
 
     // Validar campos obrigatórios
     if (!concursoId || !mandante || !visitante || !horario) {
-      return res.status(400).json({ 
-        error: "Campos obrigatórios: concursoId, mandante, visitante, horario" 
+      return res.status(400).json({
+        error: "Campos obrigatórios: concursoId, mandante, visitante, horario"
       });
     }
 
@@ -55,11 +55,11 @@ export default async function handler(
         },
       });
       return res.status(201).json(jogo);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao criar jogo:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: "Erro ao criar jogo",
-        details: error.message 
+        details: error.message
       });
     }
   }
@@ -136,11 +136,11 @@ export default async function handler(
       if (mandante) updateData.mandante = mandante;
       if (visitante) updateData.visitante = visitante;
       if (horario) {
-          // Converter horário brasileiro para UTC
-          const horarioBrasil = new Date(horario);
-          const horarioUTC = new Date(horarioBrasil.getTime() + (3 * 60 * 60 * 1000)); // Adicionar 3 horas
-          updateData.horario = horarioUTC;
-        }
+        // Converter horário brasileiro para UTC
+        const horarioBrasil = new Date(horario);
+        const horarioUTC = new Date(horarioBrasil.getTime() + (3 * 60 * 60 * 1000)); // Adicionar 3 horas
+        updateData.horario = horarioUTC;
+      }
       if (fotoMandante !== undefined) updateData.fotoMandante = fotoMandante;
       if (fotoVisitante !== undefined) updateData.fotoVisitante = fotoVisitante;
       if (resultadoFinal !== undefined) updateData.resultado = resultadoFinal;
@@ -171,17 +171,17 @@ export default async function handler(
         resultado: jogoVerificacao?.resultado
       });
 
-      return res.status(200).json({ 
-        success: true, 
-        message: 'Jogo atualizado com sucesso', 
+      return res.status(200).json({
+        success: true,
+        message: 'Jogo atualizado com sucesso',
         jogo: jogo,
         verificacao: jogoVerificacao
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro detalhado ao atualizar jogo:', error);
-      return res.status(500).json({ 
+      return res.status(500).json({
         success: false,
-        error: "Erro interno do servidor ao atualizar jogo", 
+        error: "Erro interno do servidor ao atualizar jogo",
         details: error.message
       });
     }
@@ -208,7 +208,7 @@ export default async function handler(
       });
 
       return res.status(200).json(jogos);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao buscar jogos:', error);
       return res.status(500).json({ error: "Erro ao buscar jogos", details: error.message });
     }

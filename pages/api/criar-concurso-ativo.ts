@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const concursoAtivo = await prisma.concurso.findFirst({
       where: { status: 'ativo' }
     });
-    
+
     if (concursoAtivo) {
       return res.status(400).json({
         error: 'Já existe um concurso ativo',
@@ -26,7 +26,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ultimoConcurso = await prisma.concurso.findFirst({
       orderBy: { numero: 'desc' }
     });
-    
+
     const numeroProximoConcurso = ultimoConcurso ? ultimoConcurso.numero + 1 : 1;
 
     // Criar um novo concurso ativo
@@ -125,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           select: {
             id: true,
             mandante: true,
-            visitante: true,            horario: true,
+            visitante: true, horario: true,
             resultado: true,
             fotoMandante: true,
             fotoVisitante: true
@@ -142,7 +142,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       concurso: concursoCriado
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao criar concurso ativo:', error);
     res.status(500).json({
       success: false,

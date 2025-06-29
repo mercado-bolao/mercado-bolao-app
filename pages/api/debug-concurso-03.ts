@@ -30,7 +30,7 @@ export default async function handler(
     });
 
     const contagem2 = await prisma.palpite.count({
-      where: { 
+      where: {
         jogo: {
           concursoId: concurso03.id
         }
@@ -85,7 +85,7 @@ export default async function handler(
     // 6. Contar usuários únicos que fizeram palpites
     const usuariosUnicos = await prisma.palpite.groupBy({
       by: ['nome', 'whatsapp'],
-      where: { 
+      where: {
         jogo: {
           concursoId: concurso03.id
         }
@@ -157,7 +157,7 @@ export default async function handler(
         problemaIdentificado: contagem1 !== totalCorreto ? 'Há inconsistência na contagem' : 'Contagem está correta'
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no debug do concurso 03:', error);
     return res.status(500).json({ error: "Erro no debug", details: error.message });
   }

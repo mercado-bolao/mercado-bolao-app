@@ -58,7 +58,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const palpites = await prisma.palpite.findMany({
       where: {
         whatsapp: whatsapp,
-        status: 'pendente'
+        status: {
+          in: ['pendente', 'pendente_pagamento']
+        }
       },
       include: {
         jogo: {

@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../lib/prisma';
 import path from 'path';
@@ -15,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // 1. BUSCAR BILHETES POR DATA E WHATSAPP
-    let bilhetes = [];
+    let bilhetes: any[] = [];
 
     if (data && whatsapp) {
       // Converter data brasileira para ISO
@@ -74,7 +73,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log(`🕒 Criado em: ${bilhete.createdAt.toLocaleString('pt-BR')}`);
       console.log(`📊 Status atual: ${bilhete.status}`);
 
-      const resultado = {
+      const resultado: {
+        bilheteId: string;
+        txid: string | null;
+        valor: number;
+        whatsapp: string;
+        criadoEm: string;
+        statusBanco: string;
+        palpites: number;
+        statusEfi: string | null;
+        erro: string | null;
+        atualizado: boolean;
+      } = {
         bilheteId: bilhete.id,
         txid: bilhete.txid,
         valor: bilhete.valorTotal,

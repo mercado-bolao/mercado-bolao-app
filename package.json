@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0 -p 3000",
     "lint": "next lint",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@prisma/client": "^6.10.1",
@@ -28,6 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "24.0.4",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "19.1.8",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.0.0",

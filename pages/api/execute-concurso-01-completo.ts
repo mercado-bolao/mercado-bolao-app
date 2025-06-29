@@ -200,7 +200,7 @@ export default async function handler(
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao criar Concurso 01:', error);
     return res.status(500).json({
       error: 'Erro interno do servidor',

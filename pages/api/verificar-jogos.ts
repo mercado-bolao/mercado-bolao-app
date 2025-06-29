@@ -1,69 +1,59 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
+import { APIResponse } from '../../types';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<APIResponse>
+) {
   try {
-    console.log('🔍 Verificando jogos no banco...');
-    
-    // Buscar todos os jogos
-    const jogos = await prisma.jogo.findMany({
-      include: {
-        concurso: {
-          select: {
-            numero: true,
-            nome: true
-          }
-        }
-      },
-      orderBy: { horario: 'desc' }
-    });
-
-    // Contar por concurso
-    const jogosPorConcurso = await prisma.jogo.groupBy({
+    // Contar jogos por concurso
+    const jogos = await prisma.jogo.groupBy({
       by: ['concursoId'],
       _count: {
         id: true
       },
-      include: {
-        concurso: {
-          select: {
-            numero: true,
-            nome: true
-          }
-        }
+      orderBy: {
+        concursoId: 'asc'
       }
     });
 
-    const totalJogos = await prisma.jogo.count();
+    // Buscar detalhes dos concursos
+    const concursos = await prisma.concurso.findMany({
+      where: {
+        id: {
+          in: jogos.map(j => j.concursoId)
+        }
+      },
+      select: {
+        id: true,
+        numero: true,
+        nome: true
+      }
+    });
 
-    console.log(`📊 Total de jogos: ${totalJogos}`);
-    console.log(`🎯 Jogos encontrados:`, jogos.map(j => ({
-      id: j.id,
-      mandante: j.mandante,
-      visitante: j.visitante,
-      horario: j.horario,
-      concurso: j.concurso?.numero,
-      resultado: j.resultado
-    })));
+    // Combinar dados
+    const resultado = jogos.map(jogo => {
+      const concurso = concursos.find(c => c.id === jogo.concursoId);
+      return {
+        concursoId: jogo.concursoId,
+        concursoNumero: concurso?.numero,
+        concursoNome: concurso?.nome,
+        quantidadeJogos: jogo._count.id
+      };
+    });
 
     return res.status(200).json({
-      totalJogos,
-      jogos: jogos.map(j => ({
-        id: j.id,
-        mandante: j.mandante,
-        visitante: j.visitante,
-        horario: j.horario,
-        resultado: j.resultado,
-        concurso: {
-          numero: j.concurso?.numero,
-          nome: j.concurso?.nome
-        }
-      })),
-      jogosPorConcurso
+      success: true,
+      data: resultado
     });
+
   } catch (error) {
-    console.error('❌ Erro ao verificar jogos:', error);
-    return res.status(500).json({ error: error.message });
+    const err = error as Error;
+    return res.status(500).json({
+      success: false,
+      error: 'Erro ao verificar jogos',
+      details: err.message
+    });
   }
 }

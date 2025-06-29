@@ -12,17 +12,17 @@ export default async function handler(
 
   try {
     console.log('🗑️ Iniciando limpeza de todos os jogos...');
-    
+
     // Usar transação para garantir que tudo seja deletado corretamente
     const resultado = await prisma.$transaction(async (tx) => {
       // 1. Deletar todos os palpites (relacionados aos jogos)
       const palpitesDeleted = await tx.palpite.deleteMany({});
       console.log(`✅ Todos os palpites deletados: ${palpitesDeleted.count}`);
-      
+
       // 2. Deletar todos os jogos
       const jogosDeleted = await tx.jogo.deleteMany({});
       console.log(`✅ Todos os jogos deletados: ${jogosDeleted.count}`);
-      
+
       return {
         palpites: palpitesDeleted.count,
         jogos: jogosDeleted.count
@@ -30,17 +30,17 @@ export default async function handler(
     });
 
     console.log('🎉 Limpeza de jogos finalizada!');
-    
-    return res.status(200).json({ 
+
+    return res.status(200).json({
       message: "Todos os jogos foram deletados com sucesso!",
       deletedCounts: resultado
     });
-    
-  } catch (error) {
+
+  } catch (error: any) {
     console.error('❌ Erro ao deletar jogos:', error);
-    return res.status(500).json({ 
-      error: "Erro ao deletar jogos", 
-      details: error.message 
+    return res.status(500).json({
+      error: "Erro ao deletar jogos",
+      details: error.message
     });
   }
 }

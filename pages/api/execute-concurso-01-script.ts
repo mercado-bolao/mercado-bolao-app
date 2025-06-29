@@ -12,7 +12,7 @@ export default async function handler(
 
   try {
     console.log('🚀 Iniciando criação do Concurso 01...');
-    
+
     // Executar o script SQL completo
     await prisma.$executeRaw`
       DO $$
@@ -157,7 +157,7 @@ export default async function handler(
     });
 
     console.log('✅ Concurso 01 criado com sucesso!');
-    
+
     return res.status(200).json({
       message: 'Concurso 01 criado com sucesso!',
       concurso: {
@@ -171,7 +171,7 @@ export default async function handler(
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao criar concurso 01:', error);
     return res.status(500).json({
       error: 'Erro ao criar concurso 01',

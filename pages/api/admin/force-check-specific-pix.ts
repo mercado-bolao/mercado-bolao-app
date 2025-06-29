@@ -140,7 +140,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id: bilhete.id,
             txid: bilhete.txid,
             status: bilhete.status,
-            valor: bilhete.valor,
+            valor: bilhete.valorTotal,
             whatsapp: bilhete.whatsapp,
             createdAt: bilhete.createdAt
           },

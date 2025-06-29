@@ -26,7 +26,7 @@ function QRCodeCanvas({ value }: { value: string }) {
           dark: '#000000',
           light: '#FFFFFF'
         }
-      }).catch((error) => {
+      }).catch((error: Error) => {
         console.error('Erro ao gerar QR Code:', error);
       });
     }
@@ -66,10 +66,10 @@ export default function PagamentoPix() {
       const data = await response.json();
 
       if (data.success) {
-        console.log('📋 Status atual:', data.status);
-        setStatusPix(data.status);
+        console.log('📋 Status atual:', data.data.status);
+        setStatusPix(data.data.status);
 
-        if (data.status === 'PAGO') {
+        if (data.data.status === 'PAGO') {
           // Pagamento confirmado
           console.log('✅ Pagamento confirmado via verificação automática!');
 
@@ -83,34 +83,78 @@ export default function PagamentoPix() {
 
           // Buscar dados completos do bilhete para a tela de confirmação
           try {
-            const bilheteResponse = await fetch(`/api/consultar-bilhete?id=${bilhete.id}`);
+            const bilheteResponse = await fetch(`/api/consultar-bilhete?id=${data.data.id}`);
             const bilheteCompleto = await bilheteResponse.json();
 
             if (bilheteCompleto.success) {
+              // Se o bilhete não tem palpites ou concurso, usar os dados básicos
+              const bilheteParaSalvar = bilheteCompleto.bilhete || {
+                id: data.data.id,
+                txid: data.data.txid,
+                valorTotal: data.data.valorTotal,
+                whatsapp: data.data.whatsapp,
+                nome: data.data.nome,
+                status: data.data.status,
+                createdAt: data.data.createdAt,
+                palpites: [],
+                concurso: null
+              };
+
               // Salvar dados do bilhete confirmado
-              localStorage.setItem('bilheteConfirmado', JSON.stringify(bilheteCompleto.bilhete));
+              localStorage.setItem('bilheteConfirmado', JSON.stringify(bilheteParaSalvar));
 
               // Limpar dados temporários
               localStorage.removeItem('bilheteData');
               localStorage.removeItem('pixData');
 
-              // Redirecionar para tela de confirmação
-              router.push('/bilhete-confirmado');
+              // Redirecionar para tela de confirmação com ID do bilhete
+              router.push(`/bilhete-confirmado?id=${data.data.id}`);
+              return;
+            } else {
+              console.error('Erro ao buscar dados completos:', bilheteCompleto.error);
+              // Usar dados básicos do bilhete
+              const bilheteBasico = {
+                id: data.data.id,
+                txid: data.data.txid,
+                valorTotal: data.data.valorTotal,
+                whatsapp: data.data.whatsapp,
+                nome: data.data.nome,
+                status: data.data.status,
+                createdAt: data.data.createdAt,
+                palpites: [],
+                concurso: null
+              };
+
+              localStorage.setItem('bilheteConfirmado', JSON.stringify(bilheteBasico));
+              localStorage.removeItem('bilheteData');
+              localStorage.removeItem('pixData');
+              router.push(`/bilhete-confirmado?id=${data.data.id}`);
               return;
             }
           } catch (error) {
             console.error('Erro ao buscar dados do bilhete:', error);
-          }
+            // Usar dados básicos em caso de erro
+            const bilheteBasico = {
+              id: data.data.id,
+              txid: data.data.txid,
+              valorTotal: data.data.valorTotal,
+              whatsapp: data.data.whatsapp,
+              nome: data.data.nome,
+              status: data.data.status,
+              createdAt: data.data.createdAt,
+              palpites: [],
+              concurso: null
+            };
 
-          // Fallback se não conseguir buscar dados completos
-          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
-          localStorage.removeItem('bilheteData');
-          localStorage.removeItem('pixData');
-          router.push('/');
-          return;
+            localStorage.setItem('bilheteConfirmado', JSON.stringify(bilheteBasico));
+            localStorage.removeItem('bilheteData');
+            localStorage.removeItem('pixData');
+            router.push(`/bilhete-confirmado?id=${data.data.id}`);
+            return;
+          }
         }
 
-        if (data.status === 'EXPIRADO' || data.status === 'CANCELADO') {
+        if (data.data.status === 'EXPIRADO' || data.data.status === 'CANCELADO') {
           console.log('⏰ PIX expirado/cancelado');
           setStatusPix('EXPIRADA');
           alert('⏰ O tempo para pagamento expirou. Gere um novo PIX.');
@@ -121,7 +165,7 @@ export default function PagamentoPix() {
         }
 
         // Se status ainda está PENDENTE, tentar verificar na EFÍ
-        if (data.status === 'PENDENTE' && (bilhete.txid || pix.txid)) {
+        if (data.data.status === 'PENDENTE' && (bilhete.txid || pix.txid)) {
           const txidParaVerificar = bilhete.txid || pix.txid;
           console.log('🔍 Tentando verificar diretamente na EFÍ...', txidParaVerificar);
 
@@ -257,33 +301,30 @@ export default function PagamentoPix() {
           <h2 className="text-2xl font-bold text-gray-800 mb-2">PIX Gerado com Sucesso!</h2>
 
           {/* Status do PIX */}
-          <div className={`rounded-lg p-3 mb-4 border ${
-            statusPix === 'ATIVA' ? 'bg-blue-100 border-blue-400' :
+          <div className={`rounded-lg p-3 mb-4 border ${statusPix === 'ATIVA' ? 'bg-blue-100 border-blue-400' :
             statusPix === 'PAGA' ? 'bg-green-100 border-green-400' :
-            statusPix === 'EXPIRADA' ? 'bg-red-100 border-red-400' :
-            'bg-gray-100 border-gray-400'
-          }`}>
-            <p className={`text-sm font-semibold ${
-              statusPix === 'ATIVA' ? 'text-blue-800' :
+              statusPix === 'EXPIRADA' ? 'bg-red-100 border-red-400' :
+                'bg-gray-100 border-gray-400'
+            }`}>
+            <p className={`text-sm font-semibold ${statusPix === 'ATIVA' ? 'text-blue-800' :
               statusPix === 'PAGA' ? 'text-green-800' :
-              statusPix === 'EXPIRADA' ? 'text-red-800' :
-              'text-gray-800'
-            }`}>
+                statusPix === 'EXPIRADA' ? 'text-red-800' :
+                  'text-gray-800'
+              }`}>
               {statusPix === 'ATIVA' ? '🟢 PIX ATIVO' :
-               statusPix === 'PAGA' ? '✅ PIX PAGO' :
-               statusPix === 'EXPIRADA' ? '🔴 PIX EXPIRADO' :
-               '⚪ STATUS DESCONHECIDO'}
+                statusPix === 'PAGA' ? '✅ PIX PAGO' :
+                  statusPix === 'EXPIRADA' ? '🔴 PIX EXPIRADO' :
+                    '⚪ STATUS DESCONHECIDO'}
             </p>
-            <p className={`text-xs ${
-              statusPix === 'ATIVA' ? 'text-blue-700' :
+            <p className={`text-xs ${statusPix === 'ATIVA' ? 'text-blue-700' :
               statusPix === 'PAGA' ? 'text-green-700' :
-              statusPix === 'EXPIRADA' ? 'text-red-700' :
-              'text-gray-700'
-            }`}>
+                statusPix === 'EXPIRADA' ? 'text-red-700' :
+                  'text-gray-700'
+              }`}>
               {statusPix === 'ATIVA' ? `Aguardando pagamento • Expira em ${tempoRestante}` :
-               statusPix === 'PAGA' ? 'Pagamento confirmado com sucesso!' :
-               statusPix === 'EXPIRADA' ? 'Este PIX expirou. Gere um novo pagamento.' :
-               'Status não identificado'}
+                statusPix === 'PAGA' ? 'Pagamento confirmado com sucesso!' :
+                  statusPix === 'EXPIRADA' ? 'Este PIX expirou. Gere um novo pagamento.' :
+                    'Status não identificado'}
             </p>
           </div>
 
@@ -315,7 +356,7 @@ export default function PagamentoPix() {
           <div className="flex justify-center mb-4">
             <div className="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-inner">
               {pixData.imagemQrcode ? (
-                <Image 
+                <Image
                   src={`data:image/png;base64,${pixData.imagemQrcode}`}
                   alt="QR Code PIX"
                   width={256}
@@ -343,11 +384,10 @@ export default function PagamentoPix() {
           <div className="flex space-x-3">
             <button
               onClick={copiarPix}
-              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 ${
-                copiado
-                  ? 'bg-green-600 text-white shadow-lg'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
-              }`}
+              className={`flex-1 py-3 px-4 rounded-lg font-semibold transition-all transform hover:scale-105 ${copiado
+                ? 'bg-green-600 text-white shadow-lg'
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg'
+                }`}
             >
               {copiado ? '✅ Código Copiado!' : '📋 Copiar Código PIX'}
             </button>
@@ -390,7 +430,7 @@ export default function PagamentoPix() {
               🏠 Voltar ao Início
             </button>
           </Link>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
           >

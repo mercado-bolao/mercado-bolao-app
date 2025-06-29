@@ -40,15 +40,15 @@ export default async function handler(
       where: { id },
     });
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       message: "Jogo deletado com sucesso",
       palpitesRemovidos: jogo.palpites.length
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao deletar jogo:', error);
-    return res.status(500).json({ 
-      error: "Erro ao deletar jogo", 
-      details: error.message 
+    return res.status(500).json({
+      error: "Erro ao deletar jogo",
+      details: error.message
     });
   }
 }

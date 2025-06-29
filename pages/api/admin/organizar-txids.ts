@@ -1,7 +1,24 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import { TxidUtils } from '../../../lib/txid-utils';
+
+interface Detalhe {
+  bilheteId: string;
+  txidOriginal: string | null;
+  txidCorrigido?: string;
+  analise: {
+    original: string;
+    sanitizado: string;
+    comprimento: number;
+    valido: boolean;
+    caracteresInvalidos: [] | RegExpMatchArray;
+    dentroDoRange: boolean;
+    hexDump: string;
+    recomendacao: string;
+  };
+  acao: string;
+  erro?: string;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -33,15 +50,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       invalidos: 0,
       corrigidos: 0,
       erros: 0,
-      detalhes: [] as any[]
+      detalhes: [] as Detalhe[]
     };
 
     // 2. Analisar cada TXID
     for (const bilhete of bilhetes) {
       try {
         const analise = TxidUtils.analisarTxid(bilhete.txid!);
-        
-        const detalhe = {
+
+        const detalhe: Detalhe = {
           bilheteId: bilhete.id,
           txidOriginal: bilhete.txid,
           analise: analise,
@@ -53,7 +70,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           detalhe.acao = 'válido - mantido';
         } else {
           relatorio.invalidos++;
-          
+
           // Tentar corrigir TXID inválido
           if (analise.sanitizado && analise.sanitizado.length >= 26 && analise.sanitizado.length <= 35) {
             // TXID pode ser salvo após sanitização
@@ -76,7 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           } else {
             // TXID não pode ser salvo - gerar novo
             const novoTxid = TxidUtils.gerarTxidUnico('FIX');
-            
+
             await prisma.bilhete.update({
               where: { id: bilhete.id },
               data: { txid: novoTxid }
@@ -101,10 +118,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch (error) {
         console.error(`❌ Erro ao processar bilhete ${bilhete.id}:`, error);
         relatorio.erros++;
-        
+
         relatorio.detalhes.push({
           bilheteId: bilhete.id,
           txidOriginal: bilhete.txid,
+          analise: {
+            original: bilhete.txid || '',
+            sanitizado: '',
+            comprimento: 0,
+            valido: false,
+            caracteresInvalidos: [],
+            dentroDoRange: false,
+            hexDump: '',
+            recomendacao: ''
+          },
           erro: error instanceof Error ? error.message : 'Erro desconhecido',
           acao: 'erro'
         });
@@ -121,7 +148,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro na organização de TXIDs:', error);
-    
+
     return res.status(500).json({
       success: false,
       error: 'Erro ao organizar TXIDs',

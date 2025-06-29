@@ -79,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Consultar cobrança PIX na EFI
       const params = revisao ? { revisao: parseInt(revisao as string) } : {};
-      dadosEfi = await efipay.pixDetailCharge([], { txid: txidLimpo, ...params });
+      dadosEfi = await efipay.pixDetailCharge({ txid: txidLimpo, ...params });
       statusEfi = dadosEfi.status;
 
       console.log('✅ Consulta EFI realizada com sucesso');

@@ -406,7 +406,7 @@ export default function AdminPanel() {
       // Fechar modal apenas após sucesso
       fecharModalResultado();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Erro completo ao salvar resultado:', error);
 
       let mensagemErro = 'Erro desconhecido';
@@ -428,7 +428,7 @@ export default function AdminPanel() {
     try {
       const url = "/api/admin/concursos";
       const method = editingConcurso ? "PUT" : "POST";
-      const body = editingConcurso 
+      const body = editingConcurso
         ? { ...formData, id: editingConcurso.id }
         : formData;
 
@@ -513,8 +513,8 @@ export default function AdminPanel() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
-          concursoIds: selectedConcursosToDelete 
+        body: JSON.stringify({
+          concursoIds: selectedConcursosToDelete
         }),
       });
 
@@ -690,11 +690,10 @@ export default function AdminPanel() {
                         #{concurso.numero}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                          concurso.status === 'ativo' 
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${concurso.status === 'ativo'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                          }`}>
                           {concurso.status}
                         </span>
                       </td>
@@ -718,8 +717,8 @@ export default function AdminPanel() {
                               timeZone: "America/Sao_Paulo"
                             })}</div>
                             <div className="text-xs text-gray-500">
-                              {new Date(concurso.fechamentoPalpites).toLocaleTimeString('pt-BR', { 
-                                hour: '2-digit', 
+                              {new Date(concurso.fechamentoPalpites).toLocaleTimeString('pt-BR', {
+                                hour: '2-digit',
                                 minute: '2-digit',
                                 timeZone: "America/Sao_Paulo"
                               })}
@@ -913,7 +912,7 @@ export default function AdminPanel() {
                             {new Date(jogo.horario).toLocaleString('pt-BR', {
                               timeZone: "America/Sao_Paulo",
                               day: '2-digit',
-                              month: '2-digit', 
+                              month: '2-digit',
                               year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit'
@@ -922,19 +921,18 @@ export default function AdminPanel() {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             {jogo.resultado ? (
                               <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                {jogo.resultado.includes('x') ? jogo.resultado : 
-                                 (jogo.resultado === 'C' ? 'Casa' : jogo.resultado === 'E' ? 'Empate' : 'Fora')}
+                                {jogo.resultado.includes('x') ? jogo.resultado :
+                                  (jogo.resultado === 'C' ? 'Casa' : jogo.resultado === 'E' ? 'Empate' : 'Fora')}
                               </span>
                             ) : (
                               <span className="text-gray-400">-</span>
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              jogo.resultado 
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${jogo.resultado
                                 ? 'bg-green-100 text-green-800'
                                 : 'bg-yellow-100 text-yellow-800'
-                            }`}>
+                              }`}>
                               {jogo.resultado ? 'Finalizado' : 'Pendente'}
                             </span>
                           </td>
@@ -954,7 +952,7 @@ export default function AdminPanel() {
                               >
                                 📊 Resultado
                               </button>
-                               <button
+                              <button
                                 onClick={() => limparResultado(jogo.id)}
                                 className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg font-medium transition-colors"
                                 title="Limpar resultado"
@@ -997,7 +995,7 @@ export default function AdminPanel() {
                 <input
                   type="text"
                   value={formData.nome}
-                  onChange={(e) => setFormData({...formData, nome: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                   placeholder="Ex: Copa do Mundo 2024"
                   required
@@ -1011,7 +1009,7 @@ export default function AdminPanel() {
                 <input
                   type="number"
                   value={formData.numero}
-                  onChange={(e) => setFormData({...formData, numero: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, numero: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                   placeholder="Ex: 1"
                   required
@@ -1025,7 +1023,7 @@ export default function AdminPanel() {
                 <input
                   type="datetime-local"
                   value={formData.dataInicio}
-                  onChange={(e) => setFormData({...formData, dataInicio: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, dataInicio: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                   required
                 />
@@ -1038,7 +1036,7 @@ export default function AdminPanel() {
                 <input
                   type="datetime-local"
                   value={formData.dataFim}
-                  onChange={(e) => setFormData({...formData, dataFim: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, dataFim: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                   required
                 />
@@ -1053,7 +1051,7 @@ export default function AdminPanel() {
                   step="0.01"
                   min="0"
                   value={formData.premioEstimado}
-                  onChange={(e) => setFormData({...formData, premioEstimado: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, premioEstimado: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                   placeholder="Ex: 10000.00"
                 />
@@ -1066,7 +1064,7 @@ export default function AdminPanel() {
                 <input
                   type="datetime-local"
                   value={formData.fechamentoPalpites}
-                  onChange={(e) => setFormData({...formData, fechamentoPalpites: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, fechamentoPalpites: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                 />
                 <p className="text-xs text-gray-500 mt-1">
@@ -1080,7 +1078,7 @@ export default function AdminPanel() {
                 </label>
                 <select
                   value={formData.status}
-                  onChange={(e) => setFormData({...formData, status: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 bg-white"
                 >
                   <option value="ativo">Ativo</option>
@@ -1133,7 +1131,7 @@ export default function AdminPanel() {
                   <input
                     type="text"
                     value={editJogoData.mandante}
-                    onChange={(e) => setEditJogoData({...editJogoData, mandante: e.target.value})}
+                    onChange={(e) => setEditJogoData({ ...editJogoData, mandante: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     required
                   />
@@ -1147,7 +1145,7 @@ export default function AdminPanel() {
                   <input
                     type="text"
                     value={editJogoData.visitante}
-                    onChange={(e) => setEditJogoData({...editJogoData, visitante: e.target.value})}
+                    onChange={(e) => setEditJogoData({ ...editJogoData, visitante: e.target.value })}
                     className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     required
                   />
@@ -1162,7 +1160,7 @@ export default function AdminPanel() {
                 <input
                   type="datetime-local"
                   value={editJogoData.horario}
-                  onChange={(e) => setEditJogoData({...editJogoData, horario: e.target.value})}
+                  onChange={(e) => setEditJogoData({ ...editJogoData, horario: e.target.value })}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                   required
                 />
@@ -1186,7 +1184,7 @@ export default function AdminPanel() {
                           const file = e.target.files[0];
                           const reader = new FileReader();
                           reader.onload = (event) => {
-                            setEditJogoData({...editJogoData, fotoMandante: event.target?.result as string});
+                            setEditJogoData({ ...editJogoData, fotoMandante: event.target?.result as string });
                           };
                           reader.readAsDataURL(file);
                         }
@@ -1201,7 +1199,7 @@ export default function AdminPanel() {
                     <input
                       type="url"
                       value={typeof editJogoData.fotoMandante === 'string' && editJogoData.fotoMandante.startsWith('http') ? editJogoData.fotoMandante : ''}
-                      onChange={(e) => setEditJogoData({...editJogoData, fotoMandante: e.target.value})}
+                      onChange={(e) => setEditJogoData({ ...editJogoData, fotoMandante: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white"
                       placeholder="https://exemplo.com/foto.png"
                     />
@@ -1232,7 +1230,7 @@ export default function AdminPanel() {
                           const file = e.target.files[0];
                           const reader = new FileReader();
                           reader.onload = (event) => {
-                            setEditJogoData({...editJogoData, fotoVisitante: event.target?.result as string});
+                            setEditJogoData({ ...editJogoData, fotoVisitante: event.target?.result as string });
                           };
                           reader.readAsDataURL(file);
                         }
@@ -1247,7 +1245,7 @@ export default function AdminPanel() {
                     <input
                       type="url"
                       value={typeof editJogoData.fotoVisitante === 'string' && editJogoData.fotoVisitante.startsWith('http') ? editJogoData.fotoVisitante : ''}
-                      onChange={(e) => setEditJogoData({...editJogoData, fotoVisitante: e.target.value})}
+                      onChange={(e) => setEditJogoData({ ...editJogoData, fotoVisitante: e.target.value })}
                       className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm text-gray-900 bg-white"
                       placeholder="https://exemplo.com/foto.png"
                     />
@@ -1341,7 +1339,7 @@ export default function AdminPanel() {
                           type="number"
                           min="0"
                           value={resultData.golsCasa}
-                          onChange={(e) => setResultData({...resultData, golsCasa: e.target.value})}
+                          onChange={(e) => setResultData({ ...resultData, golsCasa: e.target.value })}
                           className="w-20 h-16 text-center text-3xl font-black border-4 border-blue-400 rounded-2xl focus:outline-none focus:ring-4 focus:ring-blue-200 bg-white shadow-lg"
                           placeholder="0"
                         />
@@ -1365,7 +1363,7 @@ export default function AdminPanel() {
                           type="number"
                           min="0"
                           value={resultData.golsVisitante}
-                          onChange={(e) => setResultData({...resultData, golsVisitante: e.target.value})}
+                          onChange={(e) => setResultData({ ...resultData, golsVisitante: e.target.value })}
                           className="w-20 h-16 text-center text-3xl font-black border-4 border-purple-400 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-200 bg-white shadow-lg"
                           placeholder="0"
                         />
@@ -1404,14 +1402,12 @@ export default function AdminPanel() {
               </div>
 
               {/* Estado de preenchimento */}
-              <div className={`text-center p-4 rounded-xl border-2 ${
-                resultData.golsCasa !== '' && resultData.golsVisitante !== '' 
-                  ? 'bg-green-50 border-green-300' 
+              <div className={`text-center p-4 rounded-xl border-2 ${resultData.golsCasa !== '' && resultData.golsVisitante !== ''
+                  ? 'bg-green-50 border-green-300'
                   : 'bg-red-50 border-red-300'
-              }`}>
-                <p className={`text-lg font-bold ${
-                  resultData.golsCasa !== '' && resultData.golsVisitante !== '' ? 'text-green-700' : 'text-red-700'
                 }`}>
+                <p className={`text-lg font-bold ${resultData.golsCasa !== '' && resultData.golsVisitante !== '' ? 'text-green-700' : 'text-red-700'
+                  }`}>
                   {resultData.golsCasa !== '' && resultData.golsVisitante !== '' ? (
                     '✅ Placar preenchido - Pronto para finalizar!'
                   ) : (
@@ -1432,11 +1428,10 @@ export default function AdminPanel() {
                 <button
                   type="submit"
                   disabled={!resultData.golsCasa || !resultData.golsVisitante || loadingFinalizar}
-                  className={`flex-1 px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-lg transform ${
-                    resultData.golsCasa && resultData.golsVisitante && !loadingFinalizar
+                  className={`flex-1 px-8 py-4 rounded-2xl font-black text-lg transition-all shadow-lg transform ${resultData.golsCasa && resultData.golsVisitante && !loadingFinalizar
                       ? 'bg-green-600 text-white hover:bg-green-700 hover:scale-105'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   {loadingFinalizar ? (
                     '⏳ FINALIZANDO...'
@@ -1483,7 +1478,7 @@ export default function AdminPanel() {
                       onChange={() => handleSelectConcurso(concurso.id)}
                       className="w-5 h-5 text-red-600 border-2 border-gray-300 rounded focus:ring-red-500"
                     />
-                    <label 
+                    <label
                       htmlFor={`concurso-${concurso.id}`}
                       className="flex-1 cursor-pointer"
                     >
@@ -1496,11 +1491,10 @@ export default function AdminPanel() {
                             Status: {concurso.status} | Jogos: {concurso._count?.jogos || 0} | Palpites: {concurso._count?.palpites || 0}
                           </div>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          concurso.status === 'ativo' 
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${concurso.status === 'ativo'
                             ? 'bg-green-100 text-green-800'
                             : 'bg-gray-100 text-gray-800'
-                        }`}>
+                          }`}>
                           #{concurso.numero}
                         </span>
                       </div>
@@ -1543,8 +1537,8 @@ export default function AdminPanel() {
                 className="text-blue-600 hover:text-blue-800 font-medium"
                 disabled={concursos.length === 0}
               >
-                {concursos.length > 0 && concursos.every(c => selectedConcursosToDelete.includes(c.id)) 
-                  ? 'Desmarcar Todos' 
+                {concursos.length > 0 && concursos.every(c => selectedConcursosToDelete.includes(c.id))
+                  ? 'Desmarcar Todos'
                   : 'Selecionar Todos'
                 }
               </button>
@@ -1559,11 +1553,10 @@ export default function AdminPanel() {
                 <button
                   onClick={handleDeleteSelectedConcursos}
                   disabled={selectedConcursosToDelete.length === 0}
-                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                    selectedConcursosToDelete.length === 0
+                  className={`px-6 py-2 rounded-lg font-medium transition-colors ${selectedConcursosToDelete.length === 0
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                       : 'bg-red-600 text-white hover:bg-red-700'
-                  }`}
+                    }`}
                 >
                   🗑️ Deletar {selectedConcursosToDelete.length > 0 ? `(${selectedConcursosToDelete.length})` : ''}
                 </button>

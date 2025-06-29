@@ -59,7 +59,7 @@ export default async function handler(
         let palpitesFora = 0;
 
         palpites.forEach(palpite => {
-          switch(palpite.resultado) {
+          switch (palpite.resultado) {
             case 'C':
             case '1':
               palpitesCasa++;
@@ -101,11 +101,11 @@ export default async function handler(
 
     return res.status(200).json(jogosComPercentuais);
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Erro ao buscar jogos ao vivo:", error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: "Erro ao buscar jogos ao vivo",
-      details: error.message 
+      details: error.message
     });
   }
 }

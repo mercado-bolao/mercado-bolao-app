@@ -24,7 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         status: true,
         valorTotal: true,
         whatsapp: true,
-        expirado: true
+        pix: {
+          select: {
+            expiracao: true
+          }
+        }
       }
     });
 

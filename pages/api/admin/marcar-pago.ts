@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../lib/prisma';
 
@@ -18,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Verificar senha do admin (você pode definir uma senha específica)
   const SENHA_ADMIN = process.env.ADMIN_PASSWORD || 'admin123'; // Configure nos Secrets
-  
+
   if (senhaAdmin !== SENHA_ADMIN) {
     return res.status(401).json({
       success: false,
@@ -75,15 +74,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Log da operação manual
     await prisma.webhookLog.create({
       data: {
-        tipo: 'manual_payment',
+        evento: 'manual_payment',
         txid: bilhete.txid,
-        payload: JSON.stringify({
+        dados: {
           bilheteId: bilheteId,
           adminAction: 'MARCADO_COMO_PAGO_MANUALMENTE',
           timestamp: new Date().toISOString()
-        }),
-        status: 'SUCCESS',
-        processedAt: new Date()
+        },
+        processado: true
       }
     });
 

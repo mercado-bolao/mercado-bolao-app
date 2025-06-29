@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -13,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { nome, whatsapp, palpites, txid, orderId, valorTotal, pixId } = req.body;
+    const { nome, whatsapp, palpites, txid, orderId, valorTotal } = req.body;
 
     console.log('🔄 Criando bilhetes após PIX gerado...');
     console.log('📥 Dados recebidos:', { nome, whatsapp, palpitesCount: palpites?.length, txid, orderId });
@@ -80,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           txid,
           orderId,
           expiresAt,
-          pixId
+          concursoId: concursoAtivo.id
         }
       });
 
@@ -94,8 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           status: 'pendente',
           jogoId: palpite.jogoId,
           concursoId: concursoAtivo.id,
-          bilheteId: bilhete.id,
-          pixId
+          bilheteId: bilhete.id
         }
       });
 

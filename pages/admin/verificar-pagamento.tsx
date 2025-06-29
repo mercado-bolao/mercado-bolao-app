@@ -1,10 +1,39 @@
 import { useState } from 'react';
 import Link from 'next/link';
 
+interface VerificacaoBody {
+  data?: string;
+  whatsapp?: string;
+  txid?: string;
+}
+
+interface VerificacaoResponse {
+  success: boolean;
+  error?: string;
+  details?: string;
+  resumo?: {
+    totalBilhetes: number;
+    bilhetesPagos: number;
+    bilhetesAtualizados: number;
+    bilhetesComErro: number;
+  };
+  resultados?: Array<{
+    bilheteId: string;
+    txid: string;
+    valor: number;
+    whatsapp: string;
+    criadoEm: string;
+    statusBanco: string;
+    statusEfi?: string;
+    atualizado?: boolean;
+    erro?: string;
+  }>;
+}
+
 export default function VerificarPagamento() {
   const [loading, setLoading] = useState(false);
-  const [resultado, setResultado] = useState<any>(null);
-  const [data, setData] = useState('29/06/2025, 16:05:55');
+  const [resultado, setResultado] = useState<VerificacaoResponse | null>(null);
+  const [dataHora, setDataHora] = useState('29/06/2025, 16:05:55');
   const [whatsapp, setWhatsapp] = useState('81981179564');
   const [txid, setTxid] = useState('');
   const [metodo, setMetodo] = useState<'data' | 'txid'>('data');
@@ -29,7 +58,7 @@ export default function VerificarPagamento() {
         alert(`✅ ${result.message}\nAmbiente: ${result.ambiente}`);
         // await buscarBilhetes(); // Recarregar lista - Assuming buscarBilhetes is defined elsewhere
       } else {
-        alert(`⚠️ ${result.message}\n\nResultados:\n${result.resultados.map((r: any) => 
+        alert(`⚠️ ${result.message}\n\nResultados:\n${result.resultados.map((r: any) =>
           `${r.ambiente}: ${r.encontrado ? `Status ${r.status}` : `Erro: ${r.erro}`}`
         ).join('\n')}`);
       }
@@ -46,8 +75,8 @@ export default function VerificarPagamento() {
     setResultado(null);
 
     try {
-      const body = metodo === 'data' 
-        ? { data, whatsapp }
+      const body: VerificacaoBody = metodo === 'data'
+        ? { data: dataHora, whatsapp }
         : { txid };
 
       const response = await fetch('/api/admin/verificar-pagamento-especifico', {
@@ -56,8 +85,8 @@ export default function VerificarPagamento() {
         body: JSON.stringify(body)
       });
 
-      const data = await response.json();
-      setResultado(data);
+      const responseData: VerificacaoResponse = await response.json();
+      setResultado(responseData);
 
     } catch (error) {
       setResultado({
@@ -120,8 +149,8 @@ export default function VerificarPagamento() {
                 </label>
                 <input
                   type="text"
-                  value={data}
-                  onChange={(e) => setData(e.target.value)}
+                  value={dataHora}
+                  onChange={(e) => setDataHora(e.target.value)}
                   className="w-full p-3 border rounded-lg"
                   placeholder="29/06/2025, 16:05:55"
                 />
@@ -214,22 +243,20 @@ export default function VerificarPagamento() {
                         </div>
                         <div>
                           <div className="text-sm text-gray-600">Status no Banco:</div>
-                          <div className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                            bilhete.statusBanco === 'PAGO' ? 'bg-green-100 text-green-800' :
+                          <div className={`inline-block px-2 py-1 rounded text-xs font-semibold ${bilhete.statusBanco === 'PAGO' ? 'bg-green-100 text-green-800' :
                             bilhete.statusBanco === 'PENDENTE' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
+                              'bg-gray-100 text-gray-800'
+                            }`}>
                             {bilhete.statusBanco}
                           </div>
 
                           {bilhete.statusEfi && (
                             <>
                               <div className="text-sm text-gray-600 mt-2">Status na EFI:</div>
-                              <div className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
-                                bilhete.statusEfi === 'CONCLUIDA' ? 'bg-green-100 text-green-800' :
+                              <div className={`inline-block px-2 py-1 rounded text-xs font-semibold ${bilhete.statusEfi === 'CONCLUIDA' ? 'bg-green-100 text-green-800' :
                                 bilhete.statusEfi === 'ATIVA' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
                                 {bilhete.statusEfi}
                               </div>
                             </>

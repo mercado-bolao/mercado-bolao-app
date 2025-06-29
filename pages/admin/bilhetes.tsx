@@ -315,9 +315,9 @@ export default function BilhetesAdmin() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          bilheteId: bilheteId, 
-          forcarAtualizacao: true 
+        body: JSON.stringify({
+          bilheteId: bilheteId,
+          forcarAtualizacao: true
         }),
       });
 
@@ -368,21 +368,19 @@ export default function BilhetesAdmin() {
             <nav className="flex space-x-8 px-6">
               <button
                 onClick={() => setAbaAtiva('confirmados')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  abaAtiva === 'confirmados'
-                    ? 'border-green-500 text-green-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${abaAtiva === 'confirmados'
+                  ? 'border-green-500 text-green-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 ✅ Confirmados ({bilhetes.filter(b => b.status === 'PAGO').length})
               </button>
               <button
                 onClick={() => setAbaAtiva('nao-pagos')}
-                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
-                  abaAtiva === 'nao-pagos'
-                    ? 'border-yellow-500 text-yellow-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${abaAtiva === 'nao-pagos'
+                  ? 'border-yellow-500 text-yellow-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 ⏳ Não Pagos ({bilhetes.filter(b => b.status === 'PENDENTE' || b.status === 'CANCELADO').length})
               </button>
@@ -424,11 +422,10 @@ export default function BilhetesAdmin() {
                 <button
                   onClick={verificarTodosPendentes}
                   disabled={verificandoTodos}
-                  className={`text-white px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                    verificandoTodos
-                      ? 'bg-orange-400 cursor-wait'
-                      : 'bg-orange-600 hover:bg-orange-700'
-                  }`}
+                  className={`text-white px-4 py-2 rounded-md text-sm font-medium transition-colors ${verificandoTodos
+                    ? 'bg-orange-400 cursor-wait'
+                    : 'bg-orange-600 hover:bg-orange-700'
+                    }`}
                 >
                   {verificandoTodos ? '🔄 Verificando...' : '🔍 Verificar Todos PIX'}
                 </button>
@@ -468,7 +465,7 @@ export default function BilhetesAdmin() {
                   {abaAtiva === 'confirmados' ? 'Nenhum bilhete confirmado' : 'Nenhum bilhete pendente'}
                 </h3>
                 <p className="text-gray-600">
-                  {abaAtiva === 'confirmados' 
+                  {abaAtiva === 'confirmados'
                     ? 'Ainda não há bilhetes com pagamento confirmado.'
                     : 'Todos os bilhetes estão com pagamento em dia.'}
                 </p>
@@ -519,8 +516,8 @@ export default function BilhetesAdmin() {
                               <div className="text-gray-600 mb-1">
                                 🖥️ {formatarDispositivo(bilhete.userAgent)}
                               </div>
-                              <div className={`font-mono text-xs ${bilhete.ipAddress && bilhete.ipAddress !== 'IP não detectado' 
-                                ? 'text-gray-600' 
+                              <div className={`font-mono text-xs ${bilhete.ipAddress && bilhete.ipAddress !== 'IP não detectado'
+                                ? 'text-gray-600'
                                 : 'text-gray-400'}`}>
                                 🌐 IP: {bilhete.ipAddress || 'Não detectado'}
                               </div>
@@ -568,18 +565,17 @@ export default function BilhetesAdmin() {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm space-y-2">
                             {/* Botão Verificar Status via EFÍ */}
-                             <button
-                                onClick={() => verificarEfi(bilhete.id)}
-                                disabled={verificandoStatus === bilhete.id}
-                                className={`text-sm ${
-                                  verificandoStatus === bilhete.id
-                                    ? 'text-orange-400 cursor-wait'
-                                    : 'text-orange-600 hover:text-orange-800'
+                            <button
+                              onClick={() => verificarEfi(bilhete.id)}
+                              disabled={verificandoStatus === bilhete.id}
+                              className={`text-sm ${verificandoStatus === bilhete.id
+                                ? 'text-orange-400 cursor-wait'
+                                : 'text-orange-600 hover:text-orange-800'
                                 }`}
-                                title="Verificar status via EFÍ"
-                              >
-                                {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔍 Verificar via EFÍ'}
-                              </button>
+                              title="Verificar status via EFÍ"
+                            >
+                              {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔍 Verificar via EFÍ'}
+                            </button>
 
                             {/* Botão Marcar como PAGO (apenas para não pagos) */}
                             {abaAtiva === 'nao-pagos' && (
@@ -587,16 +583,21 @@ export default function BilhetesAdmin() {
                                 <button
                                   onClick={() => marcarComoPago(bilhete.id)}
                                   disabled={!senhaAdmin.trim()}
-                                  className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                    !senhaAdmin.trim()
-                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                      : 'bg-green-100 hover:bg-green-200 text-green-700'
-                                  }`}
+                                  className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${!senhaAdmin.trim()
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-100 hover:bg-green-200 text-green-700'
+                                    }`}
                                 >
                                   ✅ Marcar como PAGO
                                 </button>
                                 <button
-                                  onClick={() => forcarVerificacaoPagamento(bilhete.id, bilhete.txid)}
+                                  onClick={() => {
+                                    if (!bilhete.txid) {
+                                      alert('❌ TXID não disponível para este bilhete');
+                                      return;
+                                    }
+                                    forcarVerificacaoPagamento(bilhete.id, bilhete.txid);
+                                  }}
                                   className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm mb-1"
                                 >
                                   Verificar Pagamento

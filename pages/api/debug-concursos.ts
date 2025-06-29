@@ -5,7 +5,7 @@ import { prisma } from '../../lib/prisma';
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     console.log('🔍 Debug: Verificando concursos no banco...');
-    
+
     // Buscar todos os concursos
     const concursos = await prisma.concurso.findMany({
       select: {
@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro no debug dos concursos:', error);
     res.status(500).json({
       success: false,

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -19,6 +18,11 @@ interface BilheteConfirmado {
       mandante: string;
       visitante: string;
       horario: string;
+      fotoMandante?: string;
+      fotoVisitante?: string;
+      placarCasa?: string;
+      placarVisitante?: string;
+      resultado?: string;
     };
   }>;
   concurso: {
@@ -37,50 +41,82 @@ export default function BilheteConfirmado() {
   useEffect(() => {
     // Recuperar dados do bilhete confirmado do localStorage
     const bilheteConfirmadoData = localStorage.getItem('bilheteConfirmado');
-    
-    console.log('📋 Dados do bilhete no localStorage:', bilheteConfirmadoData);
-    
-    if (!bilheteConfirmadoData) {
-      console.log('❌ Nenhum dado de bilhete encontrado no localStorage');
-      // Se não há dados, redirecionar para home
-      router.push('/');
-      return;
-    }
 
-    try {
-      const dadosBilhete = JSON.parse(bilheteConfirmadoData);
-      console.log('✅ Dados do bilhete carregados:', dadosBilhete);
-      
-      // Validar estrutura básica dos dados
-      if (!dadosBilhete.id || !dadosBilhete.palpites || !Array.isArray(dadosBilhete.palpites)) {
-        throw new Error('Dados do bilhete inválidos');
+    console.log('📋 Dados do bilhete no localStorage:', bilheteConfirmadoData);
+
+    const carregarBilhete = async () => {
+      try {
+        if (bilheteConfirmadoData) {
+          const dadosBilhete = JSON.parse(bilheteConfirmadoData);
+          console.log('✅ Dados do bilhete carregados do localStorage:', dadosBilhete);
+
+          // Validar estrutura básica dos dados
+          if (!dadosBilhete.id || !dadosBilhete.palpites || !Array.isArray(dadosBilhete.palpites)) {
+            throw new Error('Dados do bilhete inválidos');
+          }
+
+          setBilhete(dadosBilhete);
+          setLoading(false);
+          return;
+        }
+
+        // Se não tem dados no localStorage, tentar buscar da URL
+        const bilheteId = router.query.id;
+        if (bilheteId && typeof bilheteId === 'string') {
+          console.log('🔍 Buscando dados do bilhete via API:', bilheteId);
+          const response = await fetch(`/api/consultar-bilhete?id=${bilheteId}`);
+          const data = await response.json();
+
+          if (data.success && data.bilhete) {
+            console.log('✅ Dados do bilhete carregados da API:', data.bilhete);
+            setBilhete(data.bilhete);
+            // Salvar no localStorage para futuras referências
+            localStorage.setItem('bilheteConfirmado', JSON.stringify(data.bilhete));
+            setLoading(false);
+            return;
+          }
+        }
+
+        // Se chegou aqui, não conseguiu carregar os dados
+        console.log('❌ Não foi possível carregar os dados do bilhete');
+        throw new Error('Não foi possível carregar os dados do bilhete');
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados do bilhete:', error);
+        setError('Erro ao carregar dados do bilhete confirmado');
+        setLoading(false);
       }
-      
-      setBilhete(dadosBilhete);
-    } catch (error) {
-      console.error('❌ Erro ao carregar dados do bilhete:', error);
-      setError('Erro ao carregar dados do bilhete confirmado');
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+    };
+
+    carregarBilhete();
+  }, [router, router.query.id]);
 
   const compartilharWhatsApp = () => {
     if (!bilhete) return;
 
-    const resumoPalpites = bilhete.palpites.map(p => 
-      `• ${p.jogo.mandante} x ${p.jogo.visitante}: ${p.resultado}`
-    ).join('\n');
+    let mensagem = `🎉 *BILHETE CONFIRMADO* - Bolão TVLoteca\n\n`;
 
-    const mensagem = `🎉 *BILHETE CONFIRMADO* - Bolão TVLoteca\n\n` +
-                    `📊 *${bilhete.concurso.nome}*\n` +
-                    `🆔 *Bilhete:* ${bilhete.id.slice(-8).toUpperCase()}\n` +
-                    `💰 *Valor:* R$ ${bilhete.valorTotal.toFixed(2)}\n` +
-                    `📱 *WhatsApp:* ${bilhete.whatsapp}\n` +
-                    `⏰ *Confirmado em:* ${new Date(bilhete.createdAt).toLocaleString('pt-BR')}\n\n` +
-                    `⚽ *Meus Palpites:*\n${resumoPalpites}\n\n` +
-                    `🏆 Boa sorte! Acompanhe os resultados e o ranking em tempo real.\n\n` +
-                    `#BolãoTVLoteca #MeusPalpites`;
+    // Adicionar informações do concurso se disponível
+    if (bilhete.concurso?.nome) {
+      mensagem += `📊 *${bilhete.concurso.nome}*\n`;
+    }
+
+    mensagem += `🆔 *Bilhete:* ${bilhete.id.slice(-8).toUpperCase()}\n` +
+      `💰 *Valor:* R$ ${bilhete.valorTotal.toFixed(2)}\n` +
+      `📱 *WhatsApp:* ${bilhete.whatsapp}\n` +
+      `⏰ *Confirmado em:* ${new Date(bilhete.createdAt).toLocaleString('pt-BR')}\n\n`;
+
+    // Adicionar palpites se disponíveis
+    if (bilhete.palpites && bilhete.palpites.length > 0) {
+      const resumoPalpites = bilhete.palpites.map(p =>
+        `• ${p.jogo.mandante} x ${p.jogo.visitante}: ${p.resultado}`
+      ).join('\n');
+      mensagem += `⚽ *Meus Palpites:*\n${resumoPalpites}\n\n`;
+    } else {
+      mensagem += `⚽ *Palpites:* Serão exibidos em breve\n\n`;
+    }
+
+    mensagem += `🏆 Boa sorte! Acompanhe os resultados e o ranking em tempo real.\n\n` +
+      `#BolãoTVLoteca #MeusPalpites`;
 
     const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
     window.open(whatsappUrl, '_blank');
@@ -89,7 +125,7 @@ export default function BilheteConfirmado() {
 
   const baixarImagem = async () => {
     if (!bilhete) return;
-    
+
     // Aqui você pode implementar a funcionalidade para gerar e baixar uma imagem do bilhete
     alert('🚧 Funcionalidade de download de imagem será implementada em breve!');
   };
@@ -162,7 +198,7 @@ export default function BilheteConfirmado() {
           </div>
           <h2 className="text-3xl font-bold text-green-800 mb-3">Pagamento Confirmado!</h2>
           <p className="text-green-700 text-lg mb-4">Seus palpites foram validados com sucesso</p>
-          
+
           <div className="bg-green-50 rounded-xl p-4 border border-green-200">
             <div className="text-sm text-green-600 font-medium mb-1">Bilhete ID</div>
             <div className="text-lg font-bold text-green-800">{bilhete.id.slice(-8).toUpperCase()}</div>
@@ -172,11 +208,13 @@ export default function BilheteConfirmado() {
         {/* Resumo do Bilhete */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">📋 Resumo do Bilhete</h3>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div className="bg-blue-50 rounded-lg p-4">
               <div className="text-sm text-blue-600 font-medium">Concurso</div>
-              <div className="text-lg font-semibold text-blue-800">{bilhete.concurso.nome}</div>
+              <div className="text-lg font-semibold text-blue-800">
+                {bilhete.concurso?.nome || 'Não disponível'}
+              </div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
               <div className="text-sm text-green-600 font-medium">Valor Pago</div>
@@ -185,29 +223,78 @@ export default function BilheteConfirmado() {
           </div>
 
           {/* Palpites */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-gray-700">⚽ Seus Palpites:</h4>
-            {bilhete.palpites.map((palpite, index) => (
-              <div key={palpite.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="flex justify-between items-center">
-                  <div className="font-medium text-gray-800">
-                    {palpite.jogo.mandante} x {palpite.jogo.visitante}
+          {bilhete.palpites && bilhete.palpites.length > 0 ? (
+            <div className="space-y-3">
+              <h4 className="font-semibold text-gray-700">⚽ Seus Palpites:</h4>
+              {bilhete.palpites.map((palpite, index) => (
+                <div key={palpite.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center space-x-3">
+                      {palpite.jogo.fotoMandante && (
+                        <img
+                          src={palpite.jogo.fotoMandante}
+                          alt={palpite.jogo.mandante}
+                          className="w-8 h-8 object-contain"
+                        />
+                      )}
+                      <div className="font-medium text-gray-800">
+                        {palpite.jogo.mandante}
+                      </div>
+                      <div className="text-gray-500 font-bold">X</div>
+                      <div className="font-medium text-gray-800">
+                        {palpite.jogo.visitante}
+                      </div>
+                      {palpite.jogo.fotoVisitante && (
+                        <img
+                          src={palpite.jogo.fotoVisitante}
+                          alt={palpite.jogo.visitante}
+                          className="w-8 h-8 object-contain"
+                        />
+                      )}
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-sm font-semibold ${palpite.resultado === '1' ? 'bg-blue-100 text-blue-800' :
+                        palpite.resultado === 'X' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                      }`}>
+                      {palpite.resultado === '1' ? 'Casa' :
+                        palpite.resultado === 'X' ? 'Empate' : 'Fora'}
+                    </div>
                   </div>
-                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    palpite.resultado === '1' ? 'bg-blue-100 text-blue-800' :
-                    palpite.resultado === 'X' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {palpite.resultado === '1' ? 'Casa' : 
-                     palpite.resultado === 'X' ? 'Empate' : 'Fora'}
+                  <div className="text-sm text-gray-600">
+                    ⏰ {new Date(palpite.jogo.horario).toLocaleString('pt-BR')}
                   </div>
+                  {palpite.jogo.resultado && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <div className="text-sm font-medium text-gray-700">
+                        Resultado: {palpite.jogo.placarCasa} x {palpite.jogo.placarVisitante}
+                      </div>
+                      <div className={`text-sm ${palpite.jogo.resultado === palpite.resultado
+                          ? 'text-green-600'
+                          : 'text-red-600'
+                        }`}>
+                        {palpite.jogo.resultado === palpite.resultado
+                          ? '✅ Acertou!'
+                          : '❌ Errou'}
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">
-                  {new Date(palpite.jogo.horario).toLocaleString('pt-BR')}
+              ))}
+            </div>
+          ) : (
+            <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+              <div className="flex items-center space-x-3">
+                <span className="text-2xl">ℹ️</span>
+                <div>
+                  <h4 className="font-semibold text-yellow-800">Pagamento Processado</h4>
+                  <p className="text-yellow-700">
+                    O pagamento foi confirmado, mas os detalhes dos palpites não estão disponíveis neste momento.
+                    Você pode verificar seus palpites mais tarde na seção de bilhetes.
+                  </p>
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Ações */}
@@ -215,11 +302,10 @@ export default function BilheteConfirmado() {
           {/* Compartilhar WhatsApp */}
           <button
             onClick={compartilharWhatsApp}
-            className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg ${
-              compartilhado
-                ? 'bg-green-600 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
+            className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg ${compartilhado
+              ? 'bg-green-600 text-white'
+              : 'bg-green-600 hover:bg-green-700 text-white'
+              }`}
           >
             {compartilhado ? '✅ Compartilhado!' : '📱 Compartilhar no WhatsApp'}
           </button>
@@ -231,14 +317,14 @@ export default function BilheteConfirmado() {
                 🏆 Ver Ranking
               </button>
             </Link>
-            
+
             <button
               onClick={baixarImagem}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"
             >
               📸 Baixar Imagem
             </button>
-            
+
             <button
               onClick={voltarParaInicio}
               className="w-full bg-gray-600 hover:bg-gray-700 text-white py-3 px-4 rounded-lg font-semibold transition-colors"

@@ -1,8 +1,44 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+interface Concurso {
+  id: string;
+  nome: string;
+  numero: number;
+  premioEstimado: number;
+  status: string;
+  dataInicio: string;
+  dataFim: string;
+  fechamentoPalpites?: string;
+  titulo: string;
+  descricao: string;
+  jogos?: Array<{
+    id: string;
+    mandante: string;
+    visitante: string;
+    data: string;
+    resultado?: string;
+  }>;
+}
+
+interface StatCardProps {
+  icon: string;
+  title: string;
+  value: string | number | React.ReactNode;
+  desc: string;
+  color: string;
+}
+
+interface ConcursoCardProps {
+  concurso: Concurso;
+}
+
+interface TimerProps {
+  concursos: Concurso[];
+}
+
 /* COMPONENTE - Cronômetro de Contagem Regressiva */
-function CountdownTimer({ concursos }) {
+function CountdownTimer({ concursos }: TimerProps) {
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
@@ -50,34 +86,30 @@ function CountdownTimer({ concursos }) {
 }
 
 export default function Home() {
-  const [concursos, setConcursos] = useState([]);
+  const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string>('');
 
   useEffect(() => {
-    const carregarConcursos = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch("/api/concursos");
-
-        if (!response.ok) {
-          throw new Error('Erro ao carregar concursos');
-        }
-
-        const data = await response.json();
-        setConcursos(Array.isArray(data) ? data : []);
-      } catch (err) {
-        console.error('Erro ao buscar concursos:', err);
-        setError(err.message);
-        setConcursos([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    carregarConcursos();
+    fetchConcursos();
   }, []);
+
+  const fetchConcursos = async () => {
+    try {
+      const response = await fetch('/api/concursos');
+      const data = await response.json();
+      if (data.success) {
+        setConcursos(data.concursos);
+      } else {
+        setError(data.error || 'Erro ao carregar concursos');
+      }
+    } catch (err) {
+      const error = err as ErrorWithMessage;
+      setError(error.message || 'Erro ao carregar concursos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 relative overflow-hidden">
@@ -162,7 +194,7 @@ export default function Home() {
               const totalPremio = concursos.reduce((total, concurso) => {
                 return total + (concurso.premioEstimado || 0);
               }, 0);
-              return totalPremio > 0 
+              return totalPremio > 0
                 ? `R$ ${(totalPremio / 1000).toFixed(0)}K`
                 : 'A definir';
             })()}
@@ -227,7 +259,7 @@ export default function Home() {
 }
 
 /* COMPONENTE - Card Estatística */
-function CardStat({ icon, title, value, desc, color }) {
+function CardStat({ icon, title, value, desc, color }: StatCardProps) {
   return (
     <div className="group">
       <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 text-center border border-white/20 hover:bg-white/20 transform hover:scale-105 transition">
@@ -245,7 +277,7 @@ function CardStat({ icon, title, value, desc, color }) {
 }
 
 /* COMPONENTE - Card Concurso */
-function CardConcurso({ concurso }) {
+function CardConcurso({ concurso }: ConcursoCardProps) {
   // Verificar se as apostas encerraram
   const dataFechamento = concurso.fechamentoPalpites || concurso.dataFim;
   const agora = new Date();
@@ -273,11 +305,10 @@ function CardConcurso({ concurso }) {
                   <span className="bg-blue-500/20 px-4 py-2 rounded-full text-blue-300 font-semibold">
                     {concurso.jogos?.length || 0} Jogos
                   </span>
-                  <span className={`px-4 py-2 rounded-full font-semibold ${
-                    apostasEncerradas 
-                      ? 'bg-yellow-500/20 text-yellow-300' 
-                      : 'bg-green-500/20 text-green-300'
-                  }`}>
+                  <span className={`px-4 py-2 rounded-full font-semibold ${apostasEncerradas
+                    ? 'bg-yellow-500/20 text-yellow-300'
+                    : 'bg-green-500/20 text-green-300'
+                    }`}>
                     • {apostasEncerradas ? 'EM ANDAMENTO' : 'ATIVO'}
                   </span>
                 </div>
@@ -316,7 +347,7 @@ function CardConcurso({ concurso }) {
               </h4>
             </div>
             <div className="text-5xl md:text-6xl font-black text-white mb-2">
-              {concurso.premioEstimado 
+              {concurso.premioEstimado
                 ? `R$ ${concurso.premioEstimado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
                 : 'A definir'
               }
@@ -396,7 +427,12 @@ function LoadingSkeleton() {
 }
 
 /* COMPONENTE - Estado de Erro */
-function ErrorState({ error, onRetry }) {
+interface ErrorStateProps {
+  error: string;
+  onRetry: () => void;
+}
+
+function ErrorState({ error, onRetry }: ErrorStateProps) {
   return (
     <div className="bg-white/10 backdrop-blur-lg rounded-3xl p-16 text-center border border-red-300/20">
       <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-r from-red-600 to-red-400 rounded-full flex items-center justify-center">

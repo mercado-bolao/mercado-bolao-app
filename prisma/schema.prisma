@@ -18,99 +18,101 @@ model User {
 }
 
 model Concurso {
-  id                    String    @id @default(cuid())
-  nome                  String?   // Nome do concurso
-  numero                Int
-  dataInicio            DateTime
-  dataFim               DateTime
-  status                String
-  premioEstimado        Float?    // Prêmio em R$
-  fechamentoPalpites    DateTime? // Data/hora limite para apostas
-  jogos                 Jogo[]
-  palpites              Palpite[] // <- relação reversa com Palpite
-  bilhetes              Bilhete[] // <- relação reversa com Bilhete
+  id                 String    @id @default(cuid())
+  nome               String? // Nome do concurso
+  numero             Int
+  dataInicio         DateTime
+  dataFim            DateTime
+  status             String
+  premioEstimado     Float? // Prêmio em R$
+  fechamentoPalpites DateTime? // Data/hora limite para apostas
+  jogos              Jogo[]
+  palpites           Palpite[] // <- relação reversa com Palpite
+  bilhetes           Bilhete[] // <- relação reversa com Bilhete
 }
 
 model Jogo {
-  id            String    @id @default(cuid())
-  mandante      String
-  visitante     String
-  horario       DateTime
-  resultado     String?
-  placarCasa    Int?
+  id              String    @id @default(cuid())
+  mandante        String
+  visitante       String
+  horario         DateTime
+  resultado       String?
+  placarCasa      Int?
   placarVisitante Int?
-  statusJogo    String?
-  tempoJogo     Int?
-  fotoMandante  String?
-  fotoVisitante String?
-  concursoId    String
-  concurso      Concurso  @relation(fields: [concursoId], references: [id])
-  palpites      Palpite[]
+  statusJogo      String?
+  tempoJogo       Int?
+  fotoMandante    String?
+  fotoVisitante   String?
+  concursoId      String
+  concurso        Concurso  @relation(fields: [concursoId], references: [id])
+  palpites        Palpite[]
 }
 
 model Palpite {
-  id         String   @id @default(uuid())
+  id         String        @id @default(uuid())
   nome       String
   whatsapp   String
   resultado  String
-  valor      Float    @default(1.0) // Valor fixo de R$ 1,00 por bilhete completo
-  status     String   @default("pendente") // Status: pendente, pago, cancelado
+  valor      Float         @default(1.0) // Valor fixo de R$ 1,00 por bilhete completo
+  status     String        @default("pendente") // Status: pendente, pago, cancelado
   jogoId     String
   concursoId String
-  createdAt  DateTime @default(now())
-  concurso   Concurso @relation(fields: [concursoId], references: [id])
-  user       User?    @relation(fields: [userId], references: [id])
+  createdAt  DateTime      @default(now())
+  concurso   Concurso      @relation(fields: [concursoId], references: [id])
+  user       User?         @relation(fields: [userId], references: [id])
   userId     String?
-  jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
-  pixId      String?  // Relacionamento com PIX
+  jogo       Jogo          @relation(fields: [jogoId], references: [id], onDelete: Cascade)
+  pixId      String? // Relacionamento com PIX
   pix        PixPagamento? @relation(fields: [pixId], references: [id])
   bilheteId  String?
-  bilhete    Bilhete? @relation(fields: [bilheteId], references: [id])
+  bilhete    Bilhete?      @relation(fields: [bilheteId], references: [id])
+
+  @@unique([userId, jogoId])
 }
 
 model PixPagamento {
-  id               String   @id @default(uuid())
-  txid             String   @unique
-  whatsapp         String
-  valor            Float
-  status           String   @default("ATIVA") // ATIVA, PAGA, EXPIRADA, CANCELADA
-  pixCopiaECola    String   @db.Text
-  pixLocationUrl   String?
-  imagemQrcode     String?  @db.Text
-  locationId       String?
-  ambiente         String?  // sandbox ou producao
-  expiracao        DateTime
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  palpites         Palpite[]
-  bilhetes         Bilhete[]
+  id             String    @id @default(uuid())
+  txid           String    @unique
+  whatsapp       String
+  valor          Float
+  status         String    @default("ATIVA") // ATIVA, PAGA, EXPIRADA, CANCELADA
+  pixCopiaECola  String    @db.Text
+  pixLocationUrl String?
+  imagemQrcode   String?   @db.Text
+  locationId     String?
+  ambiente       String? // sandbox ou producao
+  expiracao      DateTime
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  palpites       Palpite[]
+  bilhetes       Bilhete[]
 }
 
 model Bilhete {
-  id                  String   @id @default(uuid())
-  whatsapp            String
-  nome                String
-  valorTotal          Float
-  quantidadePalpites  Int
-  status              String   @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
-  txid                String?
-  orderId             String?
-  expiresAt           DateTime
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  ipAddress           String?
-  userAgent           String?
-  concursoId          String
-  concurso            Concurso @relation(fields: [concursoId], references: [id])
-  palpites            Palpite[]
-  pix                 PixPagamento? @relation(fields: [txid], references: [txid])
+  id                 String        @id @default(uuid())
+  whatsapp           String
+  nome               String
+  valorTotal         Float
+  quantidadePalpites Int
+  status             String        @default("PENDENTE") // PENDENTE, PAGO, CANCELADO
+  txid               String?
+  orderId            String?
+  expiresAt          DateTime
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  ipAddress          String?
+  userAgent          String?
+  concursoId         String
+  concurso           Concurso      @relation(fields: [concursoId], references: [id])
+  palpites           Palpite[]
+  pix                PixPagamento? @relation(fields: [txid], references: [txid])
 }
 
 model WebhookLog {
-  id        String   @id @default(uuid())
-  evento    String   @default("unknown") // tipo do evento (pix.received, etc)
-  txid      String?
-  dados     Json     @default("{}") // dados completos do webhook
-  processado Boolean @default(false)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  evento     String   @default("unknown") // tipo do evento (pix.received, etc)
+  txid       String?
+  dados      Json     @default("{}") // dados completos do webhook
+  processado Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }

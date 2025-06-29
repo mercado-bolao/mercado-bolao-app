@@ -47,7 +47,7 @@ export default async function handler(
 
     // Se não há jogos finalizados E apostas ainda não encerraram
     if (jogosFinalizados.length === 0 && !apostasEncerradas) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         ranking: [],
         jogosFinalizados: [],
         todosJogos,
@@ -104,29 +104,29 @@ export default async function handler(
       jogosFinalizados.forEach(jogo => {
         if (usuario.palpites[jogo.id]) {
           usuario.totalPalpitesFinalizados++;
-          
+
           // Convert palpite to standard format
           let palpiteResultado = usuario.palpites[jogo.id];
-            if (palpiteResultado === '1') palpiteResultado = 'C';
-            else if (palpiteResultado === 'X') palpiteResultado = 'E';
-            else if (palpiteResultado === '2') palpiteResultado = 'F';
+          if (palpiteResultado === '1') palpiteResultado = 'C';
+          else if (palpiteResultado === 'X') palpiteResultado = 'E';
+          else if (palpiteResultado === '2') palpiteResultado = 'F';
 
-            // Convert jogo result to standard format if it is a score
-            let jogoResultado = jogo.resultado;
-            if (jogo.resultado.includes('x')) {
-              const [golsCasa, golsVisitante] = jogo.resultado.split('x').map(Number);
-              const diferenca = golsCasa - golsVisitante;
-              if (diferenca === 0) jogoResultado = 'E';
-              else if (diferenca > 0) jogoResultado = 'C';
-              else jogoResultado = 'F';
-            }
+          // Convert jogo result to standard format if it is a score
+          let jogoResultado = jogo.resultado;
+          if (jogoResultado && jogoResultado.includes('x')) {
+            const [golsCasa, golsVisitante] = jogoResultado.split('x').map(Number);
+            const diferenca = golsCasa - golsVisitante;
+            if (diferenca === 0) jogoResultado = 'E';
+            else if (diferenca > 0) jogoResultado = 'C';
+            else jogoResultado = 'F';
+          }
 
           if (palpiteResultado === jogoResultado) {
             usuario.acertos++;
           }
         }
       });
-      
+
       // Se apostas encerraram mas não há jogos finalizados ainda, 
       // contar total de palpites do usuário para fins de exibição
       if (apostasEncerradas && jogosFinalizados.length === 0) {
@@ -145,7 +145,7 @@ export default async function handler(
           const temPalpite = usuario.palpites[jogo.id];
           const jogoFinalizado = jogo.resultado !== null;
           let acertou = null;
-          
+
           if (jogoFinalizado && temPalpite) {
             // Convert palpite to standard format
             let palpiteResultado = temPalpite;
@@ -155,17 +155,17 @@ export default async function handler(
 
             // Convert jogo result to standard format if it is a score
             let jogoResultado = jogo.resultado;
-            if (jogo.resultado.includes('x')) {
-              const [golsCasa, golsVisitante] = jogo.resultado.split('x').map(Number);
+            if (jogoResultado && jogoResultado.includes('x')) {
+              const [golsCasa, golsVisitante] = jogoResultado.split('x').map(Number);
               const diferenca = golsCasa - golsVisitante;
               if (diferenca === 0) jogoResultado = 'E';
               else if (diferenca > 0) jogoResultado = 'C';
               else jogoResultado = 'F';
             }
-            
+
             acertou = palpiteResultado === jogoResultado;
           }
-          
+
           return {
             jogoId: jogo.id,
             palpite: temPalpite || null,
@@ -184,7 +184,7 @@ export default async function handler(
       .map((usuario, index) => ({
         posicao: index + 1,
         ...usuario,
-        percentual: usuario.totalPalpitesFinalizados > 0 
+        percentual: usuario.totalPalpitesFinalizados > 0
           ? ((usuario.acertos / usuario.totalPalpitesFinalizados) * 100).toFixed(1)
           : "0.0"
       }));

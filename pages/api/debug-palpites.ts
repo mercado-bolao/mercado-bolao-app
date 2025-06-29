@@ -103,9 +103,9 @@ export default async function handler(
       testPalpite: testePalpite ? 'CRIADO E REMOVIDO COM SUCESSO' : 'NÃO TESTADO'
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no debug:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       status: 'ERROR',
       error: error.message,
       stack: error.stack

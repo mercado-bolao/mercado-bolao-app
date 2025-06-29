@@ -1,336 +1,145 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
-import path from 'path';
-import fs from 'fs';
+import { prisma } from '../../lib/prisma';
+import { APIResponse, Bilhete } from '../../types';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Método não permitido' });
-  }
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000';
 
-  const prisma = new PrismaClient();
-
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse<APIResponse>
+) {
   try {
-    const { bilheteId, txid } = req.query;
+    // Configurar headers para evitar cache
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
 
-    if (!bilheteId && !txid) {
-      return res.status(400).json({ error: 'bilheteId ou txid é obrigatório' });
-    }
+    const { bilheteId } = req.query;
 
-    // Buscar bilhete
-    let bilhete;
-    if (bilheteId) {
-      bilhete = await prisma.bilhete.findUnique({
-        where: { id: bilheteId as string },
-        include: {
-          pix: true
-        }
-      });
-    } else if (txid) {
-      bilhete = await prisma.bilhete.findFirst({
-        where: { txid: txid as string },
-        include: {
-          pix: true
-        }
+    if (!bilheteId || typeof bilheteId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'ID do bilhete não fornecido ou inválido'
       });
     }
 
-    if (!bilhete) {
-      return res.status(404).json({ error: 'Bilhete não encontrado' });
-    }
+    console.log('🔍 Verificando status do bilhete:', bilheteId);
 
-    // Se já está pago, retornar status
-    if (bilhete.status === 'PAGO') {
-      return res.status(200).json({
-        success: true,
-        status: 'PAGO',
-        bilhete: {
-          id: bilhete.id,
-          status: bilhete.status,
-          valorTotal: bilhete.valorTotal,
-          txid: bilhete.txid
-        }
-      });
-    }
-
-    // Se tem TXID, verificar na EFI (apenas se TXID for válido)
-    if (bilhete.txid) {
-      // Sanitizar e validar TXID - remover caracteres invisíveis
-      const txidLimpo = bilhete.txid
-        .trim()
-        .replace(/[^\x20-\x7E]/g, '') // Remove caracteres não ASCII
-        .replace(/[^a-zA-Z0-9]/g, ''); // Remove tudo exceto alfanuméricos
-
-      const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
-      const txidValido = txidPattern.test(txidLimpo);
-
-      console.log('🔍 Debug TXID na verificação:', {
-        original: bilhete.txid,
-        limpo: txidLimpo,
-        valido: txidValido,
-        comprimento: txidLimpo.length
-      });
-
-      if (!txidValido) {
-        console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
-
-        // Mesmo com TXID inválido, tentar verificar na EFI usando fetch direto
-        try {
-          console.log('🔄 Tentando verificação alternativa na EFI...');
-          const efiSandbox = process.env.EFI_SANDBOX || 'false';
-          const isSandbox = efiSandbox === 'true';
-          const baseUrl = isSandbox
-            ? 'https://pix-h.api.efipay.com.br'
-            : 'https://pix.api.efipay.com.br';
-
-          // Obter token
-          const authString = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
-
-          const tokenResponse = await fetch(`${baseUrl}/oauth/token`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Basic ${authString}`
-            },
-            body: JSON.stringify({ grant_type: 'client_credentials' })
-          });
-
-          if (tokenResponse.ok) {
-            const tokenData = await tokenResponse.json();
-
-            // Tentar consultar PIX
-            const pixResponse = await fetch(`${baseUrl}/v2/pix/${bilhete.txid}`, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${tokenData.access_token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-
-            if (pixResponse.ok) {
-              const pixData = await pixResponse.json();
-              console.log(`✅ PIX encontrado na EFI: ${pixData.status}`);
-
-              if (pixData.status === 'CONCLUIDA') {
-                // Atualizar status para pago
-                await prisma.bilhete.update({
-                  where: { id: bilhete.id },
-                  data: { status: 'PAGO' }
-                });
-
-                return res.status(200).json({
-                  success: true,
-                  status: 'PAGO',
-                  statusAtualizado: true,
-                  bilhete: {
-                    id: bilhete.id,
-                    status: 'PAGO',
-                    valorTotal: bilhete.valorTotal,
-                    txid: bilhete.txid
-                  }
-                });
+    const bilheteCompleto = await prisma.bilhete.findUnique({
+      where: { id: bilheteId },
+      include: {
+        palpites: {
+          include: {
+            jogo: {
+              include: {
+                concurso: true
               }
             }
           }
-        } catch (altError) {
-          console.log('⚠️ Verificação alternativa falhou:', altError);
-        }
+        },
+        pix: true
+      }
+    });
 
-        // Retornar status atual se verificação alternativa não funcionou
+    if (!bilheteCompleto) {
+      return res.status(404).json({
+        success: false,
+        error: 'Bilhete não encontrado'
+      });
+    }
+
+    // Se o bilhete tem TXID, verificar na EFI
+    if (bilheteCompleto.txid && bilheteCompleto.status !== 'PAGO') {
+      try {
+        console.log('🔍 Verificando status na EFI...');
+        const efiResponse = await fetch(`${BASE_URL}/api/admin/verificar-status-efi?txid=${bilheteCompleto.txid}`);
+        const efiData = await efiResponse.json();
+
+        if (efiData.success && efiData.status === 'CONCLUIDA') {
+          console.log('✅ Pagamento confirmado na EFI!');
+          // O status já foi atualizado pelo endpoint verificar-status-efi
+        }
+      } catch (efiError) {
+        console.error('⚠️ Erro ao verificar na EFI:', efiError);
+      }
+
+      // Buscar bilhete novamente para ter status atualizado
+      const bilheteAtualizado = await prisma.bilhete.findUnique({
+        where: { id: bilheteId },
+        include: {
+          palpites: {
+            include: {
+              jogo: {
+                include: {
+                  concurso: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      if (bilheteAtualizado) {
         return res.status(200).json({
           success: true,
-          status: bilhete.status,
-          warning: 'TXID_FORMATO_ANTIGO',
-          message: 'Verificando pagamento... Se você já pagou, aguarde alguns minutos.',
-          bilhete: {
-            id: bilhete.id,
-            status: bilhete.status,
-            valorTotal: bilhete.valorTotal,
-            txid: bilhete.txid,
-            expiresAt: bilhete.expiresAt.toISOString()
+          data: {
+            id: bilheteAtualizado.id,
+            txid: bilheteAtualizado.txid,
+            valorTotal: bilheteAtualizado.valorTotal,
+            whatsapp: bilheteAtualizado.whatsapp,
+            nome: bilheteAtualizado.nome,
+            status: bilheteAtualizado.status,
+            createdAt: bilheteAtualizado.createdAt.toISOString(),
+            palpites: bilheteAtualizado.palpites.map(palpite => ({
+              id: palpite.id,
+              resultado: palpite.resultado,
+              jogo: {
+                id: palpite.jogo.id,
+                mandante: palpite.jogo.mandante,
+                visitante: palpite.jogo.visitante
+              }
+            })),
+            concurso: bilheteAtualizado.palpites.length > 0 ? {
+              nome: bilheteAtualizado.palpites[0].jogo.concurso.nome,
+              numero: bilheteAtualizado.palpites[0].jogo.concurso.numero
+            } : null
           }
         });
-      } else {
-        try {
-          console.log(`🔍 Verificando PIX na EFI: ${bilhete.txid}`);
-
-          // Configurar EFI
-          const efiSandbox = process.env.EFI_SANDBOX || 'false';
-          const isSandbox = efiSandbox === 'true';
-
-          const EfiPay = require('sdk-node-apis-efi');
-
-          let efiConfig: any = {
-            sandbox: isSandbox,
-            client_id: process.env.EFI_CLIENT_ID,
-            client_secret: process.env.EFI_CLIENT_SECRET
-          };
-
-          const certificatePath = path.resolve('./certs/certificado-efi.p12');
-          if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-            efiConfig.certificate = certificatePath;
-            efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-          }
-
-          const efipay = new EfiPay(efiConfig);
-
-          // Preparar TXID para URL
-          const cleanTxid = encodeURIComponent(txidLimpo);
-
-          // Log detalhado da requisição
-          console.log('🔧 Preparando requisição para EFÍ:', {
-            txidOriginal: bilhete.txid,
-            txidLimpo: txidLimpo,
-            txidEncoded: cleanTxid,
-            comprimento: txidLimpo.length,
-            encoding: Buffer.from(txidLimpo).toString('hex'),
-            isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
-          });
-
-          // Consultar PIX na EFÍ usando método correto
-          console.log('🔗 Consultando PIX na EFÍ:', txidLimpo);
-          const params = { txid: txidLimpo };
-          const pixResponse = await efipay.pixDetailCharge(params);
-
-          console.log(`📋 Status na EFI: ${pixResponse.status}`);
-
-          // Se foi pago na EFI, atualizar no banco
-          if (pixResponse.status === 'CONCLUIDA') {
-            console.log(`✅ PIX confirmado como pago: ${bilhete.txid}`);
-
-            // Atualizar bilhete
-            await prisma.bilhete.update({
-              where: { id: bilhete.id },
-              data: { status: 'PAGO' }
-            });
-
-            // Atualizar PIX se existir
-            if (bilhete.pix) {
-              await prisma.pixPagamento.update({
-                where: { id: bilhete.pix.id },
-                data: { status: 'PAGA' }
-              });
-            }
-
-            // Atualizar palpites
-            await prisma.palpite.updateMany({
-              where: {
-                bilheteId: bilhete.id
-              },
-              data: { status: 'pago' }
-            });
-
-            // Buscar dados completos do bilhete para o comprovante
-            const bilheteCompleto = await prisma.bilhete.findUnique({
-              where: { id: bilhete.id },
-              include: {
-                palpites: {
-                  include: {
-                    jogo: {
-                      include: {
-                        concurso: true
-                      }
-                    }
-                  }
-                }
-              }
-            });
-
-            // Formatar dados para o comprovante
-            const bilheteConfirmado = {
-              id: bilheteCompleto.id,
-              txid: bilheteCompleto.txid,
-              valorTotal: bilheteCompleto.valorTotal,
-              whatsapp: bilheteCompleto.whatsapp,
-              nome: bilheteCompleto.nome,
-              status: 'PAGO',
-              createdAt: bilheteCompleto.createdAt.toISOString(),
-              palpites: bilheteCompleto.palpites.map(palpite => ({
-                id: palpite.id,
-                resultado: palpite.resultado,
-                jogo: {
-                  mandante: palpite.jogo.mandante,
-                  visitante: palpite.jogo.visitante,
-                  horario: palpite.jogo.horario.toISOString()
-                }
-              })),
-              concurso: bilheteCompleto.palpites.length > 0 ? {
-                nome: bilheteCompleto.palpites[0].jogo.concurso.nome,
-                numero: bilheteCompleto.palpites[0].jogo.concurso.numero
-              } : null
-            };
-
-            return res.status(200).json({
-              success: true,
-              status: 'PAGO',
-              statusAtualizado: true,
-              bilhete: {
-                id: bilhete.id,
-                status: 'PAGO',
-                valorTotal: bilhete.valorTotal,
-                txid: bilhete.txid
-              },
-              bilheteCompleto: bilheteConfirmado,
-              redirectTo: '/bilhete-confirmado'
-            });
-          }
-
-        } catch (efiError) {
-          console.error('❌ Erro ao consultar EFI:', efiError);
-          // Não retornar erro, continuar com status atual
-        }
       }
     }
 
-    // Verificar se expirou
-    const agora = new Date();
-    const expirado = bilhete.expiresAt < agora;
-
-    if (expirado && bilhete.status === 'PENDENTE') {
-      // Atualizar como cancelado
-      await prisma.bilhete.update({
-        where: { id: bilhete.id },
-        data: { status: 'CANCELADO' }
-      });
-
-      // Reverter palpites
-      await prisma.palpite.updateMany({
-        where: {
-          bilheteId: bilhete.id
-        },
-        data: { status: 'pendente' }
-      });
-
-      return res.status(200).json({
-        success: true,
-        status: 'EXPIRADO',
-        bilhete: {
-          id: bilhete.id,
-          status: 'CANCELADO',
-          valorTotal: bilhete.valorTotal,
-          txid: bilhete.txid
-        }
-      });
-    }
-
-    // Retornar status atual
+    // Retornar os dados do bilhete
     return res.status(200).json({
       success: true,
-      status: bilhete.status,
-      bilhete: {
-        id: bilhete.id,
-        status: bilhete.status,
-        valorTotal: bilhete.valorTotal,
-        txid: bilhete.txid,
-        expiresAt: bilhete.expiresAt.toISOString()
+      data: {
+        id: bilheteCompleto.id,
+        txid: bilheteCompleto.txid,
+        valorTotal: bilheteCompleto.valorTotal,
+        whatsapp: bilheteCompleto.whatsapp,
+        nome: bilheteCompleto.nome,
+        status: bilheteCompleto.status,
+        createdAt: bilheteCompleto.createdAt.toISOString(),
+        palpites: bilheteCompleto.palpites.map(palpite => ({
+          id: palpite.id,
+          resultado: palpite.resultado,
+          jogo: {
+            id: palpite.jogo.id,
+            mandante: palpite.jogo.mandante,
+            visitante: palpite.jogo.visitante
+          }
+        })),
+        concurso: bilheteCompleto.palpites.length > 0 ? {
+          nome: bilheteCompleto.palpites[0].jogo.concurso.nome,
+          numero: bilheteCompleto.palpites[0].jogo.concurso.numero
+        } : null
       }
     });
 
   } catch (error) {
     console.error('❌ Erro ao verificar status:', error);
     return res.status(500).json({
-      error: 'Erro ao verificar status do pagamento',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      success: false,
+      error: 'Erro ao verificar status do pagamento'
     });
   } finally {
     await prisma.$disconnect();

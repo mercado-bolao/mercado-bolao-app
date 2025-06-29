@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bilhete: {
         id: bilhete.id,
         status: status,
-        valor: bilhete.valor,
+        valor: bilhete.valorTotal,
         quantidadePalpites: bilhete.quantidadePalpites,
         whatsapp: bilhete.whatsapp,
         txid: bilhete.txid,

@@ -16,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Validações básicas
     if (!nome || !whatsapp) {
       console.error('Dados obrigatórios ausentes:', { nome: !!nome, whatsapp: !!whatsapp });
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Nome e WhatsApp são obrigatórios',
         required: { nome, whatsapp }
       });
@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return await processarPalpiteIndividual(req, res, nome, whatsapp, jogoId, resultado);
     } else {
       console.error('Formato de dados inválido');
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Dados inválidos. Envie bilhetes completos ou palpite individual.',
         received: { bilhetes: !!bilhetes, jogoId: !!jogoId, resultado: !!resultado }
       });
@@ -84,10 +84,10 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
       // Processar cada palpite do bilhete
       for (const jogoId of Object.keys(bilhete)) {
         const resultado = bilhete[jogoId];
-        
+
         // Converte '0' para 'X' se necessário
         const resultadoFinal = resultado === '0' ? 'X' : resultado;
-        
+
         if (!['1', 'X', '2'].includes(resultadoFinal)) {
           console.error(`Resultado inválido para jogo ${jogoId}:`, resultado);
           totalErros++;
@@ -133,18 +133,36 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
             continue;
           }
 
-          // Criar novo palpite (não usar upsert para permitir múltiplos bilhetes)
-          const palpiteSalvo = await prisma.palpite.create({
-            data: {
+          // Criar ou atualizar palpite
+          const palpiteExistente = await prisma.palpite.findFirst({
+            where: {
               userId: user.id,
-              jogoId: jogoId,
-              resultado: resultadoFinal,
-              nome: nome,
-              whatsapp: whatsapp,
-              concursoId: concursoId,
-              valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+              jogoId: jogoId
             }
           });
+
+          const palpiteSalvo = palpiteExistente
+            ? await prisma.palpite.update({
+              where: { id: palpiteExistente.id },
+              data: {
+                resultado: resultadoFinal,
+                nome: nome,
+                whatsapp: whatsapp,
+                concursoId: concursoId,
+                valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+              }
+            })
+            : await prisma.palpite.create({
+              data: {
+                userId: user.id,
+                jogoId: jogoId,
+                resultado: resultadoFinal,
+                nome: nome,
+                whatsapp: whatsapp,
+                concursoId: concursoId,
+                valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+              }
+            });
 
           console.log(`✅ Palpite salvo: ${palpiteSalvo.id}`);
           totalSalvos++;
@@ -163,8 +181,8 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
 
     if (totalSalvos > 0) {
       const totalBilhetes = bilhetes.length;
-      res.status(200).json({ 
-        success: true, 
+      res.status(200).json({
+        success: true,
         message: `${totalBilhetes} bilhete(s) processado(s) com sucesso!`,
         detalhes: {
           bilhetesEnviados: totalBilhetes,
@@ -174,7 +192,7 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
         }
       });
     } else {
-      res.status(400).json({ 
+      res.status(400).json({
         error: 'Não foi possível salvar nenhum palpite',
         detalhes: {
           erros: totalErros,
@@ -186,8 +204,8 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
   } catch (error) {
     console.error('=== ERRO GERAL AO PROCESSAR BILHETES ===');
     console.error('Erro completo:', error);
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
@@ -198,9 +216,9 @@ async function processarBilhetesCompletos(req: NextApiRequest, res: NextApiRespo
 async function processarPalpiteIndividual(req: NextApiRequest, res: NextApiResponse, nome: string, whatsapp: string, jogoId: string, resultado: string) {
   console.log('=== PROCESSANDO PALPITE INDIVIDUAL (MODO COMPATIBILIDADE) ===');
 
-    // Converte '0' para 'X' se necessário (compatibilidade com frontend)
+  // Converte '0' para 'X' se necessário (compatibilidade com frontend)
   const resultadoFinal = resultado === '0' ? 'X' : resultado;
-  
+
   if (!['1', 'X', '2'].includes(resultadoFinal)) {
     console.error('Resultado inválido:', resultado);
     return res.status(400).json({ error: 'Resultado deve ser 1, X ou 2' });
@@ -239,7 +257,7 @@ async function processarPalpiteIndividual(req: NextApiRequest, res: NextApiRespo
     // Verificar se o período de apostas está encerrado
     if (concurso.fechamentoPalpites && new Date() > new Date(concurso.fechamentoPalpites)) {
       console.error('Palpites encerrados em:', concurso.fechamentoPalpites);
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Período de palpites encerrado para este concurso',
         fechamentoPalpites: concurso.fechamentoPalpites
       });
@@ -265,36 +283,41 @@ async function processarPalpiteIndividual(req: NextApiRequest, res: NextApiRespo
     console.log('Salvando palpite...');
 
     // Criar ou atualizar palpite
-    const palpiteSalvo = await prisma.palpite.upsert({
+    const palpiteExistente = await prisma.palpite.findFirst({
       where: {
-        userId_jogoId: {
-          userId: user.id,
-          jogoId: jogoId
-        }
-      },
-      update: {
-        resultado: resultadoFinal,
-        nome: nome,
-        whatsapp: whatsapp,
-        concursoId: concursoId,
-        valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
-      },
-      create: {
         userId: user.id,
-        jogoId: jogoId,
-        resultado: resultadoFinal,
-        nome: nome,
-        whatsapp: whatsapp,
-        concursoId: concursoId,
-        valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+        jogoId: jogoId
       }
     });
+
+    const palpiteSalvo = palpiteExistente
+      ? await prisma.palpite.update({
+        where: { id: palpiteExistente.id },
+        data: {
+          resultado: resultadoFinal,
+          nome: nome,
+          whatsapp: whatsapp,
+          concursoId: concursoId,
+          valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+        }
+      })
+      : await prisma.palpite.create({
+        data: {
+          userId: user.id,
+          jogoId: jogoId,
+          resultado: resultadoFinal,
+          nome: nome,
+          whatsapp: whatsapp,
+          concursoId: concursoId,
+          valor: 10.0 // Valor fixo de R$ 10,00 por bilhete completo
+        }
+      });
 
     console.log('Palpite salvo com sucesso:', palpiteSalvo.id);
     console.log('=== API PALPITES FINALIZADA COM SUCESSO ===');
 
-    res.status(200).json({ 
-      success: true, 
+    res.status(200).json({
+      success: true,
       palpiteId: palpiteSalvo.id,
       message: 'Palpite salvo com sucesso'
     });
@@ -305,7 +328,7 @@ async function processarPalpiteIndividual(req: NextApiRequest, res: NextApiRespo
 
     // Verificar se é erro de conexão com banco
     if (error instanceof Error && error.message.includes('connect')) {
-      return res.status(503).json({ 
+      return res.status(503).json({
         error: 'Erro de conexão com o banco de dados',
         details: 'Tente novamente em alguns segundos'
       });
@@ -314,13 +337,13 @@ async function processarPalpiteIndividual(req: NextApiRequest, res: NextApiRespo
     // Verificar se é erro de constraint (chave única, etc)
     if (error instanceof Error && error.message.includes('Unique constraint')) {
       console.error('Erro de constraint única detectado');
-      return res.status(409).json({ 
+      return res.status(409).json({
         error: 'Palpite já existe para este jogo',
         details: 'Tente atualizar a página e enviar novamente'
       });
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro interno do servidor',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });

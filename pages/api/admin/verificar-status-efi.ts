@@ -4,55 +4,63 @@ import fs from 'fs';
 import { prisma } from '../../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Configurar headers para evitar cache
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   if (req.method !== 'GET') {
+    console.log('❌ Método inválido:', req.method);
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
   const { txid } = req.query;
 
   if (!txid || typeof txid !== 'string') {
+    console.log('❌ TXID não fornecido ou inválido');
     return res.status(400).json({
       success: false,
       error: 'TXID é obrigatório'
     });
   }
 
-  // Sanitizar TXID antes da validação
+  // Limpar TXID
   const txidLimpo = txid.trim().replace(/[^a-zA-Z0-9]/g, '');
 
-  console.log('🔍 Debug TXID:', {
-    original: txid,
-    limpo: txidLimpo,
-    comprimentoOriginal: txid.length,
-    comprimentoLimpo: txidLimpo.length,
-    caracteresInvalidos: txid.match(/[^a-zA-Z0-9]/g) || 'nenhum',
-    hexDump: Buffer.from(txid).toString('hex')
-  });
-
-  // Validar formato do TXID (26-35 caracteres alfanuméricos)
+  // Validar formato do TXID
   const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
   if (!txidPattern.test(txidLimpo)) {
+    console.log('❌ TXID com formato inválido:', txidLimpo);
     return res.status(400).json({
       success: false,
-      error: `TXID inválido. Deve ter 26-35 caracteres alfanuméricos.`,
-      debug: {
+      error: 'TXID com formato inválido',
+      details: {
         txidOriginal: txid,
         txidLimpo: txidLimpo,
-        comprimento: txidLimpo.length,
-        caracteresInvalidos: txid.match(/[^a-zA-Z0-9]/g) || 'nenhum'
+        tamanho: txidLimpo.length
       }
     });
   }
 
-  try {
-    console.log('🔍 Verificando status do PIX na EFÍ:', txid);
+  // Buscar bilhete
+  const bilhete = await prisma.bilhete.findFirst({
+    where: { txid: txidLimpo },
+    include: {
+      palpites: true,
+      pix: true
+    }
+  });
 
-    // Configurar EFÍ Pay
+  try {
+    console.log('🔍 Verificando status do PIX na EFI:', txidLimpo);
+
+    // Configurar EFI Pay
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const efiClientId = process.env.EFI_CLIENT_ID;
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
 
     if (!efiClientId || !efiClientSecret) {
+      console.log('❌ Credenciais EFI não configuradas');
       return res.status(400).json({
         success: false,
         error: 'Credenciais EFI não configuradas'
@@ -60,47 +68,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const isSandbox = efiSandbox === 'true';
+    console.log(`🌍 Ambiente: ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'}`);
+
     const EfiPay = require('sdk-node-apis-efi');
 
     let efiConfig: any = {
       sandbox: isSandbox,
-      client_id: process.env.EFI_CLIENT_ID,
-      client_secret: process.env.EFI_CLIENT_SECRET
+      client_id: efiClientId,
+      client_secret: efiClientSecret
     };
 
+
+    console.log('🔐 Configurando certificado para produção...');
     const certificatePath = path.resolve('./certs/certificado-efi.p12');
+
     if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
       efiConfig.certificate = certificatePath;
       efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+      console.log('✅ Certificado configurado com sucesso');
+    } else {
+      console.log('⚠️ Certificado não encontrado ou passphrase não configurada');
+      return res.status(400).json({
+        success: false,
+        error: 'Certificado não configurado para produção'
+      });
     }
+
 
     const efipay = new EfiPay(efiConfig);
 
-    // Preparar TXID para URL
-    const cleanTxid = encodeURIComponent(txidLimpo);
-
-    // Log detalhado da requisição
-    console.log('🔧 Preparando requisição para EFÍ:', {
-      txidOriginal: txid,
-      txidLimpo: txidLimpo,
-      txidEncoded: cleanTxid,
-      comprimento: txidLimpo.length,
-      encoding: Buffer.from(txidLimpo).toString('hex'),
-      isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
-    });
-
-    // Consultar PIX na EFÍ usando método correto
-    console.log('🔗 Consultando PIX na EFÍ:', txidLimpo);
+    // Consultar PIX na EFI
+    console.log('🔗 Consultando PIX na EFI...');
     const params = { txid: txidLimpo };
     const pixResponse = await efipay.pixDetailCharge(params);
 
-    console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
+    console.log('📋 Resposta da EFI:', JSON.stringify(pixResponse, null, 2));
 
     const statusEfi = pixResponse.status;
     let statusLocal = 'ATIVA';
     let mensagem = '';
 
-    // Mapear status da EFÍ para status local
+    // Mapear status da EFI para status local
     switch (statusEfi) {
       case 'ATIVA':
         statusLocal = 'ATIVA';
@@ -120,50 +128,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         break;
       default:
         statusLocal = statusEfi;
-        mensagem = `Status retornado pela EFÍ: ${statusEfi}`;
+        mensagem = `Status retornado pela EFI: ${statusEfi}`;
     }
 
-    // Atualizar status no banco se necessário
-    if (statusEfi === 'CONCLUIDA') {
+    // Se o PIX foi pago, atualizar no banco
+    if (statusEfi === 'CONCLUIDA' && bilhete && bilhete.status !== 'PAGO') {
       console.log('✅ PIX confirmado como pago, atualizando banco...');
 
-      // Buscar bilhete pelo TXID (tentar ambos: original e limpo)
-      let bilhete = await prisma.bilhete.findFirst({
-        where: { txid: txid },
-        include: { palpites: true, pix: true }
+      // Atualizar bilhete
+      await prisma.bilhete.update({
+        where: { id: bilhete.id },
+        data: { status: 'PAGO', updatedAt: new Date() }
       });
 
-      // Se não encontrou, tentar com TXID limpo
-      if (!bilhete) {
-        bilhete = await prisma.bilhete.findFirst({
-          where: { txid: txidLimpo },
-          include: { palpites: true, pix: true }
+      // Atualizar palpites
+      await prisma.palpite.updateMany({
+        where: { bilheteId: bilhete.id },
+        data: { status: 'pago' }
+      });
+
+      // Atualizar PIX se existir
+      if (bilhete.pix) {
+        await prisma.pixPagamento.update({
+          where: { id: bilhete.pix.id },
+          data: { status: 'PAGA', updatedAt: new Date() }
         });
       }
 
-      if (bilhete && bilhete.status !== 'PAGO') {
-        // Atualizar bilhete
-        await prisma.bilhete.update({
-          where: { id: bilhete.id },
-          data: { status: 'PAGO', updatedAt: new Date() }
-        });
-
-        // Atualizar palpites
-        await prisma.palpite.updateMany({
-          where: { bilheteId: bilhete.id },
-          data: { status: 'pago' }
-        });
-
-        // Atualizar PIX
-        if (bilhete.pix) {
-          await prisma.pixPagamento.update({
-            where: { id: bilhete.pix.id },
-            data: { status: 'PAGA' }
-          });
-        }
-
-        mensagem += '\n\nBilhete e palpites foram atualizados para PAGO no sistema.';
-      }
+      mensagem += '\n\nBilhete e palpites foram atualizados para PAGO no sistema.';
     }
 
     return res.status(200).json({
@@ -171,24 +163,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: statusLocal,
       statusEfi: statusEfi,
       message: mensagem,
-      dadosCompletos: pixResponse
+      bilheteId: bilhete?.id,
+      dadosCompletos: {
+        ...pixResponse,
+        bilheteEncontrado: !!bilhete,
+        statusBanco: bilhete?.status
+      }
     });
 
   } catch (error) {
-    console.error('❌ Erro ao verificar status na EFÍ:', error);
+    console.error('❌ Erro ao verificar status na EFI:', error);
 
-    let mensagemErro = 'Erro ao consultar EFÍ Pay';
+    let mensagemErro = 'Erro ao consultar EFI Pay';
+    let detalhesErro = null;
 
-    if (error && typeof error === 'object' && 'error_description' in error) {
-      mensagemErro = error.error_description as string;
+    if (error && typeof error === 'object') {
+      if ('error_description' in error) {
+        mensagemErro = error.error_description as string;
+      } else if ('nome' in error && error.nome === 'cobranca_nao_encontrada') {
+        mensagemErro = 'Cobrança não encontrada na EFI';
+        detalhesErro = 'O PIX pode ter expirado ou o TXID pode estar inválido';
+      }
     } else if (error instanceof Error) {
       mensagemErro = error.message;
+      detalhesErro = error.stack;
     }
 
     return res.status(500).json({
       success: false,
       error: mensagemErro,
-      details: error instanceof Error ? error.stack : String(error)
+      details: detalhesErro || String(error)
     });
   } finally {
     await prisma.$disconnect();

@@ -28,8 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isProduction = !isSandbox && config.certificateExists && config.EFI_CERTIFICATE_PASSPHRASE;
 
     let status = 'OK';
-    let warnings = [];
-    let errors = [];
+    let warnings: string[] = [];
+    let errors: string[] = [];
 
     // Verificações obrigatórias
     if (!config.EFI_CLIENT_ID) errors.push('EFI_CLIENT_ID não configurado');
@@ -37,14 +37,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!config.EFI_PIX_KEY) errors.push('EFI_PIX_KEY não configurado');
 
     // Verificações para produção
-    if (isSandbox) {
-      if (!config.certificateExists) {
-        errors.push('Certificado não encontrado em ./certs/certificado-efi.p12');
-      }
-      if (!config.EFI_CERTIFICATE_PASSPHRASE) {
-        errors.push('EFI_CERTIFICATE_PASSPHRASE não configurado');
-      }
+
+    if (!config.certificateExists) {
+      errors.push('Certificado não encontrado em ./certs/certificado-efi.p12');
     }
+    if (!config.EFI_CERTIFICATE_PASSPHRASE) {
+      errors.push('EFI_CERTIFICATE_PASSPHRASE não configurado');
+    }
+
 
     if (errors.length > 0) {
       status = 'ERROR';

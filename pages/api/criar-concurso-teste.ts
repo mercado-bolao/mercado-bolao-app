@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Verificar se já existe algum concurso
     const concursoExistente = await prisma.concurso.findFirst();
-    
+
     if (concursoExistente) {
       return res.status(200).json({
         message: 'Já existe um concurso no banco',
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       concurso: novoConcurso
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao criar concurso de teste:', error);
     res.status(500).json({
       success: false,

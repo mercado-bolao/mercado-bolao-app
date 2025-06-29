@@ -47,10 +47,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
       });
 
-      res.status(200).json({ 
-        message: `${concursoIds.length} concurso(s) deletado(s) com sucesso!`, 
+      res.status(200).json({
+        message: `${concursoIds.length} concurso(s) deletado(s) com sucesso!`,
         deletedCounts: resultado,
-        deletedIds: concursoIds 
+        deletedIds: concursoIds
       });
     } else {
       // Delete all concursos - ordem: PALPITES → JOGOS → CONCURSOS
@@ -76,16 +76,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
       });
 
-      res.status(200).json({ 
+      res.status(200).json({
         message: "Todos os concursos foram deletados com sucesso!",
         deletedCounts: resultado
       });
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao deletar concursos:', error);
-    res.status(500).json({ 
-      error: 'Erro ao deletar concursos', 
-      details: error.message 
+    res.status(500).json({
+      error: 'Erro ao deletar concursos',
+      details: error.message
     });
   }
 }

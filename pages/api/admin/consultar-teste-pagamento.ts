@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../../lib/prisma';
 
@@ -78,14 +77,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pixStatus: pix?.status || 'NÃO_ENCONTRADO',
       palpitesStatus: bilhete.palpites.map(p => ({
         jogo: `${p.jogo.mandante} x ${p.jogo.visitante}`,
-        palpite: p.palpite,
+        palpite: p.resultado,
         status: p.status
       })),
       webhooksRecebidos: webhookLogs.length,
       webhooksProcessados: webhookLogs.filter(w => w.processado).length,
-      testeCompleto: bilhete.status === 'PAGO' && 
-                     pix?.status === 'PAGA' && 
-                     bilhete.palpites.every(p => p.status === 'pago')
+      testeCompleto: bilhete.status === 'PAGO' &&
+        pix?.status === 'PAGA' &&
+        bilhete.palpites.every(p => p.status === 'pago')
     };
 
     console.log('📊 Análise do teste:', analise);
@@ -113,7 +112,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         palpites: bilhete.palpites.map(p => ({
           id: p.id,
           jogo: `${p.jogo.mandante} x ${p.jogo.visitante}`,
-          palpite: p.palpite,
+          palpite: p.resultado,
           status: p.status,
           valor: p.valor
         })),
@@ -125,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }))
       },
       analise: analise,
-      recomendacoes: analise.testeCompleto ? 
+      recomendacoes: analise.testeCompleto ?
         ['✅ Teste passou! Sistema está funcionando corretamente.'] :
         [
           '⚠️ Teste não passou completamente.',

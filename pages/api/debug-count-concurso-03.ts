@@ -92,7 +92,7 @@ export default async function handler(
         mediaPalpitesPorUsuario: usuariosUnicos.length > 0 ? (palpitesCorretos / usuariosUnicos.length).toFixed(1) : 0
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no debug count:', error);
     return res.status(500).json({ error: "Erro no debug count", details: error.message });
   }

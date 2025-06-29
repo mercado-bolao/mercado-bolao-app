@@ -191,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Erro ao restaurar concurso 03:', error);
     res.status(500).json({
       success: false,

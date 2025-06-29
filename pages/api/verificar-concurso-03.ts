@@ -1,6 +1,18 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
+
+interface Palpite {
+  nome: string;
+  whatsapp: string;
+  palpites: Array<{
+    jogo: string;
+    palpite: string;
+  }>;
+}
+
+interface Apostadores {
+  [key: string]: Palpite;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
@@ -57,7 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     // Agrupar palpites por apostador
-    const apostadores = palpites.reduce((acc, palpite) => {
+    const apostadores = palpites.reduce<Apostadores>((acc, palpite) => {
       if (!acc[palpite.nome]) {
         acc[palpite.nome] = {
           nome: palpite.nome,
@@ -113,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })),
       apostadoresReais: [
         'Alexandre Ferraz',
-        'An Beatriz Pereira Rufino', 
+        'An Beatriz Pereira Rufino',
         'Bruno Henrique',
         'Cabeça',
         'Caio Luis Cardoso de Oliveira'
@@ -124,12 +136,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }))
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('❌ Erro na verificação:', error);
     res.status(500).json({
       success: false,
       error: 'Erro na verificação',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
 }

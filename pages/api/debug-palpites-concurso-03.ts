@@ -32,7 +32,7 @@ export default async function handler(
     });
 
     const contagem2 = await prisma.palpite.count({
-      where: { 
+      where: {
         jogo: {
           concursoId: concurso03.id
         }
@@ -87,7 +87,7 @@ export default async function handler(
         problema: contagem1 !== palpitesTodos.length ? "Há palpites com concursoId incorreto" : "Contagem correta"
       }
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro no debug:', error);
     return res.status(500).json({ error: "Erro no debug", details: error.message });
   }

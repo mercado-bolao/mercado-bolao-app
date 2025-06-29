@@ -25,7 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         concurso: true,
         palpites: {
           include: {
-            jogo: true
+            jogo: {
+              include: {
+                concurso: true
+              }
+            }
           }
         }
       }
@@ -43,7 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: bilhete.status,
       whatsapp: bilhete.whatsapp,
       valorTotal: bilhete.valorTotal,
-      palpites: bilhete.palpites.length
+      palpites: bilhete.palpites.length,
+      concurso: bilhete.concurso?.nome
     });
 
     // Formatar dados para retorno
@@ -58,16 +63,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       palpites: bilhete.palpites.map(palpite => ({
         id: palpite.id,
         resultado: palpite.resultado,
+        status: palpite.status,
         jogo: {
+          id: palpite.jogo.id,
           mandante: palpite.jogo.mandante,
           visitante: palpite.jogo.visitante,
-          horario: palpite.jogo.horario.toISOString()
+          horario: palpite.jogo.horario.toISOString(),
+          resultado: palpite.jogo.resultado,
+          placarCasa: palpite.jogo.placarCasa,
+          placarVisitante: palpite.jogo.placarVisitante,
+          statusJogo: palpite.jogo.statusJogo,
+          fotoMandante: palpite.jogo.fotoMandante,
+          fotoVisitante: palpite.jogo.fotoVisitante
         }
       })),
-      concurso: {
+      concurso: bilhete.concurso ? {
+        id: bilhete.concurso.id,
         nome: bilhete.concurso.nome,
-        numero: bilhete.concurso.numero
-      }
+        numero: bilhete.concurso.numero,
+        dataInicio: bilhete.concurso.dataInicio.toISOString(),
+        dataFim: bilhete.concurso.dataFim.toISOString(),
+        status: bilhete.concurso.status,
+        premioEstimado: bilhete.concurso.premioEstimado
+      } : null
     };
 
     return res.status(200).json({

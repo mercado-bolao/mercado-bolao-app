@@ -8,7 +8,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🔗 Registrando webhook com EFÍ...');
+    console.log('🔗 Registrando webhook com EFI...');
 
     // Configurar EFI
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
@@ -22,31 +22,61 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    const certificatePath = path.resolve('./certs/certificado-efi.p12');
-    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-      efiConfig.certificate = certificatePath;
-      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+    // Configurar certificado para produção
+    if (!isSandbox) {
+      console.log('🔐 Configurando certificado para produção...');
+      const certificatePath = path.resolve('./certs/certificado-efi.p12');
+
+      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+        efiConfig.certificate = certificatePath;
+        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+        console.log('✅ Certificado configurado com sucesso');
+      } else {
+        console.error('❌ Certificado não encontrado ou passphrase não configurada');
+        return res.status(400).json({
+          success: false,
+          error: 'Certificado não configurado para produção'
+        });
+      }
     }
 
     const efipay = new EfiPay(efiConfig);
     const pixKey = process.env.EFI_PIX_KEY;
 
     if (!pixKey) {
+      console.error('❌ Chave PIX não configurada');
       return res.status(400).json({
         success: false,
         error: 'Chave PIX não configurada'
       });
     }
 
-    // URL do webhook (ajuste conforme seu domínio)
-    const webhookUrl = isSandbox
-      ? `https://${req.headers.host}/api/webhook-pix`
-      : `https://${req.headers.host}/api/webhook-pix`;
+    // URL do webhook (usando o domínio correto)
+    const domain = req.headers.host;
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
+    const webhookUrl = `${protocol}://${domain}/api/webhook-pix`;
 
     console.log('📡 Registrando webhook URL:', webhookUrl);
     console.log('🔑 Chave PIX:', pixKey);
 
-    // Registrar webhook
+    // Primeiro, verificar se já existe webhook configurado
+    try {
+      console.log('🔍 Verificando webhooks existentes...');
+      const webhookList = await efipay.pixListWebhook();
+      console.log('📋 Webhooks existentes:', JSON.stringify(webhookList, null, 2));
+
+      // Se já existe webhook para esta chave, deletar
+      if (webhookList[pixKey]) {
+        console.log('🗑️ Removendo webhook existente...');
+        await efipay.pixDeleteWebhook({ chave: pixKey });
+        console.log('✅ Webhook existente removido');
+      }
+    } catch (listError) {
+      console.warn('⚠️ Erro ao listar webhooks:', listError);
+    }
+
+    // Registrar novo webhook
+    console.log('📝 Registrando novo webhook...');
     const webhookData = {
       webhookUrl: webhookUrl
     };
@@ -57,6 +87,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
     console.log('✅ Webhook registrado com sucesso:', response);
+
+    // Verificar se o registro foi bem sucedido
+    try {
+      console.log('🔍 Verificando registro do webhook...');
+      const webhookList = await efipay.pixListWebhook();
+
+      if (webhookList[pixKey] === webhookUrl) {
+        console.log('✅ Webhook verificado com sucesso');
+      } else {
+        console.warn('⚠️ Webhook registrado mas URL não confere:', {
+          registrado: webhookList[pixKey],
+          esperado: webhookUrl
+        });
+      }
+    } catch (verifyError) {
+      console.warn('⚠️ Erro ao verificar webhook:', verifyError);
+    }
 
     return res.status(200).json({
       success: true,
