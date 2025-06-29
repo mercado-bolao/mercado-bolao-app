@@ -21,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_id: process.env.EFI_CLIENT_ID,
       client_secret: process.env.EFI_CLIENT_SECRET,
       sandbox: true, // Mude para false em produção
+      certificate: false, // Para sandbox não precisa de certificado
     });
 
     // Dados do PIX
@@ -79,9 +80,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao gerar PIX:', error);
+    
+    // Log mais detalhado para debug
+    if (error instanceof Error) {
+      console.error('Mensagem do erro:', error.message);
+      console.error('Stack:', error.stack);
+    }
+    
     return res.status(500).json({
       error: 'Erro ao gerar pagamento PIX',
       details: error instanceof Error ? error.message : 'Erro desconhecido',
+      debug: {
+        hasClientId: !!process.env.EFI_CLIENT_ID,
+        hasClientSecret: !!process.env.EFI_CLIENT_SECRET,
+        hasPixKey: !!process.env.EFI_PIX_KEY,
+      }
     });
   }
 }
