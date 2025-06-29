@@ -55,12 +55,10 @@ model Palpite {
   valor      Float    @default(10.0) // Valor fixo de R$ 10,00 por bilhete completo
   status     String   @default("pendente") // Status: pendente, pago, cancelado
   jogoId     String
-  concursoId String // ✅ adicionado
+  concursoId String
   createdAt  DateTime @default(now())
   concurso   Concurso @relation(fields: [concursoId], references: [id])
   user       User?    @relation(fields: [userId], references: [id])
   userId     String?
   jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
-
-  // @@unique([userId, jogoId]) ← REMOVIDO para permitir múltiplos bilhetes
 }
