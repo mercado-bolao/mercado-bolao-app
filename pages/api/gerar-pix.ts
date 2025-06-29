@@ -293,7 +293,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const bilhete = await prisma.bilhete.create({
           data: {
             nome: `Cliente WhatsApp ${whatsapp}`,
-            telefone: whatsapp,
             whatsapp: whatsapp,
             concursoId: concursoAtivo.id,
             quantidadePalpites: palpitesPendentes.length,
