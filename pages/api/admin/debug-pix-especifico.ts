@@ -118,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           statusBanco: bilhete.status,
           statusEfi: pixResponse.status,
           createdAt: bilhete.createdAt,
-          valor: bilhete.valor,
+          valor: bilhete.valorTotal,
           whatsapp: bilhete.whatsapp,
           devePagar: pixResponse.status === 'CONCLUIDA' && bilhete.status === 'PENDENTE'
         });
@@ -176,7 +176,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       bilhetesPeriodo: bilhetesPeriodo.map(b => ({
         id: b.id,
         status: b.status,
-        valor: b.valor,
+        valor: b.valorTotal,
         whatsapp: b.whatsapp,
         txid: b.txid,
         createdAt: b.createdAt,
@@ -185,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       pixPendentes: pixPendentes.map(b => ({
         id: b.id,
         txid: b.txid,
-        valor: b.valor,
+        valor: b.valorTotal,
         whatsapp: b.whatsapp,
         createdAt: b.createdAt
       })),
