@@ -44,6 +44,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    // Verificar se está em sandbox ou produção
+    const efiSandbox = process.env.EFI_SANDBOX || 'true'; // Padrão sandbox para testes
     const isSandbox = efiSandbox === 'true';
     const EfiPay = require('sdk-node-apis-efi');
 

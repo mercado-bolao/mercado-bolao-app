@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Link from 'next/link';
 
@@ -9,6 +8,38 @@ export default function VerificarPagamento() {
   const [whatsapp, setWhatsapp] = useState('81981179564');
   const [txid, setTxid] = useState('');
   const [metodo, setMetodo] = useState<'data' | 'txid'>('data');
+
+  const handleVerificacaoDual = async (data: string, whatsapp: string) => {
+    if (!data || !whatsapp) {
+      alert('Preencha data e WhatsApp');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/verificar-pagamento-dual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data, whatsapp })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert(`✅ ${result.message}\nAmbiente: ${result.ambiente}`);
+        // await buscarBilhetes(); // Recarregar lista - Assuming buscarBilhetes is defined elsewhere
+      } else {
+        alert(`⚠️ ${result.message}\n\nResultados:\n${result.resultados.map((r: any) => 
+          `${r.ambiente}: ${r.encontrado ? `Status ${r.status}` : `Erro: ${r.erro}`}`
+        ).join('\n')}`);
+      }
+    } catch (error) {
+      console.error('Erro na verificação dual:', error);
+      alert('Erro ao verificar pagamento dual');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const verificarPagamento = async () => {
     setLoading(true);
@@ -136,7 +167,7 @@ export default function VerificarPagamento() {
         {resultado && (
           <div className="bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-bold mb-4">Resultado da Verificação</h2>
-            
+
             {resultado.success ? (
               <div>
                 {/* Resumo */}
@@ -190,7 +221,7 @@ export default function VerificarPagamento() {
                           }`}>
                             {bilhete.statusBanco}
                           </div>
-                          
+
                           {bilhete.statusEfi && (
                             <>
                               <div className="text-sm text-gray-600 mt-2">Status na EFI:</div>
