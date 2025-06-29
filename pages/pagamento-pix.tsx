@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import QRCode from 'qrcode';
@@ -49,7 +49,7 @@ export default function PagamentoPix() {
 
   
 
-  const verificarStatus = async () => {
+  const verificarStatus = useCallback(async () => {
     const bilheteDataStorage = localStorage.getItem('bilheteData');
     const pixDataStorage = localStorage.getItem('pixData');
     if (!bilheteDataStorage || !pixDataStorage) return;
@@ -91,7 +91,7 @@ export default function PagamentoPix() {
     } catch (error) {
       console.error('❌ Erro ao verificar status:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     // Recuperar dados do bilhete do localStorage
@@ -133,7 +133,7 @@ export default function PagamentoPix() {
       clearInterval(interval);
       clearInterval(statusInterval);
     };
-  }, [router]);
+  }, [router, verificarStatus]);
 
   useEffect(() => {
     // Verificar imediatamente ao carregar
@@ -142,7 +142,7 @@ export default function PagamentoPix() {
     // Depois verificar a cada 10 segundos
     const interval = setInterval(verificarStatus, 10000);
     return () => clearInterval(interval);
-  }, []);
+  }, [verificarStatus]);
 
   const copiarPix = async () => {
     if (pixData?.qrcode) {

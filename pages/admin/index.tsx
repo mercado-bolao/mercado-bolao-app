@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 
 interface Concurso {
@@ -55,7 +55,7 @@ export default function AdminPanel() {
 
   useEffect(() => {
     buscarPalpites();
-  }, [filtros]);
+  }, [filtros, buscarPalpites]);
 
   const buscarConcursos = async () => {
     try {
@@ -77,7 +77,7 @@ export default function AdminPanel() {
     }
   };
 
-  const buscarPalpites = async () => {
+  const buscarPalpites = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams();
@@ -96,7 +96,7 @@ export default function AdminPanel() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filtros]);
 
   const formatResultado = (resultado: string) => {
     switch (resultado) {

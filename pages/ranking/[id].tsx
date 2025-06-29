@@ -752,7 +752,7 @@ function LiveMatchItem({ match, onMatchUpdate }: { match: any, onMatchUpdate: (u
             </div>
             <div className="text-center">
                 <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-bold">
-                    {timeElapsed}' | {score}
+                    {timeElapsed}&apos; | {score}
                 </span>
             </div>
         </div>
