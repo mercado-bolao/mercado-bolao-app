@@ -27,6 +27,7 @@ export default function ConcursoDetalhes() {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [palpites, setPalpites] = useState<{ [key: string]: string }>({});
+  const [carrinho, setCarrinho] = useState<{ [key: string]: string }>({});
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [palpitesEncerrados, setPalpitesEncerrados] = useState(false);
@@ -67,7 +68,10 @@ export default function ConcursoDetalhes() {
       return;
     }
 
-    const jogosComPalpites = Object.keys(palpites);
+    // Combina carrinho com palpites atuais
+    const todosPalpites = { ...carrinho, ...palpites };
+    const jogosComPalpites = Object.keys(todosPalpites);
+    
     if (jogosComPalpites.length === 0) {
       alert("Por favor, faça pelo menos um palpite");
       return;
@@ -83,7 +87,7 @@ export default function ConcursoDetalhes() {
       for (const jogoId of jogosComPalpites) {
         const dadosEnvio = {
           jogoId,
-          resultado: palpites[jogoId],
+          resultado: todosPalpites[jogoId],
           nome: nome.trim(),
           whatsapp: whatsapp.trim(),
         };
@@ -138,6 +142,7 @@ export default function ConcursoDetalhes() {
         if (erros === 0) {
           // Limpar tudo após sucesso
           setPalpites({});
+          setCarrinho({});
           setNome("");
           setWhatsapp("");
           // Esconder mensagem de sucesso após 5 segundos
@@ -164,8 +169,23 @@ export default function ConcursoDetalhes() {
     }
   };
 
+  const adicionarPalpitesAoCarrinho = () => {
+    // Adiciona os palpites atuais ao carrinho
+    setCarrinho(prev => ({
+      ...prev,
+      ...palpites
+    }));
+    
+    // Limpa os palpites atuais para permitir novas seleções
+    setPalpites({});
+    
+    // Scroll para o topo para ver os jogos
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const limparApostas = () => {
     setPalpites({});
+    setCarrinho({});
   };
 
   if (!concurso) {
@@ -376,17 +396,51 @@ export default function ConcursoDetalhes() {
         <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
 
           {/* Carrinho de Palpites */}
-          {Object.keys(palpites).length > 0 && (
+          {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">
-                🛒 CARRINHO DE PALPITES ({Object.keys(palpites).length})
+                🛒 CARRINHO DE PALPITES ({Object.keys(carrinho).length + Object.keys(palpites).length})
               </h3>
               <div className="text-sm text-yellow-700 space-y-2 mb-4">
-                {Object.entries(palpites).map(([jogoId, resultado]) => {
+                {/* Palpites já no carrinho */}
+                {Object.entries(carrinho).map(([jogoId, resultado]) => {
                   const jogo = concurso.jogos.find(j => j.id === jogoId);
                   return (
-                    <div key={jogoId} className="flex justify-between items-center bg-white p-2 rounded">
-                      <span>{jogo?.mandante} x {jogo?.visitante}</span>
+                    <div key={jogoId} className="flex justify-between items-center bg-green-50 p-2 rounded border border-green-200">
+                      <span className="flex items-center gap-2">
+                        <span className="text-green-600 text-xs">✅ SALVO</span>
+                        {jogo?.mandante} x {jogo?.visitante}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold bg-green-100 px-2 py-1 rounded">{resultado}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newCarrinho = { ...carrinho };
+                            delete newCarrinho[jogoId];
+                            setCarrinho(newCarrinho);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          ❌
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+                
+                {/* Palpites atuais (ainda não salvos no carrinho) */}
+                {Object.entries(palpites).map(([jogoId, resultado]) => {
+                  // Não mostrar se já está no carrinho
+                  if (carrinho[jogoId]) return null;
+                  
+                  const jogo = concurso.jogos.find(j => j.id === jogoId);
+                  return (
+                    <div key={jogoId} className="flex justify-between items-center bg-white p-2 rounded border border-yellow-300">
+                      <span className="flex items-center gap-2">
+                        <span className="text-orange-600 text-xs">⏳ ATUAL</span>
+                        {jogo?.mandante} x {jogo?.visitante}
+                      </span>
                       <div className="flex items-center gap-2">
                         <span className="font-bold bg-blue-100 px-2 py-1 rounded">{resultado}</span>
                         <button
@@ -408,7 +462,7 @@ export default function ConcursoDetalhes() {
               <div className="border-t border-yellow-200 pt-3">
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-yellow-800">Palpites no bilhete:</span>
-                  <span className="font-bold text-yellow-900">{Object.keys(palpites).length} jogos</span>
+                  <span className="font-bold text-yellow-900">{Object.keys(carrinho).length + Object.keys(palpites).length} jogos</span>
                 </div>
                 <div className="flex justify-between items-center mt-2">
                   <span className="font-semibold text-yellow-800">Valor do bilhete:</span>
@@ -418,24 +472,29 @@ export default function ConcursoDetalhes() {
               
               {/* Botões de ação do carrinho */}
               <div className="mt-4 flex gap-3">
+                {Object.keys(palpites).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={adicionarPalpitesAoCarrinho}
+                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                  >
+                    💾 SALVAR E ADICIONAR MAIS
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
-                    // Scroll para cima para ver os jogos
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }}
-                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  ➕ ADICIONAR MAIS PALPITES
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    // Scroll para a seção de finalização
-                    const finalizarSection = document.querySelector('form');
-                    if (finalizarSection) {
-                      finalizarSection.scrollIntoView({ behavior: 'smooth' });
+                    // Se há palpites não salvos, salvar primeiro
+                    if (Object.keys(palpites).length > 0) {
+                      adicionarPalpitesAoCarrinho();
                     }
+                    // Scroll para a seção de finalização
+                    setTimeout(() => {
+                      const finalizarSection = document.querySelector('form');
+                      if (finalizarSection) {
+                        finalizarSection.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
                   }}
                   className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
                 >
@@ -446,7 +505,7 @@ export default function ConcursoDetalhes() {
           )}
 
           {/* Finalização do Bilhete */}
-          {Object.keys(palpites).length > 0 && (
+          {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6">
               <h2 className="text-xl font-semibold text-gray-800 mb-4">🎯 Finalizar Bilhete</h2>
               
