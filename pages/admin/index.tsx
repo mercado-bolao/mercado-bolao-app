@@ -794,7 +794,7 @@ export default function AdminPanel() {
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
                     <span className="text-red-600 text-lg">❌</span>
-                  </div></div>
+                  </div>
                   <div>
                     <p className="text-sm text-red-600 font-medium">Cancelados</p>
                     <p className="text-2xl font-bold text-red-800">-</p>
