@@ -794,16 +794,16 @@ export default function ConcursoDetalhes() {
                   <div className="text-xs font-medium text-green-700 mb-1">💰 Resumo</div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Jogos:</span>
-                      <span className="font-medium">{concurso.jogos.length}</span>
+                      <span className="text-gray-700">Jogos:</span>
+                      <span className="font-medium text-gray-900">{concurso.jogos.length}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Bilhetes:</span>
-                      <span className="font-medium">{calcularTotalBilhetes()}</span>
+                      <span className="text-gray-700">Bilhetes:</span>
+                      <span className="font-medium text-gray-900">{calcularTotalBilhetes()}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Valor unit:</span>
-                      <span className="font-medium">R$ 10,00</span>
+                      <span className="text-gray-700">Valor unit:</span>
+                      <span className="font-medium text-gray-900">R$ 10,00</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-green-700 font-medium">Total:</span>
@@ -820,7 +820,7 @@ export default function ConcursoDetalhes() {
                       type="text"
                       value={nome}
                       onChange={(e) => setNome(e.target.value)}
-                      className="w-full px-2 py-2 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-2 py-2 text-xs text-gray-900 bg-white border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500"
                       placeholder="Nome completo"
                       required
                     />
@@ -828,7 +828,7 @@ export default function ConcursoDetalhes() {
                       type="tel"
                       value={whatsapp}
                       onChange={(e) => setWhatsapp(e.target.value)}
-                      className="w-full px-2 py-2 text-xs border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-2 py-2 text-xs text-gray-900 bg-white border border-blue-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 placeholder-gray-500"
                       placeholder="WhatsApp (11) 99999-9999"
                       required
                     />
