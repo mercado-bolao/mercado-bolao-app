@@ -9,6 +9,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log('🔍 Buscando bilhetes no banco de dados...');
+    
+    // Verificar se o Prisma está disponível
+    if (!prisma) {
+      console.error('❌ Prisma não está disponível');
+      return res.status(500).json({
+        success: false,
+        error: 'Erro de configuração do banco',
+        details: 'Prisma não está disponível'
+      });
+    }
+
+    // Testar conexão
+    await prisma.$connect();
+    console.log('✅ Prisma conectado com sucesso');
 
     const bilhetes = await prisma.bilhete.findMany({
       where: {
@@ -52,5 +66,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Erro ao buscar bilhetes',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
+  } finally {
+    try {
+      await prisma.$disconnect();
+    } catch (disconnectError) {
+      console.error('❌ Erro ao desconectar Prisma:', disconnectError);
+    }
   }
 }
