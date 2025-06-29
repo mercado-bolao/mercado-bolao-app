@@ -80,18 +80,42 @@ export default function FinalizarAposta() {
 
     setProcessandoPagamento(true);
     try {
-      // Simular geração de pagamento
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('🔄 Gerando PIX para pagamento...');
       
-      // Redirecionar para página de pagamento ou mostrar instruções
-      alert(`Pagamento gerado! Valor total: R$ ${palpitesPendentes.valorTotal.toFixed(2)}\n\nInstruções de pagamento serão enviadas para o WhatsApp ${whatsapp}`);
+      const response = await fetch('/api/gerar-pix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          whatsapp: whatsapp,
+          valorTotal: palpitesPendentes.valorTotal,
+          totalBilhetes: palpitesPendentes.totalBilhetes,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao gerar PIX');
+      }
+
+      if (data.success && data.pix) {
+        console.log('✅ PIX gerado com sucesso!');
+        
+        // Salvar dados do PIX no localStorage para mostrar na próxima tela
+        localStorage.setItem('pixData', JSON.stringify(data.pix));
+        localStorage.setItem('pixWhatsapp', whatsapp);
+        
+        // Redirecionar para tela de pagamento PIX
+        router.push('/pagamento-pix');
+      } else {
+        throw new Error('Resposta inválida da API');
+      }
       
-      // Limpar dados do localStorage após gerar pagamento
-      localStorage.removeItem('whatsapp');
-      router.push('/');
     } catch (error) {
-      console.error('Erro ao gerar pagamento:', error);
-      alert('Erro ao gerar pagamento. Tente novamente.');
+      console.error('❌ Erro ao gerar pagamento:', error);
+      alert(`Erro ao gerar pagamento PIX: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nTente novamente.`);
     } finally {
       setProcessandoPagamento(false);
     }
