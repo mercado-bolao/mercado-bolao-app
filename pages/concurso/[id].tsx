@@ -31,6 +31,10 @@ export default function ConcursoDetalhes() {
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [palpitesEncerrados, setPalpitesEncerrados] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [palpitesPendentes, setPalpitesPendentes] = useState<any>(null);
+  const [mostrarAvisoPendentes, setMostrarAvisoPendentes] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -45,8 +49,27 @@ export default function ConcursoDetalhes() {
             setPalpitesEncerrados(now > closingTime);
           }
         });
+        verificarPalpitesPendentes();
     }
   }, [id]);
+
+  const verificarPalpitesPendentes = async () => {
+    const whatsappStorage = localStorage.getItem('whatsapp');
+    if (!whatsappStorage) return;
+
+    try {
+      const response = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappStorage)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.totalPalpites > 0) {
+          setPalpitesPendentes(data);
+          setMostrarAvisoPendentes(true);
+        }
+      }
+    } catch (error) {
+      console.log('Erro ao verificar palpites pendentes:', error);
+    }
+  };
 
   const handlePalpiteChange = (jogoId: string, resultado: string) => {
     // Converte X para 0 para manter consistência com a explicação
@@ -270,6 +293,40 @@ export default function ConcursoDetalhes() {
     setCarrinho({});
   };
 
+  const limparCarrinhoConcurso = async () => {
+    const whatsappStorage = localStorage.getItem('whatsapp');
+    if (!whatsappStorage) return;
+
+    if (!confirm('⚠️ Tem certeza que deseja limpar todos os palpites pendentes?\n\nEsta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/limpar-carrinho', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          whatsapp: whatsappStorage,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao limpar carrinho');
+      }
+
+      alert(`✅ ${data.message}\n\nVocê pode fazer novos palpites agora.`);
+      setMostrarAvisoPendentes(false);
+      setPalpitesPendentes(null);
+
+    } catch (error) {
+      alert(`Erro ao limpar carrinho: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  };
+
   if (!concurso) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
@@ -438,7 +495,7 @@ export default function ConcursoDetalhes() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handlePalpiteChange(jogo.id, "2")}
+                        onClick={()={() => handlePalpiteChange(jogo.id, "2")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
                           palpites[jogo.id] === "2"
                             ? "bg-red-600 text-white shadow-lg transform scale-105"
@@ -488,6 +545,26 @@ export default function ConcursoDetalhes() {
         </div>
 
         <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
+          {mostrarAvisoPendentes && palpitesPendentes && (
+            <div className="bg-orange-50 rounded-2xl shadow-lg p-6">
+              <h3 className="text-lg font-semibold text-orange-800 mb-4">
+                ⚠️ AVISO: Você tem palpites pendentes!
+              </h3>
+              <p className="text-orange-700 mb-2">
+                Detectamos que você possui <strong>{palpitesPendentes.totalPalpites}</strong> palpite(s) pendente(s)
+                no valor total de <strong>R$ {palpitesPendentes.valorTotal}</strong>.
+              </p>
+              <p className="text-orange-700 mb-4">
+                Para evitar cobranças duplicadas, finalize ou limpe seu carrinho antes de continuar.
+              </p>
+              <button
+                onClick={limparCarrinhoConcurso}
+                className="py-3 px-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+              >
+                🗑️ LIMPAR CARRINHO PENDENTE
+              </button>
+            </div>
+          )}
 
           {/* Carrinho de Apostas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (

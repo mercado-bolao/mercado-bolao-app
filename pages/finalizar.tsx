@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
@@ -36,12 +35,13 @@ export default function FinalizarAposta() {
   const [error, setError] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [processandoPagamento, setProcessandoPagamento] = useState(false);
+  const [limpandoCarrinho, setLimpandoCarrinho] = useState(false); // Estado para controlar o loading ao limpar o carrinho
 
   useEffect(() => {
     // Buscar WhatsApp do localStorage ou query params
     const whatsappStorage = localStorage.getItem('whatsapp');
     const whatsappQuery = router.query.whatsapp as string;
-    
+
     if (whatsappQuery) {
       setWhatsapp(whatsappQuery);
       buscarPalpitesPendentes(whatsappQuery);
@@ -58,7 +58,7 @@ export default function FinalizarAposta() {
     try {
       setLoading(true);
       const response = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappUsuario)}`);
-      
+
       if (!response.ok) {
         throw new Error('Erro ao buscar palpites pendentes');
       }
@@ -73,7 +73,44 @@ export default function FinalizarAposta() {
     }
   };
 
-  
+  const limparCarrinho = async () => {
+    if (!confirm('⚠️ Tem certeza que deseja limpar todos os palpites pendentes?\n\nEsta ação não pode ser desfeita.')) {
+      return;
+    }
+
+    setLimpandoCarrinho(true);
+    try {
+      console.log('🗑️ Limpando carrinho...');
+
+      const response = await fetch('/api/limpar-carrinho', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          whatsapp: whatsapp,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao limpar carrinho');
+      }
+
+      console.log('✅ Carrinho limpo com sucesso!');
+      alert(`✅ ${data.message}\n\nVocê pode fazer novos palpites agora.`);
+
+      // Redirecionar para página inicial
+      router.push('/');
+
+    } catch (error) {
+      console.error('❌ Erro ao limpar carrinho:', error);
+      alert(`Erro ao limpar carrinho: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nTente novamente.`);
+    } finally {
+      setLimpandoCarrinho(false);
+    }
+  };
 
   const gerarPagamento = async () => {
     if (!palpitesPendentes) return;
@@ -81,7 +118,7 @@ export default function FinalizarAposta() {
     setProcessandoPagamento(true);
     try {
       console.log('🔄 Gerando PIX para pagamento...');
-      
+
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
@@ -102,17 +139,17 @@ export default function FinalizarAposta() {
 
       if (data.success && data.pix) {
         console.log('✅ PIX gerado com sucesso!');
-        
+
         // Salvar dados do PIX no localStorage para mostrar na próxima tela
         localStorage.setItem('pixData', JSON.stringify(data.pix));
         localStorage.setItem('pixWhatsapp', whatsapp);
-        
+
         // Redirecionar para tela de pagamento PIX
         router.push('/pagamento-pix');
       } else {
         throw new Error('Resposta inválida da API');
       }
-      
+
     } catch (error) {
       console.error('❌ Erro ao gerar pagamento:', error);
       alert(`Erro ao gerar pagamento PIX: ${error instanceof Error ? error.message : 'Erro desconhecido'}\n\nTente novamente.`);
@@ -211,7 +248,7 @@ export default function FinalizarAposta() {
           </div>
         </div>
 
-        
+
 
         {/* Total e botão de pagamento */}
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
@@ -225,12 +262,12 @@ export default function FinalizarAposta() {
             </p>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center space-x-4"> {/* Adicionado espaçamento entre os botões */}
             <button
               onClick={gerarPagamento}
-              disabled={processandoPagamento}
+              disabled={processandoPagamento || limpandoCarrinho}
               className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${
-                processandoPagamento
+                processandoPagamento || limpandoCarrinho
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
               } text-white flex items-center space-x-2`}
@@ -247,7 +284,30 @@ export default function FinalizarAposta() {
                 </>
               )}
             </button>
+
+            <button
+              onClick={limparCarrinho}
+              disabled={limpandoCarrinho || processandoPagamento}
+              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all transform ${
+                limpandoCarrinho || processandoPagamento
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-red-600 hover:bg-red-700 hover:scale-105 shadow-lg'
+              } text-white flex items-center space-x-2`}
+            >
+              {limpandoCarrinho ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Limpando Carrinho...</span>
+                </>
+              ) : (
+                <>
+                  <span>🗑️</span>
+                  <span>Limpar Carrinho</span>
+                </>
+              )}
+            </button>
           </div>
+
 
           <div className="mt-4 text-center text-sm text-gray-600">
             <p>🔒 Pagamento seguro via PIX</p>
