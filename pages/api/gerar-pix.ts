@@ -15,21 +15,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const isSandbox = process.env.EFI_SANDBOX === 'true';
+    // No Replit, usar as variáveis definidas nos Secrets
+    const efiSandbox = process.env.EFI_SANDBOX || 'false';
+    const efiClientId = process.env.EFI_CLIENT_ID || 'Client_Id_904f9fe2a9c9d5dc7f50cf9a56cb0effb9b20140';
+    const efiClientSecret = process.env.EFI_CLIENT_SECRET || 'Client_Secret_6e2c43d197c350a3d88df81530bcd27eb0818719';
+    const efiPixKey = process.env.EFI_PIX_KEY || '1fe7c162-b80d-464a-b57e-26c7da638223';
+    
+    const isSandbox = efiSandbox === 'true';
     
     console.log(`🔄 Gerando PIX ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'} para:`, { whatsapp, valorTotal, totalBilhetes });
     console.log('📋 Variáveis de ambiente:');
-    console.log('- EFI_SANDBOX:', process.env.EFI_SANDBOX);
-    console.log('- EFI_CLIENT_ID:', process.env.EFI_CLIENT_ID ? '✅ Definido' : '❌ Não definido');
-    console.log('- EFI_CLIENT_SECRET:', process.env.EFI_CLIENT_SECRET ? '✅ Definido' : '❌ Não definido');
-    console.log('- EFI_PIX_KEY:', process.env.EFI_PIX_KEY ? '✅ Definido' : '❌ Não definido');
+    console.log('- EFI_SANDBOX:', efiSandbox);
+    console.log('- EFI_CLIENT_ID:', efiClientId ? '✅ Definido' : '❌ Não definido');
+    console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅ Definido' : '❌ Não definido');
+    console.log('- EFI_PIX_KEY:', efiPixKey ? '✅ Definido' : '❌ Não definido');
     
     const EfiPay = require('sdk-node-apis-efi');
     
     // Configuração para sandbox ou produção
     let efiConfig: any = {
-      client_id: process.env.EFI_CLIENT_ID,
-      client_secret: process.env.EFI_CLIENT_SECRET,
+      client_id: efiClientId,
+      client_secret: efiClientSecret,
       sandbox: isSandbox,
     };
 
@@ -71,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       valor: {
         original: valorTotal.toFixed(2),
       },
-      chave: process.env.EFI_PIX_KEY,
+      chave: efiPixKey,
       solicitacaoPagador: `Pagamento de ${totalBilhetes} bilhete(s) - Bolão TVLoteca`,
       infoAdicionais: [
         {
