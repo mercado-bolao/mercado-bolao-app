@@ -335,7 +335,7 @@ export default function ConcursoDetalhes() {
   };
 
   const handleGerarPagamento = async () => {
-    if (!canSubmit || Object.keys(palpites).length === 0) {
+    if (!canSubmit || calcularTotalBilhetes() === 0) {
       return;
     }
 
@@ -345,21 +345,28 @@ export default function ConcursoDetalhes() {
       console.log('=== INICIANDO GERAÇÃO DE PAGAMENTO DIRETO ===');
       console.log('Nome:', nome);
       console.log('WhatsApp:', whatsapp);
-      console.log('Palpites:', palpites);
+      console.log('Palpites pendentes:', palpites);
+      console.log('Carrinho:', carrinho);
 
       // Salvar dados no localStorage
       localStorage.setItem('nome', nome);
       localStorage.setItem('whatsapp', whatsapp);
 
-      // 1. Primeiro salvar os palpites
-      const bilhetes = [palpites];
+      // 1. Gerar todos os bilhetes (carrinho + pendentes)
+      const todosBilhetes = gerarTodosBilhetes();
+      console.log('📋 Total de bilhetes gerados:', todosBilhetes.length);
+
+      if (todosBilhetes.length === 0) {
+        throw new Error('Nenhum bilhete válido encontrado');
+      }
+
       const dadosEnvio = {
         nome,
         whatsapp,
-        bilhetes
+        bilhetes: todosBilhetes
       };
 
-      console.log('📤 Salvando palpites primeiro...');
+      console.log('📤 Salvando todos os bilhetes...');
       const palpitesResponse = await fetch('/api/palpites', {
         method: 'POST',
         headers: {
@@ -375,7 +382,7 @@ export default function ConcursoDetalhes() {
         throw new Error(palpitesResult.error || 'Erro ao salvar palpites');
       }
 
-      console.log('✅ Palpites salvos, gerando pagamento PIX...');
+      console.log('✅ Todos os bilhetes salvos, gerando pagamento PIX...');
 
       // 2. Buscar os palpites pendentes para criar o PIX
       const palpitesPendentesResponse = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsapp)}`);
@@ -831,9 +838,9 @@ export default function ConcursoDetalhes() {
 
                 <button
                   onClick={handleGerarPagamento}
-                  disabled={!canSubmit || isLoading || Object.keys(palpites).length === 0 || palpitesEncerrados || processandoPagamento}
+                  disabled={!canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento}
                   className={`w-full py-4 px-8 rounded-xl font-bold text-lg transition-all transform ${
-                    !canSubmit || isLoading || Object.keys(palpites).length === 0 || palpitesEncerrados || processandoPagamento
+                    !canSubmit || isLoading || calcularTotalBilhetes() === 0 || palpitesEncerrados || processandoPagamento
                       ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
                   } text-white flex items-center justify-center space-x-2`}
@@ -846,7 +853,7 @@ export default function ConcursoDetalhes() {
                   ) : (
                     <>
                       <span>💳</span>
-                      <span>GERAR PAGAMENTO ({Object.keys(palpites).length} palpites)</span>
+                      <span>GERAR PAGAMENTO ({calcularTotalBilhetes()} bilhetes - R$ {(calcularTotalBilhetes() * 10).toFixed(2)})</span>
                     </>
                   )}
                 </button>
