@@ -393,7 +393,7 @@ export default function FinalizarAposta() {
               R$ {palpitesPendentes.valorTotal.toFixed(2)}
             </div>
             <p className="text-gray-600">
-              {palpitesPendentes.totalBilhetes} bilhete(s) × R$ 10,00 cada
+              {palpitesPendentes.totalBilhetes} bilhete(s) × R$ 1,00 cada
             </p>
           </div>
 
