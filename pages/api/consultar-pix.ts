@@ -88,6 +88,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Erro ao consultar PIX',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
-  }nect();
   }
 }
