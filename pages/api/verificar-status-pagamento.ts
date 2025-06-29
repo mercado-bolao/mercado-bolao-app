@@ -55,9 +55,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Se tem TXID, verificar na EFI (apenas se TXID for válido)
     if (bilhete.txid) {
-      // Validar formato do TXID antes de consultar a EFÍ  
+      // Sanitizar e validar TXID
+      const txidLimpo = bilhete.txid.trim().replace(/[^a-zA-Z0-9]/g, '');
       const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
-      const txidValido = txidPattern.test(bilhete.txid);
+      const txidValido = txidPattern.test(txidLimpo);
+
+      console.log('🔍 Debug TXID na verificação:', {
+        original: bilhete.txid,
+        limpo: txidLimpo,
+        valido: txidValido,
+        comprimento: txidLimpo.length
+      });
 
       if (!txidValido) {
         console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
@@ -105,8 +113,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           const efipay = new EfiPay(efiConfig);
 
-          // Consultar PIX na EFÍ
-          const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
+          // Consultar PIX na EFÍ usando TXID limpo
+          const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
 
           console.log(`📋 Status na EFI: ${pixResponse.status}`);
 

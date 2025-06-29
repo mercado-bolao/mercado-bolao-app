@@ -18,12 +18,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  // Sanitizar TXID antes da validação
+  const txidLimpo = txid.trim().replace(/[^a-zA-Z0-9]/g, '');
+  
+  console.log('🔍 Debug TXID:', {
+    original: txid,
+    limpo: txidLimpo,
+    comprimentoOriginal: txid.length,
+    comprimentoLimpo: txidLimpo.length,
+    caracteresInvalidos: txid.match(/[^a-zA-Z0-9]/g) || 'nenhum',
+    hexDump: Buffer.from(txid).toString('hex')
+  });
+
   // Validar formato do TXID (26-35 caracteres alfanuméricos)
   const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
-  if (!txidPattern.test(txid)) {
+  if (!txidPattern.test(txidLimpo)) {
     return res.status(400).json({
       success: false,
-      error: `TXID inválido. Deve ter 26-35 caracteres alfanuméricos. TXID recebido: ${txid} (${txid.length} caracteres)`
+      error: `TXID inválido. Deve ter 26-35 caracteres alfanuméricos.`,
+      debug: {
+        txidOriginal: txid,
+        txidLimpo: txidLimpo,
+        comprimento: txidLimpo.length,
+        caracteresInvalidos: txid.match(/[^a-zA-Z0-9]/g) || 'nenhum'
+      }
     });
   }
 
@@ -68,9 +86,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const efipay = new EfiPay(efiConfig);
 
-    // Consultar PIX na EFÍ
-    console.log('📡 Consultando PIX na EFÍ Pay...');
-    const pixResponse = await efipay.pixDetailCharge([], { txid });
+    // Consultar PIX na EFÍ usando TXID limpo
+    console.log('📡 Consultando PIX na EFÍ Pay...', { txidLimpo });
+    const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
 
     console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
 
@@ -105,11 +123,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (statusEfi === 'CONCLUIDA') {
       console.log('✅ PIX confirmado como pago, atualizando banco...');
       
-      // Buscar bilhete pelo TXID
-      const bilhete = await prisma.bilhete.findFirst({
+      // Buscar bilhete pelo TXID (tentar ambos: original e limpo)
+      let bilhete = await prisma.bilhete.findFirst({
         where: { txid: txid },
         include: { palpites: true, pix: true }
       });
+
+      // Se não encontrou, tentar com TXID limpo
+      if (!bilhete) {
+        bilhete = await prisma.bilhete.findFirst({
+          where: { txid: txidLimpo },
+          include: { palpites: true, pix: true }
+        });
+      }
 
       if (bilhete && bilhete.status !== 'PAGO') {
         // Atualizar bilhete
