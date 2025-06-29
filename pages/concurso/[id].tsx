@@ -136,10 +136,12 @@ export default function ConcursoDetalhes() {
       if (sucessos > 0) {
         setSucesso(true);
         if (erros === 0) {
-          // Limpar apenas se todos os palpites foram enviados com sucesso
+          // Limpar tudo após sucesso
           setPalpites({});
           setNome("");
           setWhatsapp("");
+          // Esconder mensagem de sucesso após 5 segundos
+          setTimeout(() => setSucesso(false), 5000);
         }
         
         let mensagem = `✅ ${sucessos} palpite(s) enviado(s) com sucesso!`;
@@ -371,41 +373,7 @@ export default function ConcursoDetalhes() {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
-          {/* Dados do usuário - only show when betting is open */}
-          <div className="bg-white rounded-2xl shadow-lg p-6"></div>
-            {/* Dados do usuário */}
-          <div className="bg-white rounded-2xl shadow-lg p-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">📝 Seus Dados</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nome completo
-                </label>
-                <input
-                  type="text"
-                  value={nome}
-                  onChange={(e) => setNome(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
-                  placeholder="Digite seu nome completo"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  WhatsApp
-                </label>
-                <input
-                  type="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
-                  placeholder="(11) 99999-9999"
-                  required
-                />
-              </div>
-            </div>
-          </div>
+        <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
 
           {/* Informações de valor */}
           <div className="bg-blue-50 border border-blue-200 rounded-2xl shadow-lg p-6 mb-6">
@@ -423,27 +391,32 @@ export default function ConcursoDetalhes() {
             </div>
           </div>
 
-          {/* Resumo dos palpites */}
+          {/* Carrinho de Palpites */}
           {Object.keys(palpites).length > 0 && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-3">
                 🛒 CARRINHO DE PALPITES ({Object.keys(palpites).length})
               </h3>
-              <div className="bg-yellow-100 rounded-lg p-3 mb-4">
-                <p className="text-yellow-800 text-sm font-medium">
-                  ⏳ Status: <span className="font-bold">PENDENTE</span>
-                </p>
-                <p className="text-yellow-700 text-xs">
-                  Seus palpites serão salvos como pendentes até a confirmação do pagamento
-                </p>
-              </div>
-              <div className="text-sm text-yellow-700 space-y-1 mb-4">
+              <div className="text-sm text-yellow-700 space-y-2 mb-4">
                 {Object.entries(palpites).map(([jogoId, resultado]) => {
                   const jogo = concurso.jogos.find(j => j.id === jogoId);
                   return (
-                    <div key={jogoId} className="flex justify-between">
+                    <div key={jogoId} className="flex justify-between items-center bg-white p-2 rounded">
                       <span>{jogo?.mandante} x {jogo?.visitante}</span>
-                      <span className="font-bold">{resultado}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold bg-blue-100 px-2 py-1 rounded">{resultado}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newPalpites = { ...palpites };
+                            delete newPalpites[jogoId];
+                            setPalpites(newPalpites);
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          ❌
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -458,46 +431,88 @@ export default function ConcursoDetalhes() {
                   <span className="font-bold text-yellow-900 text-lg">R$ 10,00</span>
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* Botões de ação */}
-          <div className="flex gap-4">
-            {Object.keys(palpites).length > 0 && (
-              <button
-                type="button"
-                onClick={limparApostas}
-                className="flex-1 py-4 px-6 bg-gray-500 text-white rounded-xl font-semibold text-lg hover:bg-gray-600 transition-colors"
-              >
-                🗑️ LIMPAR APOSTAS
-              </button>
-            )}
-
-            <button
-              type="submit"
-              disabled={enviando || Object.keys(palpites).length === 0}
-              className="flex-1 py-4 px-6 bg-yellow-600 text-white rounded-xl font-semibold text-lg hover:bg-yellow-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-            >
-              {enviando ? "SALVANDO..." : "🛒 SALVAR PALPITES (PENDENTE)"}
-            </button>
-          </div>
-
-          {/* Mensagem de sucesso logo após o botão */}
-          {sucesso && (
-            <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <span className="text-2xl">⏳</span>
-                </div>
-                <div className="ml-3">
-                  <p className="font-semibold">Palpites salvos como pendentes!</p>
-                  <p className="text-sm">Seus palpites foram registrados e estão aguardando pagamento.</p>
-                  <p className="text-sm font-medium mt-1">💰 Valor do bilhete: R$ 10,00</p>
-                </div>
+              
+              {/* Botão para continuar comprando */}
+              <div className="mt-4 text-center">
+                <p className="text-yellow-700 text-sm mb-3">
+                  💡 Você pode adicionar mais palpites ou finalizar seu bilhete
+                </p>
               </div>
             </div>
+          )}</div>
+
+          {/* Finalização do Bilhete */}
+          {Object.keys(palpites).length > 0 && (
+            <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-lg p-6">
+              <h2 className="text-xl font-semibold text-gray-800 mb-4">🎯 Finalizar Bilhete</h2>
+              
+              {/* Dados do usuário */}
+              <div className="space-y-4 mb-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nome completo
+                  </label>
+                  <input
+                    type="text"
+                    value={nome}
+                    onChange={(e) => setNome(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
+                    placeholder="Digite seu nome completo"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    WhatsApp
+                  </label>
+                  <input
+                    type="tel"
+                    value={whatsapp}
+                    onChange={(e) => setWhatsapp(e.target.value)}
+                    className="w-full px-4 py-3 border-2 border-purple-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-200 text-gray-900 bg-white placeholder-gray-500"
+                    placeholder="(11) 99999-9999"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Botões de ação */}
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={limparApostas}
+                  className="flex-1 py-4 px-6 bg-gray-500 text-white rounded-xl font-semibold text-lg hover:bg-gray-600 transition-colors"
+                >
+                  🗑️ LIMPAR CARRINHO
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={enviando}
+                  className="flex-1 py-4 px-6 bg-green-600 text-white rounded-xl font-semibold text-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {enviando ? "SALVANDO..." : "✅ FINALIZAR BILHETE"}
+                </button>
+              </div>
+
+              {/* Mensagem de sucesso */}
+              {sucesso && (
+                <div className="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg mt-4">
+                  <div className="flex">
+                    <div className="flex-shrink-0">
+                      <span className="text-2xl">✅</span>
+                    </div>
+                    <div className="ml-3">
+                      <p className="font-semibold">Bilhete salvo como pendente!</p>
+                      <p className="text-sm">Seus palpites foram registrados e estão aguardando pagamento.</p>
+                      <p className="text-sm font-medium mt-1">💰 Valor do bilhete: R$ 10,00</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </form>
           )}
-        </form>
+        </div>
 
         {/* Dica */}
         <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mt-6">
