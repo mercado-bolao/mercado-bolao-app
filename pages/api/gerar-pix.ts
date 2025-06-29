@@ -97,7 +97,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         valor: valorTotal,
         status: 'PENDENTE',
         orderId: orderId,
-        expiresAt: expiresAt
+        expiresAt: expiresAt,
+        quantidadePalpites: palpites.length
       }
     });
 
