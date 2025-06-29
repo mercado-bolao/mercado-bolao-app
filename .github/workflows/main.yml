@@ -9,7 +9,8 @@ on:
       - main
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: sa-east-1
+  AWS_DEFAULT_REGION: sa-east-1
   AMPLIFY_APP_NAME: mercado-bolao-app
 
 jobs:
