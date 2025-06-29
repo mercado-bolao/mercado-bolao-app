@@ -87,7 +87,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const efipay = new EfiPay(efiConfig);
 
     try {
-      const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
+      // Verificar PIX na EFI usando método correto
+      const params = { txid: bilhete.txid };
+      const pixResponse = await efipay.pixDetailCharge(params);
 
       console.log('📋 Resposta da EFI:', JSON.stringify(pixResponse, null, 2));
 

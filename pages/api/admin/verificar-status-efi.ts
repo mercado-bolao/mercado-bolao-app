@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
@@ -20,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Sanitizar TXID antes da validação
   const txidLimpo = txid.trim().replace(/[^a-zA-Z0-9]/g, '');
-  
+
   console.log('🔍 Debug TXID:', {
     original: txid,
     limpo: txidLimpo,
@@ -72,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Configurar certificado para produção
     if (!isSandbox) {
       const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      
+
       if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
         efiConfig.certificate = certificatePath;
         efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
@@ -88,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Preparar TXID para URL
     const cleanTxid = encodeURIComponent(txidLimpo);
-    
+
     // Log detalhado da requisição
     console.log('🔧 Preparando requisição para EFÍ:', {
       txidOriginal: txid,
@@ -99,11 +98,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
     });
 
-    // Consultar PIX na EFÍ usando TXID diretamente na URL
-    console.log('📡 Consultando PIX na EFÍ Pay...', { txidLimpo, cleanTxid });
-    console.log('🔗 URL final da EFÍ:', `v2/pix/${cleanTxid}`);
-    
-    const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
+    // Consultar PIX na EFÍ usando método correto
+    console.log('🔗 Consultando PIX na EFÍ:', txidLimpo);
+    const params = { txid: txidLimpo };
+    const pixResponse = await efipay.pixDetailCharge(params);
 
     console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
 
@@ -137,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Atualizar status no banco se necessário
     if (statusEfi === 'CONCLUIDA') {
       console.log('✅ PIX confirmado como pago, atualizando banco...');
-      
+
       // Buscar bilhete pelo TXID (tentar ambos: original e limpo)
       let bilhete = await prisma.bilhete.findFirst({
         where: { txid: txid },
@@ -187,9 +185,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao verificar status na EFÍ:', error);
-    
+
     let mensagemErro = 'Erro ao consultar EFÍ Pay';
-    
+
     if (error && typeof error === 'object' && 'error_description' in error) {
       mensagemErro = error.error_description as string;
     } else if (error instanceof Error) {

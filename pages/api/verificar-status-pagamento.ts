@@ -191,9 +191,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             isValidPattern: /^[a-zA-Z0-9]{26,35}$/.test(txidLimpo)
           });
 
-          // Consultar PIX na EFÍ usando TXID diretamente na URL
-          console.log('🔗 URL final da EFÍ:', `v2/pix/${cleanTxid}`);
-          const pixResponse = await efipay.pixDetailCharge([], { txid: txidLimpo });
+          // Consultar PIX na EFÍ usando método correto
+          console.log('🔗 Consultando PIX na EFÍ:', txidLimpo);
+          const params = { txid: txidLimpo };
+          const pixResponse = await efipay.pixDetailCharge(params);
 
           console.log(`📋 Status na EFI: ${pixResponse.status}`);
 
