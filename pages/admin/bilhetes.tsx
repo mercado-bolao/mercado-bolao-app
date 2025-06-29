@@ -248,7 +248,9 @@ export default function BilhetesAdmin() {
       const data = await response.json();
 
       if (data.success) {
-        if (data.statusAtualizado) {
+        if (data.warning === 'TXID_FORMATO_ANTIGO') {
+          alert(`⚠️ TXID Formato Antigo\n\n${data.message}\n\nStatus atual: ${data.status}\n\nPara verificar o pagamento:\n• Use "Marcar como PAGO" se confirmou manualmente\n• Ou gere um novo PIX para o cliente`);
+        } else if (data.statusAtualizado) {
           alert(`✅ Status atualizado!\n\nStatus: ${data.status}\nBilhete foi atualizado no sistema.`);
         } else {
           alert(`📋 Status atual: ${data.status}\n\nNenhuma alteração necessária.`);

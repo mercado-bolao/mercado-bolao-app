@@ -98,11 +98,12 @@ export default function PagamentoPix() {
   };
 
   const verificarStatus = async () => {
-    const bilheteData = localStorage.getItem('bilheteData');
-    const pixData = localStorage.getItem('pixData');
-    if (!bilheteData || !pixData) return;
+    const bilheteDataStorage = localStorage.getItem('bilheteData');
+    const pixDataStorage = localStorage.getItem('pixData');
+    if (!bilheteDataStorage || !pixDataStorage) return;
 
-    const bilhete = JSON.parse(bilheteData);
+    const bilhete = JSON.parse(bilheteDataStorage);
+    const pix = JSON.parse(pixDataStorage);
 
     try {
       console.log('🔍 Verificando status do pagamento...');
@@ -112,6 +113,11 @@ export default function PagamentoPix() {
       if (data.success) {
         console.log('📋 Status atual:', data.status);
         setStatusPix(data.status);
+
+        if (data.warning === 'TXID_FORMATO_ANTIGO') {
+          console.log('⚠️ TXID formato antigo detectado');
+          // Continuar verificando status, mas não tentar consultar EFÍ
+        }
 
         if (data.status === 'PAGO') {
           // Pagamento confirmado

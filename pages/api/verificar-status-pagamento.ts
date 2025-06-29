@@ -62,6 +62,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!txidValido) {
         console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
         console.log(`📌 Este bilhete foi criado com TXID no formato antigo. Para consultar na EFÍ, será necessário gerar um novo PIX.`);
+        
+        // Retornar status informativo para TXIDs inválidos
+        return res.status(200).json({
+          success: true,
+          status: bilhete.status,
+          warning: 'TXID_FORMATO_ANTIGO',
+          message: 'Este bilhete possui TXID no formato antigo. Para verificar na EFÍ, gere um novo PIX.',
+          bilhete: {
+            id: bilhete.id,
+            status: bilhete.status,
+            valorTotal: bilhete.valorTotal,
+            txid: bilhete.txid,
+            expiresAt: bilhete.expiresAt.toISOString()
+          }
+        });
       } else {
         try {
           console.log(`🔍 Verificando PIX na EFI: ${bilhete.txid}`);

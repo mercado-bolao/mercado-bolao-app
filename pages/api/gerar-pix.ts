@@ -82,9 +82,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Gerar TXID único e orderId
-    const orderId = `ORDER${Date.now()}`;
-    console.log('🆔 OrderID gerado:', orderId);
+    // Gerar identificadores únicos
+    const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Gerar TXID válido conforme padrão EFÍ (26-35 caracteres alfanuméricos)
+    const generateValidTxid = () => {
+      const timestamp = Date.now().toString();
+      const randomChars = Math.random().toString(36).substr(2, 15).toUpperCase();
+      const txid = (timestamp + randomChars).replace(/[^a-zA-Z0-9]/g, '');
+
+      // Garantir que tenha entre 26-35 caracteres
+      if (txid.length < 26) {
+        return (txid + Math.random().toString(36).substr(2, 35 - txid.length).toUpperCase()).substr(0, 35);
+      }
+      return txid.substr(0, 35);
+    };
+
+    const txid = generateValidTxid();
+
+    console.log('🔑 IDs gerados:', { orderId, txid, txidLength: txid.length });
 
     // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
