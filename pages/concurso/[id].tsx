@@ -233,12 +233,14 @@ export default function ConcursoDetalhes() {
   };
 
   // Função para calcular o total de bilhetes individuais
+  // REGRA: Cada conjunto de 8 palpites = 1 bilhete individual de R$ 10,00
   const calcularTotalBilhetes = () => {
     const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
     
     if (jogosComPalpites.length === 0) return 0;
     
-    // Soma todos os palpites de todos os jogos (cada palpite = 1 bilhete)
+    // Conta quantos palpites completos (conjuntos de 8 jogos) existem
+    // Cada palpite adicional para o mesmo jogo = novo bilhete individual
     return jogosComPalpites.reduce((total, jogoId) => total + carrinho[jogoId].length, 0);
   };
 
@@ -492,7 +494,7 @@ export default function ConcursoDetalhes() {
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-4">
-                🛒 CARRINHO DE APOSTAS MÚLTIPLAS
+                🛒 CARRINHO DE BILHETES INDIVIDUAIS
               </h3>
               
               {/* Tabela de palpites múltiplos */}
@@ -600,7 +602,10 @@ export default function ConcursoDetalhes() {
               {/* Resumo dos bilhetes */}
               <div className="border-t border-yellow-200 pt-4">
                 <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
-                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes</h4>
+                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo dos Bilhetes Individuais</h4>
+                  <div className="text-sm mb-3 text-yellow-700 bg-yellow-50 p-2 rounded">
+                    <strong>Regra:</strong> Cada palpite individual = 1 bilhete de R$ 10,00 (não há combinações)
+                  </div>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex justify-between">
                       <span className="text-yellow-700">Jogos com palpites:</span>
@@ -747,7 +752,10 @@ export default function ConcursoDetalhes() {
                 <strong>Como apostar:</strong> 1 = Casa vence, X = Empate, 2 = Fora vence
               </p>
               <p className="text-blue-600 text-xs mt-1">
-                Os palpites aparecem no carrinho na ordem dos jogos do concurso.
+                <strong>Regra importante:</strong> Cada palpite individual = 1 bilhete de R$ 10,00 (sem combinações)
+              </p>
+              <p className="text-blue-600 text-xs mt-1">
+                Exemplo: 8 palpites diferentes = 8 bilhetes individuais = R$ 80,00 total
               </p>
             </div>
           </div>
