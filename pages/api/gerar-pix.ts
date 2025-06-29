@@ -303,7 +303,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             quantidadePalpites: palpitesPendentes.length,
             valorTotal: valorTotal,
             status: 'PENDENTE', // Status será alterado para PAGO no webhook
-            txid: finalTxid,
+            txid: finalTxid, // Usar o TXID que geramos localmente
             orderId: locationId.toString(),
             pixId: pixSalvo.id,
             expiresAt: new Date(Date.now() + 300000), // 5 minutos
@@ -340,7 +340,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       pixId: pixSalvo ? pixSalvo.id : null,
       pix: {
-        txid: pixResponse.txid,
+        txid: finalTxid, // Usar o TXID que geramos localmente
+        txidEfi: pixResponse.txid, // TXID retornado pela EFí para referência
         locationId: locationId,
         qrcode: qrCodeResponse.qrcode,
         imagemQrcode: qrCodeResponse.imagemQrcode,

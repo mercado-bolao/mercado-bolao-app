@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 
@@ -40,12 +39,12 @@ export default function BilhetesAdmin() {
 
   useEffect(() => {
     buscarBilhetes();
-    
+
     // Auto-atualizar a cada 10 segundos
     const autoUpdate = setInterval(() => {
       buscarBilhetes();
     }, 10000);
-    
+
     return () => clearInterval(autoUpdate);
   }, []);
 
@@ -54,7 +53,7 @@ export default function BilhetesAdmin() {
     try {
       const response = await fetch('/api/admin/bilhetes');
       const data = await response.json();
-      
+
       if (data.success) {
         setBilhetes(data.bilhetes || []);
       } else {
@@ -76,11 +75,11 @@ export default function BilhetesAdmin() {
     }
 
     setVerificandoStatus(bilheteId);
-    
+
     try {
       const response = await fetch(`/api/admin/verificar-status-efi?txid=${txid}`);
       const data: VerificarStatusResponse = await response.json();
-      
+
       if (data.success) {
         alert(`✅ Status verificado via EFÍ:\n\nStatus: ${data.status}\n\n${data.message || ''}`);
         // Recarregar lista após verificação
@@ -102,7 +101,7 @@ export default function BilhetesAdmin() {
 
   const verificarTodosPendentes = async () => {
     setVerificandoTodos(true);
-    
+
     try {
       const response = await fetch('/api/verificar-pix-pendentes', {
         method: 'POST',
@@ -112,7 +111,7 @@ export default function BilhetesAdmin() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`✅ Verificação concluída!\n\n📊 Bilhetes verificados: ${data.bilhetesVerificados}\n💰 PIX atualizados: ${data.pixAtualizados}`);
         await buscarBilhetes();
@@ -150,7 +149,7 @@ export default function BilhetesAdmin() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert('✅ Bilhete marcado como PAGO com sucesso!');
         setSenhaAdmin('');
@@ -189,28 +188,28 @@ export default function BilhetesAdmin() {
   const getStatusDetalhado = (bilhete: Bilhete) => {
     const agora = new Date();
     const expiracao = new Date(bilhete.expiresAt);
-    
+
     if (bilhete.status === 'PAGO') {
       return { status: 'PAGO', cor: 'bg-green-100 text-green-800 border-green-300' };
     }
-    
+
     if (bilhete.status === 'CANCELADO') {
       return { status: 'CANCELADO', cor: 'bg-red-100 text-red-800 border-red-300' };
     }
-    
+
     if (agora > expiracao) {
       return { status: 'EXPIRADO', cor: 'bg-gray-100 text-gray-800 border-gray-300' };
     }
-    
+
     return { status: 'PENDENTE', cor: 'bg-yellow-100 text-yellow-800 border-yellow-300' };
   };
 
   const formatarDispositivo = (userAgent?: string) => {
     if (!userAgent) return 'Não informado';
-    
+
     let dispositivo = 'Desconhecido';
     let navegador = 'Desconhecido';
-    
+
     // Detectar sistema operacional
     if (userAgent.includes('Android')) {
       const androidMatch = userAgent.match(/Android ([0-9._]+)/);
@@ -226,7 +225,7 @@ export default function BilhetesAdmin() {
     } else if (userAgent.includes('Linux')) {
       dispositivo = 'Linux';
     }
-    
+
     // Detectar navegador
     if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
       navegador = 'Chrome';
@@ -237,8 +236,25 @@ export default function BilhetesAdmin() {
     } else if (userAgent.includes('Edg')) {
       navegador = 'Edge';
     }
-    
+
     return `${dispositivo} - ${navegador}`;
+  };
+
+  const verificarEfi = async (bilheteId: string) => {
+    try {
+      const response = await fetch(`/api/admin/verificar-status-efi-v2?bilheteId=${bilheteId}`);
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`Status EFÍ: ${data.statusEfi}\nMensagem: ${data.message}`);
+        // Recarregar dados após verificação
+        buscarBilhetes();
+      } else {
+        alert(`Erro: ${data.error}`);
+      }
+    } catch (error) {
+      alert('Erro ao verificar status na EFÍ');
+    }
   };
 
   return (
@@ -474,19 +490,13 @@ export default function BilhetesAdmin() {
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm space-y-2">
                             {/* Botão Verificar Status via EFÍ */}
-                            <button
-                              onClick={() => verificarStatusEfi(bilhete.txid || '', bilhete.id)}
-                              disabled={!bilhete.txid || verificandoStatus === bilhete.id}
-                              className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                !bilhete.txid 
-                                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : verificandoStatus === bilhete.id
-                                  ? 'bg-blue-100 text-blue-600 cursor-wait'
-                                  : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
-                              }`}
-                            >
-                              {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔁 Verificar via EFÍ'}
-                            </button>
+                             <button
+                                onClick={() => verificarEfi(bilhete.id)}
+                                className="text-orange-600 hover:text-orange-800 text-sm"
+                                title="Verificar status via EFÍ"
+                              >
+                                🔍 Verificar via EFÍ
+                              </button>
 
                             {/* Botão Marcar como PAGO (apenas para não pagos) */}
                             {abaAtiva === 'nao-pagos' && (
