@@ -522,11 +522,11 @@ export default function ConcursoDetalhes() {
         )}
 
         {/* Games list - always visible */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-800">🏆 Jogos</h2>
+        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">🏆 Jogos</h2>
             {concurso.jogos[0]?.horario && (
-              <p className="text-sm text-gray-600">
+              <p className="text-xs text-gray-500">
                 {new Date(concurso.jogos[0].horario).toLocaleDateString('pt-BR', {
                   timeZone: "America/Sao_Paulo"
                 })} às{' '}
@@ -539,18 +539,19 @@ export default function ConcursoDetalhes() {
             )}
           </div>
 
-          <div className="space-y-4">
-            {concurso.jogos.map((jogo) => (
-              <div key={jogo.id} className="border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-                {/* Times */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3 flex-1">
-                    <div className="w-10 h-10 flex-shrink-0">
+          <div className="space-y-2">
+            {concurso.jogos.map((jogo, index) => (
+              <div key={jogo.id} className="border-b border-gray-100 last:border-b-0 pb-2 last:pb-0">
+                {/* Layout horizontal compacto */}
+                <div className="flex items-center justify-between py-1">
+                  {/* Time mandante com sigla */}
+                  <div className="flex items-center space-x-2 flex-1">
+                    <div className="w-6 h-6 flex-shrink-0">
                       {jogo.fotoMandante ? (
                         <img 
                           src={jogo.fotoMandante} 
                           alt={jogo.mandante}
-                          className="w-full h-full object-contain rounded-full border-2 border-gray-200"
+                          className="w-full h-full object-contain rounded-full border border-gray-200"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
@@ -561,60 +562,29 @@ export default function ConcursoDetalhes() {
                         />
                       ) : null}
                       <div 
-                        className={`w-full h-full rounded-full bg-blue-100 flex items-center justify-center ${jogo.fotoMandante ? 'hidden' : 'flex'}`}
+                        className={`w-full h-full rounded-full bg-blue-50 flex items-center justify-center border ${jogo.fotoMandante ? 'hidden' : 'flex'}`}
                         style={{ display: jogo.fotoMandante ? 'none' : 'flex' }}
                       >
-                        <span className="text-blue-600 font-bold text-sm">
+                        <span className="text-blue-600 font-bold text-xs">
                           {jogo.mandante.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                     </div>
-                    <span className="font-semibold text-gray-800 text-sm">{jogo.mandante}</span>
+                    <span className="font-medium text-gray-700 text-sm truncate">
+                      {jogo.mandante.length > 12 ? `${jogo.mandante.substring(0, 12)}...` : jogo.mandante}
+                    </span>
                   </div>
 
-                  <div className="text-gray-500 font-bold text-lg px-4">X</div>
-
-                  <div className="flex items-center space-x-3 flex-1 justify-end">
-                    <span className="font-semibold text-gray-800 text-sm">{jogo.visitante}</span>
-                    <div className="w-10 h-10 flex-shrink-0">
-                      {jogo.fotoVisitante ? (
-                        <img 
-                          src={jogo.fotoVisitante} 
-                          alt={jogo.visitante}
-                          className="w-full h-full object-contain rounded-full border-2 border-gray-200"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (nextElement) {
-                              nextElement.style.display = 'flex';
-                            }
-                          }}
-                        />
-                      ) : null}
-                      <div 
-                        className={`w-full h-full rounded-full bg-red-100 flex items-center justify-center ${jogo.fotoVisitante ? 'hidden' : 'flex'}`}
-                        style={{ display: jogo.fotoVisitante ? 'none' : 'flex' }}
-                      >
-                        <span className="text-red-600 font-bold text-sm">
-                          {jogo.visitante.substring(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Betting buttons - only show if betting is still open */}
-                {!palpitesEncerrados && (
-                  <>
-                    {/* Botões de palpite */}
-                    <div className="grid grid-cols-3 gap-3">
+                  {/* Botões de palpite - só aparece se apostas abertas */}
+                  {!palpitesEncerrados ? (
+                    <div className="flex items-center space-x-1 px-2">
                       <button
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "1")}
-                        className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
+                        className={`py-1 px-2 rounded text-sm font-medium transition-all ${
                           palpites[jogo.id] === "1"
-                            ? "bg-blue-600 text-white shadow-lg transform scale-105"
-                            : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                            ? "bg-blue-500 text-white border border-blue-600"
+                            : "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100"
                         }`}
                       >
                         1
@@ -622,10 +592,10 @@ export default function ConcursoDetalhes() {
                       <button
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "X")}
-                        className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
+                        className={`py-1 px-2 rounded text-sm font-medium transition-all ${
                           (palpites[jogo.id] === "X" || palpites[jogo.id] === "0")
-                            ? "bg-gray-600 text-white shadow-lg transform scale-105"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
+                            ? "bg-gray-500 text-white border border-gray-600"
+                            : "bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100"
                         }`}
                       >
                         X
@@ -633,47 +603,66 @@ export default function ConcursoDetalhes() {
                       <button
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "2")}
-                        className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
+                        className={`py-1 px-2 rounded text-sm font-medium transition-all ${
                           palpites[jogo.id] === "2"
-                            ? "bg-red-600 text-white shadow-lg transform scale-105"
-                            : "bg-red-100 text-red-800 hover:bg-red-200"
+                            ? "bg-red-500 text-white border border-red-600"
+                            : "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
                         }`}
                       >
                         2
                       </button>
                     </div>
+                  ) : (
+                    <div className="px-2">
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">🔒 Fechado</span>
+                    </div>
+                  )}
 
-                    {/* Palpites selecionados */}
-                    {(palpites[jogo.id] || (carrinho[jogo.id] && carrinho[jogo.id].length > 0)) && (
-                      <div className="mt-3 text-center">
-                        {/* Palpite atual (pendente) */}
-                        {palpites[jogo.id] && (
-                          <div className="mb-1">
-                            <span className="text-sm font-semibold text-blue-600">
-                              ⏳ Selecionado: {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Palpites no carrinho */}
-                        {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
-                          <div>
-                            <span className="text-sm font-semibold text-green-600">
-                              ✅ No carrinho: {carrinho[jogo.id].map(p => p === '0' ? 'X' : p).join(', ')}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </>
-                )}
-
-                {/* Show message when betting is closed */}
-                {palpitesEncerrados && (
-                  <div className="mt-3 text-center bg-gray-100 py-2 rounded-lg">
-                    <span className="text-sm text-gray-600 font-semibold">
-                      🔒 Apostas encerradas para este jogo
+                  {/* Time visitante com sigla */}
+                  <div className="flex items-center space-x-2 flex-1 justify-end">
+                    <span className="font-medium text-gray-700 text-sm truncate">
+                      {jogo.visitante.length > 12 ? `${jogo.visitante.substring(0, 12)}...` : jogo.visitante}
                     </span>
+                    <div className="w-6 h-6 flex-shrink-0">
+                      {jogo.fotoVisitante ? (
+                        <img 
+                          src={jogo.fotoVisitante} 
+                          alt={jogo.visitante}
+                          className="w-full h-full object-contain rounded-full border border-gray-200"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const nextElement = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (nextElement) {
+                              nextElement.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : null}
+                      <div 
+                        className={`w-full h-full rounded-full bg-red-50 flex items-center justify-center border ${jogo.fotoVisitante ? 'hidden' : 'flex'}`}
+                        style={{ display: jogo.fotoVisitante ? 'none' : 'flex' }}
+                      >
+                        <span className="text-red-600 font-bold text-xs">
+                          {jogo.visitante.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status dos palpites - compacto */}
+                {!palpitesEncerrados && (palpites[jogo.id] || (carrinho[jogo.id] && carrinho[jogo.id].length > 0)) && (
+                  <div className="mt-1 text-center text-xs">
+                    {palpites[jogo.id] && (
+                      <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded mr-1">
+                        ⏳ {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
+                      </span>
+                    )}
+                    {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
+                      <span className="inline-block bg-green-50 text-green-600 px-2 py-0.5 rounded">
+                        ✅ {carrinho[jogo.id].map(p => p === '0' ? 'X' : p).join(',')}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
