@@ -23,6 +23,7 @@ interface Palpite {
   resultado: string;
   jogoId: string;
   jogo: Jogo;
+  createdAt?: string;
 }
 
 interface UserPalpites {
@@ -112,26 +113,79 @@ export default function AdminPanel() {
     console.log('Processando palpites:', palpitesArray.length);
     console.log('Jogos disponíveis:', jogos.length);
 
-    const usuariosMap = new Map<string, UserPalpites>();
+    if (palpitesArray.length === 0 || jogos.length === 0) {
+      return [];
+    }
+
+    // Agrupar palpites por usuário
+    const usuariosMap = new Map<string, Palpite[]>();
 
     palpitesArray.forEach(palpite => {
-      console.log('Processando palpite:', palpite);
       const chaveUsuario = `${palpite.nome}-${palpite.whatsapp}`;
-
+      
       if (!usuariosMap.has(chaveUsuario)) {
-        usuariosMap.set(chaveUsuario, {
-          nome: palpite.nome,
-          whatsapp: palpite.whatsapp,
-          palpites: {}
-        });
+        usuariosMap.set(chaveUsuario, []);
       }
-
-      const usuario = usuariosMap.get(chaveUsuario)!;
-      usuario.palpites[palpite.jogoId] = formatResultado(palpite.resultado);
+      
+      usuariosMap.get(chaveUsuario)!.push(palpite);
     });
 
-    const resultado = Array.from(usuariosMap.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-    console.log('Usuários processados:', resultado);
+    // Processar cada usuário para gerar bilhetes individuais
+    const bilhetesIndividuais: UserPalpites[] = [];
+
+    usuariosMap.forEach((palpitesUsuario, chaveUsuario) => {
+      const [nome, whatsapp] = chaveUsuario.split('-');
+      
+      // Agrupar palpites por timestamp/data para identificar bilhetes únicos
+      const bilhetesMap = new Map<string, { [jogoId: string]: string }>();
+      
+      palpitesUsuario.forEach(palpite => {
+        // Usar a data/hora de criação para agrupar palpites do mesmo bilhete
+        const timestampBilhete = new Date(palpite.createdAt || '').toISOString().slice(0, 16); // Precisão de minuto
+        
+        if (!bilhetesMap.has(timestampBilhete)) {
+          bilhetesMap.set(timestampBilhete, {});
+        }
+        
+        bilhetesMap.get(timestampBilhete)![palpite.jogoId] = formatResultado(palpite.resultado);
+      });
+
+      // Se não conseguiu agrupar por timestamp, agrupa por posição de forma sequencial
+      if (bilhetesMap.size === 1 && palpitesUsuario.length > jogos.length) {
+        bilhetesMap.clear();
+        
+        // Dividir palpites em grupos de 8 (número de jogos)
+        const totalJogos = jogos.length;
+        const totalBilhetes = Math.ceil(palpitesUsuario.length / totalJogos);
+        
+        for (let bilheteNum = 0; bilheteNum < totalBilhetes; bilheteNum++) {
+          const bilheteKey = `bilhete-${bilheteNum}`;
+          bilhetesMap.set(bilheteKey, {});
+          
+          for (let jogoIndex = 0; jogoIndex < totalJogos; jogoIndex++) {
+            const palpiteIndex = bilheteNum * totalJogos + jogoIndex;
+            if (palpiteIndex < palpitesUsuario.length) {
+              const palpite = palpitesUsuario[palpiteIndex];
+              bilhetesMap.get(bilheteKey)![palpite.jogoId] = formatResultado(palpite.resultado);
+            }
+          }
+        }
+      }
+
+      // Converter cada bilhete em uma linha separada
+      let contadorBilhete = 1;
+      bilhetesMap.forEach((palpitesBilhete) => {
+        bilhetesIndividuais.push({
+          nome: bilhetesMap.size > 1 ? `${nome} (#${contadorBilhete})` : nome,
+          whatsapp: whatsapp,
+          palpites: palpitesBilhete
+        });
+        contadorBilhete++;
+      });
+    });
+
+    const resultado = bilhetesIndividuais.sort((a, b) => a.nome.localeCompare(b.nome));
+    console.log('Bilhetes individuais processados:', resultado.length);
     return resultado;
   };
 
@@ -363,10 +417,10 @@ export default function AdminPanel() {
           <div className="bg-white rounded-lg shadow-sm border">
             <div className="px-6 py-4 border-b border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900">
-                Lista de Apostas ({usuariosPalpites.length} usuários)
+                Lista de Apostas ({usuariosPalpites.length} bilhetes)
               </h2>
               <p className="text-sm text-gray-600 mt-1">
-                <strong>Legenda:</strong> C = Casa (Mandante) | E = Empate | F = Fora (Visitante)
+                <strong>Legenda:</strong> C = Casa (Mandante) | E = Empate | F = Fora (Visitante) | Cada linha = 1 bilhete de R$ 10,00
               </p>
             </div>
             <div className="overflow-x-auto border-2 border-black rounded-lg shadow-lg">
