@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
+import Image from 'next/image';
 import QRCode from 'qrcode';
 
 interface PixData {
@@ -91,7 +92,7 @@ export default function PagamentoPix() {
     } catch (error) {
       console.error('❌ Erro ao verificar status:', error);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     // Recuperar dados do bilhete do localStorage
@@ -255,9 +256,11 @@ export default function PagamentoPix() {
           <div className="flex justify-center mb-4">
             <div className="bg-white p-6 rounded-xl border-2 border-gray-200 shadow-inner">
               {pixData.imagemQrcode ? (
-                <img 
+                <Image 
                   src={`data:image/png;base64,${pixData.imagemQrcode}`}
                   alt="QR Code PIX"
+                  width={256}
+                  height={256}
                   className="w-64 h-64"
                 />
               ) : (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface Concurso {
   id: string;
@@ -1228,7 +1229,7 @@ export default function AdminConcursos() {
               <div className="flex items-center justify-center space-x-6 mb-4 p-6 bg-gradient-to-r from-blue-100 to-purple-100 rounded-2xl border-2 border-blue-300">
                 <div className="flex flex-col items-center space-y-2">
                   {editingJogo.fotoMandante && (
-                    <img src={editingJogo.fotoMandante} alt={editingJogo.mandante} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
+                    <Image src={editingJogo.fotoMandante} alt={editingJogo.mandante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
                   )}
                   <span className="font-black text-blue-900 text-lg text-center">{editingJogo.mandante}</span>
                 </div>
@@ -1238,7 +1239,7 @@ export default function AdminConcursos() {
                 <div className="flex flex-col items-center space-y-2">
                   <span className="font-black text-blue-900 text-lg text-center">{editingJogo.visitante}</span>
                   {editingJogo.fotoVisitante && (
-                    <img src={editingJogo.fotoVisitante} alt={editingJogo.visitante} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
+                    <Image src={editingJogo.fotoVisitante} alt={editingJogo.visitante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
                   )}
                 </div>
               </div>
@@ -1261,7 +1262,7 @@ export default function AdminConcursos() {
                     <div className="text-center">
                       <div className="flex flex-col items-center space-y-4">
                         {editingJogo.fotoMandante && (
-                          <img src={editingJogo.fotoMandante} alt={editingJogo.mandante} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
+                          <Image src={editingJogo.fotoMandante} alt={editingJogo.mandante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-blue-400 shadow-lg" />
                         )}
                         <span className="font-black text-xl text-blue-900">{editingJogo.mandante}</span>
                         <span className="text-2xl font-black text-blue-800 mb-2">GOLS:</span>
@@ -1284,10 +1285,10 @@ export default function AdminConcursos() {
                     {/* Fora */}
                     <div className="text-center">
                       <div className="flex flex-col items-center space-y-4">
-                        {editingJogo.fotoVisitante && (
-                          <img src={editingJogo.fotoVisitante} alt={editingJogo.visitante} className="w-16 h-16 rounded-full object-cover border-4 border-purple-400 shadow-lg" />
-                        )}
                         <span className="font-black text-xl text-purple-900">{editingJogo.visitante}</span>
+                        {editingJogo.fotoVisitante && (
+                          <Image src={editingJogo.fotoVisitante} alt={editingJogo.visitante} width={64} height={64} className="w-16 h-16 rounded-full object-cover border-4 border-purple-400 shadow-lg" />
+                        )}
                         <span className="text-2xl font-black text-purple-800 mb-2">GOLS:</span>
                         <input
                           type="number"
