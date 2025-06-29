@@ -62,5 +62,5 @@ model Palpite {
   userId     String?
   jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, jogoId])
+  // @@unique([userId, jogoId]) ← REMOVIDO para permitir múltiplos bilhetes
 }

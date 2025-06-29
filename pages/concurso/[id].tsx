@@ -91,95 +91,62 @@ export default function ConcursoDetalhes() {
     setEnviando(true);
 
     try {
-      let sucessos = 0;
-      let erros = 0;
-      let mensagensErro: string[] = [];
+      // NOVA LÓGICA: Enviar todos os bilhetes de uma vez
+      const dadosEnvio = {
+        nome: nome.trim(),
+        whatsapp: whatsapp.trim(),
+        bilhetes: bilhetes
+      };
 
-      // Envia cada bilhete completo separadamente
-      for (let i = 0; i < bilhetes.length; i++) {
-        const bilhete = bilhetes[i];
+      console.log('=== ENVIANDO BILHETES COMPLETOS ===');
+      console.log('Total de bilhetes:', bilhetes.length);
+      console.log('Dados do envio:', dadosEnvio);
+
+      const response = await fetch("/api/palpites", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dadosEnvio),
+      });
+
+      const result = await response.json();
+
+      console.log('Resposta da API:', {
+        status: response.status,
+        result
+      });
+
+      if (response.ok) {
+        // Sucesso total
+        console.log('✅ Todos os bilhetes foram salvos com sucesso');
         
-        for (const jogoId of Object.keys(bilhete)) {
-          const dadosEnvio = {
-            jogoId,
-            resultado: bilhete[jogoId],
-            nome: nome.trim(),
-            whatsapp: whatsapp.trim(),
-          };
-
-          console.log(`Enviando bilhete ${i + 1}/${bilhetes.length} para jogo ${jogoId}:`, dadosEnvio);
-
-          try {
-            const response = await fetch("/api/palpites", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(dadosEnvio),
-            });
-
-            const result = await response.json();
-
-            console.log(`Resposta da API para jogo ${jogoId}:`, {
-              status: response.status,
-              result
-            });
-
-            if (response.ok) {
-              sucessos++;
-              console.log(`✅ Palpite ${jogoId} salvo com sucesso`);
-            } else {
-              erros++;
-              const jogo = concurso?.jogos.find(j => j.id === jogoId);
-              const nomeJogo = jogo ? `${jogo.mandante} x ${jogo.visitante}` : `Jogo ${jogoId}`;
-              
-              console.error(`❌ Erro ao salvar palpite do jogo ${jogoId}:`, result);
-              
-              if (response.status === 400 && result.error?.includes('encerrado')) {
-                mensagensErro.push(`Apostas encerradas para: ${nomeJogo}`);
-              } else if (response.status === 404) {
-                mensagensErro.push(`Jogo não encontrado: ${nomeJogo}`);
-              } else if (response.status === 503) {
-                mensagensErro.push(`Erro de conexão. Tente novamente.`);
-              } else {
-                mensagensErro.push(`Erro em ${nomeJogo}: ${result.error || 'Erro desconhecido'}`);
-              }
-            }
-          } catch (fetchError) {
-            erros++;
-            console.error(`Erro de rede para jogo ${jogoId}:`, fetchError);
-            mensagensErro.push('Erro de conexão. Verifique sua internet.');
-          }
-        }
-      }
-
-      console.log(`=== RESULTADO: ${sucessos} sucessos, ${erros} erros ===`);
-
-      if (sucessos > 0) {
         setSucesso(true);
-        if (erros === 0) {
-          // Limpar tudo após sucesso
-          setPalpites({});
-          setCarrinho({});
-          setNome("");
-          setWhatsapp("");
-          // Esconder mensagem de sucesso após 5 segundos
-          setTimeout(() => setSucesso(false), 5000);
+        // Limpar tudo após sucesso
+        setPalpites({});
+        setCarrinho({});
+        setNome("");
+        setWhatsapp("");
+        
+        // Esconder mensagem de sucesso após 5 segundos
+        setTimeout(() => setSucesso(false), 5000);
+        
+        alert(`✅ ${result.detalhes?.bilhetesEnviados || bilhetes.length} bilhete(s) enviado(s) com sucesso!\n\n💰 Valor total: R$ ${(bilhetes.length * 10).toFixed(2)}`);
+      } else {
+        // Erro parcial ou total
+        console.error('❌ Erro ao enviar bilhetes:', result);
+        
+        let mensagemErro = "❌ Erro ao processar bilhetes.";
+        if (result.detalhes?.mensagensErro && result.detalhes.mensagensErro.length > 0) {
+          mensagemErro += `\n\nDetalhes:\n${result.detalhes.mensagensErro.join('\n')}`;
+        } else if (result.error) {
+          mensagemErro += `\n\nErro: ${result.error}`;
         }
         
-        let mensagem = `✅ ${sucessos} palpite(s) enviado(s) com sucesso!`;
-        if (erros > 0) {
-          mensagem += `\n\n❌ ${erros} erro(s):\n${mensagensErro.join('\n')}`;
-        }
-        alert(mensagem);
-      } else {
-        let mensagemErro = "❌ Não foi possível enviar nenhum palpite.";
-        if (mensagensErro.length > 0) {
-          mensagemErro += `\n\nDetalhes:\n${mensagensErro.join('\n')}`;
-        }
         alert(mensagemErro);
       }
-    } catch (error) {
-      console.error('Erro geral ao enviar palpites:', error);
-      alert("❌ Erro inesperado ao enviar palpites. Verifique sua conexão e tente novamente.");
+
+      } catch (error) {
+      console.error('Erro geral ao enviar bilhetes:', error);
+      alert("❌ Erro inesperado ao enviar bilhetes. Verifique sua conexão e tente novamente.");
     } finally {
       setEnviando(false);
     }
