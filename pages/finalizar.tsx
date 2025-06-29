@@ -73,9 +73,9 @@ export default function FinalizarAposta() {
     try {
       setLoading(true);
       console.log('🔍 Buscando palpites para:', whatsappUsuario);
-      
+
       const response = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappUsuario)}`);
-      
+
       console.log('📡 Response status:', response.status);
       console.log('📡 Response headers:', response.headers.get('content-type'));
 
@@ -178,23 +178,23 @@ export default function FinalizarAposta() {
       try {
         const responseText = await response.text();
         console.log('📄 Response text (primeiros 200 chars):', responseText.substring(0, 200));
-        
+
         // Verificar se é HTML (erro de servidor)
         if (responseText.trim().startsWith('<!DOCTYPE') || responseText.trim().startsWith('<html')) {
           console.error('❌ Servidor retornou HTML ao invés de JSON');
           throw new Error('O servidor está retornando uma página de erro. Verifique os logs do servidor.');
         }
-        
+
         // Verificar se é JSON válido
         if (!responseText.trim()) {
           throw new Error('Resposta vazia do servidor');
         }
-        
+
         data = JSON.parse(responseText);
       } catch (parseError) {
         console.error('❌ Erro ao fazer parse da resposta:', parseError);
         console.error('❌ Response text completa:', responseText);
-        
+
         if (parseError instanceof SyntaxError) {
           throw new Error('Servidor retornou resposta inválida (não é JSON válido)');
         } else {
@@ -209,19 +209,19 @@ export default function FinalizarAposta() {
         console.error('- Status:', response.status);
         console.error('- Headers:', Object.fromEntries(response.headers.entries()));
         console.error('- Data completa:', JSON.stringify(data, null, 2));
-        
+
         const errorMessage = data?.error || data?.details || data?.message || `Erro HTTP ${response.status}`;
         const errorDetails = data?.details || data?.debug || 'Sem detalhes adicionais';
-        
+
         console.error('❌ Mensagem de erro processada:', errorMessage);
         console.error('❌ Detalhes do erro:', errorDetails);
-        
+
         // Mostrar alerta com detalhes mais específicos
         const alertMessage = `❌ Erro ao gerar PIX (Status: ${response.status})\n\n` +
                             `Erro: ${errorMessage}\n\n` +
                             `Detalhes: ${errorDetails}\n\n` +
                             (data?.suggestion ? `Sugestão: ${data.suggestion}` : '');
-        
+
         alert(alertMessage);
         return; // Não jogar erro, apenas retornar
       }
@@ -244,13 +244,13 @@ export default function FinalizarAposta() {
       console.error('- Tipo do erro:', typeof error);
       console.error('- Erro completo:', error);
       console.error('- Stack trace:', error instanceof Error ? error.stack : 'N/A');
-      
+
       let mensagemErro = 'Erro desconhecido ao processar pagamento';
-      
+
       if (error instanceof Error) {
         mensagemErro = error.message;
         console.error('- Error.message:', error.message);
-        
+
         // Tratamento específico para erros de rede/parsing
         if (error.message.includes('JSON')) {
           mensagemErro = 'Erro de comunicação com o servidor. A resposta não está no formato esperado.';
@@ -262,9 +262,9 @@ export default function FinalizarAposta() {
           mensagemErro = '🔑 Credenciais EFI Pay inválidas.\n\nVerifique nos Secrets:\n• EFI_CLIENT_ID\n• EFI_CLIENT_SECRET';
         }
       }
-      
+
       console.error('❌ Mensagem final de erro:', mensagemErro);
-      
+
       alert(`❌ Erro ao gerar pagamento PIX:\n\n${mensagemErro}\n\n🔧 Para diagnosticar, verifique o console do navegador (F12) e os logs do servidor.`);
     } finally {
       setProcessandoPagamento(false);

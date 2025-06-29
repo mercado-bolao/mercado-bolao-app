@@ -11,12 +11,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🔍 Buscando bilhetes no banco de dados...');
 
     const bilhetes = await prisma.bilhete.findMany({
+      where: {
+        status: { in: ["PENDENTE", "PAGO"] }
+      },
       include: {
         pix: {
           select: {
             id: true,
             status: true,
             ambiente: true
+          }
+        },
+        palpites: {
+          include: {
+            jogo: {
+              select: {
+                mandante: true,
+                visitante: true
+              }
+            }
           }
         }
       },

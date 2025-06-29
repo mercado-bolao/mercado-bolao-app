@@ -255,28 +255,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
 
-      // Se foi fornecido bilheteId, associar o PIX ao bilhete
-      if (bilheteId) {
-        await prisma.bilhete.update({
-          where: { id: bilheteId },
-          data: { pixId: pixSalvo.id }
-        });
-        console.log('✅ PIX associado ao bilhete:', bilheteId);
-      }
-
-      // Associar palpites pendentes a este PIX
-      const palpitesAtualizados = await prisma.palpite.updateMany({
-        where: {
-          whatsapp: whatsapp,
-          status: 'pendente'
-        },
-        data: {
-          pixId: pixSalvo.id
-        }
-      });
-
-      console.log('✅ Palpites associados ao PIX:', palpitesAtualizados.count);
-
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
       // Continuar mesmo com erro no banco, pois o PIX foi gerado
