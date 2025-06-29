@@ -14,7 +14,7 @@ REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
 
 [deployment]
 build = ["sh", "-c", "npm install && npx prisma generate && npm run build"]
-run = ["sh", "-c", "npx prisma db push && NODE_ENV=production npm start"]
+run = ["sh", "-c", "npx prisma db push --accept-data-loss && NODE_ENV=production npm start"]
 deploymentTarget = "cloudrun"
 
 [[ports]]
