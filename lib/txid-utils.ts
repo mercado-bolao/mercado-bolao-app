@@ -39,6 +39,10 @@ export class TxidUtils {
    * @returns TXID seguro para EFI Pay
    */
   static gerarTxidSeguro(length: number = 32): string {
+    if (length < 26 || length > 35) {
+      throw new Error(`Comprimento do TXID deve estar entre 26 e 35 caracteres. Recebido: ${length}`);
+    }
+
     const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let txid = '';
     
@@ -50,6 +54,13 @@ export class TxidUtils {
     if (!this.validarTxid(txid)) {
       throw new Error(`TXID seguro gerado inválido: ${txid}`);
     }
+    
+    console.log('✅ TXID seguro gerado:', {
+      txid: txid,
+      comprimento: txid.length,
+      valido: this.validarTxid(txid),
+      formato: 'alfanumérico mixed case'
+    });
     
     return txid;
   }
