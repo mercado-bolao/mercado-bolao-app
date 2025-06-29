@@ -241,19 +241,32 @@ export default function BilhetesAdmin() {
   };
 
   const verificarEfi = async (bilheteId: string) => {
+    setVerificandoStatus(bilheteId);
+    
     try {
       const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilheteId}`);
       const data = await response.json();
 
       if (data.success) {
-        alert(`Status EFÍ: ${data.statusEfi}\nMensagem: ${data.message}`);
+        if (data.statusAtualizado) {
+          alert(`✅ Status atualizado!\n\nStatus: ${data.status}\nBilhete foi atualizado no sistema.`);
+        } else {
+          alert(`📋 Status atual: ${data.status}\n\nNenhuma alteração necessária.`);
+        }
         // Recarregar dados após verificação
         buscarBilhetes();
       } else {
-        alert(`Erro: ${data.error}`);
+        if (data.error?.includes('TXID com formato inválido') || data.error?.includes('formato antigo')) {
+          alert(`⚠️ TXID Incompatível\n\nEste bilhete foi criado com um TXID no formato antigo que não é mais aceito pela EFÍ Pay.\n\nPara verificar o pagamento:\n1. Use "Marcar como PAGO" se confirmou o pagamento manualmente\n2. Ou gere um novo PIX para o cliente`);
+        } else {
+          alert(`❌ Erro: ${data.error}`);
+        }
       }
     } catch (error) {
-      alert('Erro ao verificar status na EFÍ');
+      console.error('Erro ao verificar EFÍ:', error);
+      alert('❌ Erro ao verificar status na EFÍ');
+    } finally {
+      setVerificandoStatus(null);
     }
   };
 
@@ -519,10 +532,15 @@ export default function BilhetesAdmin() {
                             {/* Botão Verificar Status via EFÍ */}
                              <button
                                 onClick={() => verificarEfi(bilhete.id)}
-                                className="text-orange-600 hover:text-orange-800 text-sm"
+                                disabled={verificandoStatus === bilhete.id}
+                                className={`text-sm ${
+                                  verificandoStatus === bilhete.id
+                                    ? 'text-orange-400 cursor-wait'
+                                    : 'text-orange-600 hover:text-orange-800'
+                                }`}
                                 title="Verificar status via EFÍ"
                               >
-                                🔍 Verificar via EFÍ
+                                {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔍 Verificar via EFÍ'}
                               </button>
 
                             {/* Botão Marcar como PAGO (apenas para não pagos) */}

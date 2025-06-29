@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
@@ -54,82 +53,91 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // Se tem TXID, verificar na EFI
+    // Se tem TXID, verificar na EFI (apenas se TXID for válido)
     if (bilhete.txid) {
-      try {
-        console.log(`🔍 Verificando PIX na EFI: ${bilhete.txid}`);
+      // Validar formato do TXID antes de consultar a EFÍ
+      const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+      const txidValido = txidPattern.test(bilhete.txid);
 
-        // Configurar EFI
-        const efiSandbox = process.env.EFI_SANDBOX || 'false';
-        const isSandbox = efiSandbox === 'true';
-        
-        const EfiPay = require('sdk-node-apis-efi');
-        
-        let efiConfig: any = {
-          sandbox: isSandbox,
-          client_id: process.env.EFI_CLIENT_ID,
-          client_secret: process.env.EFI_CLIENT_SECRET
-        };
+      if (!txidValido) {
+        console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
+        console.log(`📌 Este bilhete foi criado com TXID no formato antigo. Para consultar na EFÍ, será necessário gerar um novo PIX.`);
+      } else {
+        try {
+          console.log(`🔍 Verificando PIX na EFI: ${bilhete.txid}`);
 
-        // Configurar certificado para produção
-        if (!isSandbox) {
-          const certificatePath = path.resolve('./certs/certificado-efi.p12');
-          
-          if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-            efiConfig.certificate = certificatePath;
-            efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+          // Configurar EFI
+          const efiSandbox = process.env.EFI_SANDBOX || 'false';
+          const isSandbox = efiSandbox === 'true';
+
+          const EfiPay = require('sdk-node-apis-efi');
+
+          let efiConfig: any = {
+            sandbox: isSandbox,
+            client_id: process.env.EFI_CLIENT_ID,
+            client_secret: process.env.EFI_CLIENT_SECRET
+          };
+
+          // Configurar certificado para produção
+          if (!isSandbox) {
+            const certificatePath = path.resolve('./certs/certificado-efi.p12');
+
+            if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+              efiConfig.certificate = certificatePath;
+              efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+            }
           }
-        }
 
-        const efipay = new EfiPay(efiConfig);
+          const efipay = new EfiPay(efiConfig);
 
-        // Consultar PIX na EFÍ
-        const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
-        
-        console.log(`📋 Status na EFI: ${pixResponse.status}`);
+          // Consultar PIX na EFÍ
+          const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
 
-        // Se foi pago na EFI, atualizar no banco
-        if (pixResponse.status === 'CONCLUIDA') {
-          console.log(`✅ PIX confirmado como pago: ${bilhete.txid}`);
+          console.log(`📋 Status na EFI: ${pixResponse.status}`);
 
-          // Atualizar bilhete
-          await prisma.bilhete.update({
-            where: { id: bilhete.id },
-            data: { status: 'PAGO' }
-          });
+          // Se foi pago na EFI, atualizar no banco
+          if (pixResponse.status === 'CONCLUIDA') {
+            console.log(`✅ PIX confirmado como pago: ${bilhete.txid}`);
 
-          // Atualizar PIX se existir
-          if (bilhete.pix) {
-            await prisma.pixPagamento.update({
-              where: { id: bilhete.pix.id },
-              data: { status: 'PAGA' }
+            // Atualizar bilhete
+            await prisma.bilhete.update({
+              where: { id: bilhete.id },
+              data: { status: 'PAGO' }
+            });
+
+            // Atualizar PIX se existir
+            if (bilhete.pix) {
+              await prisma.pixPagamento.update({
+                where: { id: bilhete.pix.id },
+                data: { status: 'PAGA' }
+              });
+            }
+
+            // Atualizar palpites
+            await prisma.palpite.updateMany({
+              where: { 
+                bilheteId: bilhete.id
+              },
+              data: { status: 'pago' }
+            });
+
+            return res.status(200).json({
+              success: true,
+              status: 'PAGO',
+              statusAtualizado: true,
+              bilhete: {
+                id: bilhete.id,
+                status: 'PAGO',
+                valorTotal: bilhete.valorTotal,
+                txid: bilhete.txid
+              }
             });
           }
 
-          // Atualizar palpites
-          await prisma.palpite.updateMany({
-            where: { 
-              bilheteId: bilhete.id
-            },
-            data: { status: 'pago' }
-          });
-
-          return res.status(200).json({
-            success: true,
-            status: 'PAGO',
-            statusAtualizado: true,
-            bilhete: {
-              id: bilhete.id,
-              status: 'PAGO',
-              valorTotal: bilhete.valorTotal,
-              txid: bilhete.txid
-            }
-          });
+        } catch (efiError) {
+          console.error('❌ Erro ao consultar EFI:', efiError);
+          // Não retornar erro, continuar com status atual
         }
-
-      } catch (efiError) {
-        console.error('❌ Erro ao consultar EFI:', efiError);
-        // Não retornar erro, continuar com status atual
       }
     }
 
