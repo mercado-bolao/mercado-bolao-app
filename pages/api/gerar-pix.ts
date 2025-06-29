@@ -54,8 +54,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const certificadoDisponivel = process.env.EFI_CERTIFICATE_PASSPHRASE && 
                                  process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
 
-  // Forçar sandbox se certificado não estiver disponível
-  const isProducao = certificadoDisponivel;
+  // TEMPORÁRIO: Forçar sandbox para testar credenciais
+  const isProducao = false; // certificadoDisponivel;
 
   console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
   console.log('🔐 Certificado disponível:', certificadoDisponivel ? '✅' : '❌');
