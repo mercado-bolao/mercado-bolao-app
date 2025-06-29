@@ -27,7 +27,7 @@ export default function ConcursoDetalhes() {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [palpites, setPalpites] = useState<{ [key: string]: string }>({});
-  const [carrinho, setCarrinho] = useState<{ [key: string]: string }>({});
+  const [carrinho, setCarrinho] = useState<{ [key: string]: string[] }>({});
   const [enviando, setEnviando] = useState(false);
   const [sucesso, setSucesso] = useState(false);
   const [palpitesEncerrados, setPalpitesEncerrados] = useState(false);
@@ -52,16 +52,6 @@ export default function ConcursoDetalhes() {
     // Converte X para 0 para manter consistência com a explicação
     const resultadoFinal = resultado === 'X' ? '0' : resultado;
     
-    // Sempre adiciona aos palpites pendentes (não confirmados)
-    // Se o jogo já estava nos palpites, substitui
-    // Se o jogo estava no carrinho, remove do carrinho e coloca nos palpites para edição
-    if (carrinho[jogoId]) {
-      // Remove do carrinho
-      const newCarrinho = { ...carrinho };
-      delete newCarrinho[jogoId];
-      setCarrinho(newCarrinho);
-    }
-    
     // Adiciona ou atualiza nos palpites pendentes
     setPalpites(prev => ({
       ...prev,
@@ -82,11 +72,17 @@ export default function ConcursoDetalhes() {
       return;
     }
 
-    // Combina carrinho com palpites atuais
-    const todosPalpites = { ...carrinho, ...palpites };
-    const jogosComPalpites = Object.keys(todosPalpites);
+    // Salva palpites pendentes no carrinho antes de enviar
+    if (Object.keys(palpites).length > 0) {
+      adicionarPalpitesAoCarrinho();
+      // Aguarda um pouco para o estado atualizar
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+
+    // Gera todas as combinações possíveis
+    const combinacoes = gerarTodasCombinacoes();
     
-    if (jogosComPalpites.length === 0) {
+    if (combinacoes.length === 0) {
       alert("Por favor, faça pelo menos um palpite");
       return;
     }
@@ -98,15 +94,19 @@ export default function ConcursoDetalhes() {
       let erros = 0;
       let mensagensErro: string[] = [];
 
-      for (const jogoId of jogosComPalpites) {
-        const dadosEnvio = {
-          jogoId,
-          resultado: todosPalpites[jogoId],
-          nome: nome.trim(),
-          whatsapp: whatsapp.trim(),
-        };
+      // Envia cada combinação como um bilhete separado
+      for (let i = 0; i < combinacoes.length; i++) {
+        const combinacao = combinacoes[i];
+        
+        for (const jogoId of Object.keys(combinacao)) {
+          const dadosEnvio = {
+            jogoId,
+            resultado: combinacao[jogoId],
+            nome: nome.trim(),
+            whatsapp: whatsapp.trim(),
+          };
 
-        console.log(`Enviando palpite para jogo ${jogoId}:`, dadosEnvio);
+          console.log(`Enviando palpite ${i + 1}/${combinacoes.length} para jogo ${jogoId}:`, dadosEnvio);
 
         try {
           const response = await fetch("/api/palpites", {
@@ -184,17 +184,83 @@ export default function ConcursoDetalhes() {
   };
 
   const adicionarPalpitesAoCarrinho = () => {
-    // Adiciona os palpites atuais ao carrinho
-    setCarrinho(prev => ({
-      ...prev,
-      ...palpites
-    }));
+    // Adiciona os palpites atuais ao carrinho (múltiplos palpites por jogo)
+    setCarrinho(prev => {
+      const newCarrinho = { ...prev };
+      
+      Object.entries(palpites).forEach(([jogoId, palpite]) => {
+        if (!newCarrinho[jogoId]) {
+          newCarrinho[jogoId] = [];
+        }
+        
+        // Adiciona o palpite se não existir ainda
+        if (!newCarrinho[jogoId].includes(palpite)) {
+          newCarrinho[jogoId].push(palpite);
+        }
+      });
+      
+      return newCarrinho;
+    });
     
     // Limpa os palpites atuais para permitir novas seleções
     setPalpites({});
     
     // Scroll para o topo para ver os jogos
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Função para remover um palpite específico do carrinho
+  const removerPalpiteDoCarrinho = (jogoId: string, palpite: string) => {
+    setCarrinho(prev => {
+      const newCarrinho = { ...prev };
+      
+      if (newCarrinho[jogoId]) {
+        newCarrinho[jogoId] = newCarrinho[jogoId].filter(p => p !== palpite);
+        
+        // Remove o jogo completamente se não há mais palpites
+        if (newCarrinho[jogoId].length === 0) {
+          delete newCarrinho[jogoId];
+        }
+      }
+      
+      return newCarrinho;
+    });
+  };
+
+  // Função para calcular todas as combinações possíveis
+  const calcularCombinacoes = () => {
+    const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
+    
+    if (jogosComPalpites.length === 0) return 0;
+    
+    return jogosComPalpites.reduce((total, jogoId) => total * carrinho[jogoId].length, 1);
+  };
+
+  // Função para gerar todas as combinações
+  const gerarTodasCombinacoes = () => {
+    const jogosComPalpites = Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0);
+    
+    if (jogosComPalpites.length === 0) return [];
+    
+    const combinacoes: { [key: string]: string }[] = [];
+    
+    const gerarCombinacao = (index: number, combinacaoAtual: { [key: string]: string }) => {
+      if (index === jogosComPalpites.length) {
+        combinacoes.push({ ...combinacaoAtual });
+        return;
+      }
+      
+      const jogoId = jogosComPalpites[index];
+      const palpitesDoJogo = carrinho[jogoId];
+      
+      palpitesDoJogo.forEach(palpite => {
+        combinacaoAtual[jogoId] = palpite;
+        gerarCombinacao(index + 1, combinacaoAtual);
+      });
+    };
+    
+    gerarCombinacao(0, {});
+    return combinacoes;
   };
 
   const limparApostas = () => {
@@ -352,7 +418,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "1")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "1" || carrinho[jogo.id] === "1")
+                          (palpites[jogo.id] === "1" || (carrinho[jogo.id] && carrinho[jogo.id].includes("1")))
                             ? "bg-blue-600 text-white shadow-lg transform scale-105"
                             : "bg-blue-100 text-blue-800 hover:bg-blue-200"
                         }`}
@@ -363,7 +429,8 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "X")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0" || carrinho[jogo.id] === "X" || carrinho[jogo.id] === "0")
+                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0" || 
+                           (carrinho[jogo.id] && (carrinho[jogo.id].includes("X") || carrinho[jogo.id].includes("0"))))
                             ? "bg-gray-600 text-white shadow-lg transform scale-105"
                             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                         }`}
@@ -374,7 +441,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "2")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "2" || carrinho[jogo.id] === "2")
+                          (palpites[jogo.id] === "2" || (carrinho[jogo.id] && carrinho[jogo.id].includes("2")))
                             ? "bg-red-600 text-white shadow-lg transform scale-105"
                             : "bg-red-100 text-red-800 hover:bg-red-200"
                         }`}
@@ -383,16 +450,26 @@ export default function ConcursoDetalhes() {
                       </button>
                     </div>
 
-                    {/* Palpite selecionado */}
-                    {(palpites[jogo.id] || carrinho[jogo.id]) && (
+                    {/* Palpites selecionados */}
+                    {(palpites[jogo.id] || (carrinho[jogo.id] && carrinho[jogo.id].length > 0)) && (
                       <div className="mt-3 text-center">
-                        <span className={`text-sm font-semibold ${
-                          carrinho[jogo.id] ? 'text-green-600' : 'text-blue-600'
-                        }`}>
-                          {carrinho[jogo.id] ? '✅ Confirmado' : '⏳ Selecionado'}: {
-                            (palpites[jogo.id] || carrinho[jogo.id]) === '0' ? 'X' : (palpites[jogo.id] || carrinho[jogo.id])
-                          }
-                        </span>
+                        {/* Palpite atual (pendente) */}
+                        {palpites[jogo.id] && (
+                          <div className="mb-1">
+                            <span className="text-sm font-semibold text-blue-600">
+                              ⏳ Selecionado: {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Palpites no carrinho */}
+                        {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
+                          <div>
+                            <span className="text-sm font-semibold text-green-600">
+                              ✅ No carrinho: {carrinho[jogo.id].map(p => p === '0' ? 'X' : p).join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     )}
                   </>
@@ -413,123 +490,104 @@ export default function ConcursoDetalhes() {
 
         <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
 
-          {/* Carrinho de Palpites */}
+          {/* Carrinho de Apostas Múltiplas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-yellow-800 mb-4">
-                🛒 CARRINHO DE APOSTAS
+                🛒 CARRINHO DE APOSTAS MÚLTIPLAS
               </h3>
               
-              {/* Lista de palpites na ordem dos jogos */}
-              <div className="bg-white rounded-lg p-4 mb-4">
-                <div className="space-y-3">
-                  {concurso.jogos.map((jogo, index) => {
-                    // Verifica se há palpite para este jogo (no carrinho ou nos palpites atuais)
-                    const palpiteCarrinho = carrinho[jogo.id];
-                    const palpiteAtual = palpites[jogo.id];
-                    const temPalpite = palpiteCarrinho || palpiteAtual;
-                    const resultado = palpiteCarrinho || palpiteAtual;
-                    
-                    // Converte 0 para X na exibição
-                    const resultadoExibir = resultado === '0' ? 'X' : resultado;
-                    
-                    return (
-                      <div 
-                        key={jogo.id} 
-                        className={`flex items-center justify-between p-3 rounded-lg border-2 transition-all ${
-                          temPalpite 
-                            ? palpiteCarrinho 
-                              ? 'bg-green-50 border-green-300 shadow-md' 
-                              : 'bg-blue-50 border-blue-300 shadow-md'
-                            : 'bg-gray-50 border-gray-200'
-                        }`}
-                      >
-                        {/* Informações do jogo */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-xs font-bold text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                              JOGO {index + 1}
-                            </span>
-                          </div>
-                          <div className="text-sm font-semibold text-gray-800">
-                            {jogo.mandante} x {jogo.visitante}
-                          </div>
+              {/* Tabela de palpites múltiplos */}
+              <div className="bg-white rounded-lg p-4 mb-4 overflow-x-auto">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-700">Jogo</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpites no Carrinho</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Pendente</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {concurso.jogos.map((jogo, index) => {
+                      const palpitesCarrinho = carrinho[jogo.id] || [];
+                      const palpitePendente = palpites[jogo.id];
+                      const temAlgumPalpite = palpitesCarrinho.length > 0 || palpitePendente;
+                      
+                      return (
+                        <tr key={jogo.id} className={`border-b border-gray-100 ${temAlgumPalpite ? 'bg-blue-50' : ''}`}>
+                          {/* Informações do jogo */}
+                          <td className="py-4 px-2">
+                            <div className="text-xs font-bold text-gray-500 mb-1">JOGO {index + 1}</div>
+                            <div className="text-sm font-semibold text-gray-800">
+                              {jogo.mandante} x {jogo.visitante}
+                            </div>
+                          </td>
                           
-                          {/* Status do palpite */}
-                          {temPalpite ? (
-                            <div className="mt-1">
-                              {palpiteCarrinho ? (
-                                <span className="text-xs font-bold text-green-700 bg-green-100 px-2 py-1 rounded">
-                                  ✅ CONFIRMADO
-                                </span>
-                              ) : (
-                                <span className="text-xs font-bold text-blue-700 bg-blue-100 px-2 py-1 rounded">
-                                  ⏳ PENDENTE
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="mt-1">
-                              <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                ⚪ SEM PALPITE
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Palpite e ações */}
-                        <div className="flex items-center gap-3">
-                          {temPalpite ? (
-                            <>
-                              {/* Mostrar o palpite com significado */}
-                              <div className="text-center">
-                                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
-                                  resultado === '1' ? 'bg-blue-600 text-white' :
-                                  (resultado === '0' || resultado === 'X') ? 'bg-gray-600 text-white' :
-                                  resultado === '2' ? 'bg-red-600 text-white' : 'bg-gray-300'
-                                }`}>
-                                  {resultadoExibir}
-                                </div>
-                                <div className="text-xs mt-1 font-medium text-gray-600">
-                                  {resultado === '1' ? 'Casa' : 
-                                   (resultado === '0' || resultado === 'X') ? 'Empate' : 
-                                   resultado === '2' ? 'Fora' : ''}
-                                </div>
+                          {/* Palpites no carrinho */}
+                          <td className="py-4 px-2 text-center">
+                            {palpitesCarrinho.length > 0 ? (
+                              <div className="flex flex-wrap justify-center gap-1">
+                                {palpitesCarrinho.map((palpite, idx) => (
+                                  <div key={idx} className="relative group">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                      palpite === '1' ? 'bg-blue-600 text-white' :
+                                      (palpite === '0' || palpite === 'X') ? 'bg-gray-600 text-white' :
+                                      palpite === '2' ? 'bg-red-600 text-white' : 'bg-gray-300'
+                                    }`}>
+                                      {palpite === '0' ? 'X' : palpite}
+                                    </div>
+                                    <button
+                                      onClick={() => removerPalpiteDoCarrinho(jogo.id, palpite)}
+                                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Remover"
+                                    >
+                                      ×
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
-                              
-                              {/* Botão de remover */}
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Palpite pendente */}
+                          <td className="py-4 px-2 text-center">
+                            {palpitePendente ? (
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto border-2 border-dashed ${
+                                palpitePendente === '1' ? 'bg-blue-100 border-blue-400 text-blue-800' :
+                                (palpitePendente === '0' || palpitePendente === 'X') ? 'bg-gray-100 border-gray-400 text-gray-800' :
+                                palpitePendente === '2' ? 'bg-red-100 border-red-400 text-red-800' : 'bg-gray-100'
+                              }`}>
+                                {palpitePendente === '0' ? 'X' : palpitePendente}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Ações */}
+                          <td className="py-4 px-2 text-center">
+                            {palpitePendente && (
                               <button
-                                type="button"
                                 onClick={() => {
-                                  if (palpiteCarrinho) {
-                                    const newCarrinho = { ...carrinho };
-                                    delete newCarrinho[jogo.id];
-                                    setCarrinho(newCarrinho);
-                                  } else {
-                                    const newPalpites = { ...palpites };
-                                    delete newPalpites[jogo.id];
-                                    setPalpites(newPalpites);
-                                  }
+                                  const newPalpites = { ...palpites };
+                                  delete newPalpites[jogo.id];
+                                  setPalpites(newPalpites);
                                 }}
-                                className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800 flex items-center justify-center transition-colors"
-                                title="Remover palpite"
+                                className="text-red-600 hover:text-red-800 text-sm"
+                                title="Cancelar pendente"
                               >
-                                ❌
+                                🗑️
                               </button>
-                            </>
-                          ) : (
-                            <div className="text-center w-20">
-                              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
-                                <span className="text-gray-400 text-sm">?</span>
-                              </div>
-                              <div className="text-xs mt-1 text-gray-400">Escolha</div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
                 
                 {/* Mensagem quando não há palpites */}
                 {Object.keys(carrinho).length === 0 && Object.keys(palpites).length === 0 && (
@@ -541,29 +599,34 @@ export default function ConcursoDetalhes() {
                 )}
               </div>
               
-              <div className="border-t border-yellow-200 pt-3">
-                <div className="flex justify-between items-center">
-                  <span className="font-semibold text-yellow-800">Total de Bilhetes:</span>
-                  <span className="font-bold text-yellow-900">
-                    {(() => {
-                      const totalPalpites = Object.keys(carrinho).length + Object.keys(palpites).length;
-                      const bilhetesCompletos = Math.floor(totalPalpites / concurso.jogos.length);
-                      const palpitesIncompletos = totalPalpites % concurso.jogos.length;
-                      // Se tem palpites incompletos, conta como mais um bilhete
-                      return bilhetesCompletos + (palpitesIncompletos > 0 ? 1 : 0) || 1;
-                    })()}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="font-semibold text-yellow-800">Valor Total:</span>
-                  <span className="font-bold text-yellow-900 text-lg">
-                    R$ {((() => {
-                      const totalPalpites = Object.keys(carrinho).length + Object.keys(palpites).length;
-                      const bilhetesCompletos = Math.floor(totalPalpites / concurso.jogos.length);
-                      const palpitesIncompletos = totalPalpites % concurso.jogos.length;
-                      return bilhetesCompletos + (palpitesIncompletos > 0 ? 1 : 0) || 1;
-                    })() * 10).toFixed(2)}
-                  </span>
+              {/* Resumo das combinações */}
+              <div className="border-t border-yellow-200 pt-4">
+                <div className="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-yellow-800 mb-2">📊 Resumo das Combinações</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-yellow-700">Jogos com palpites:</span>
+                      <span className="font-bold text-yellow-900">
+                        {Object.keys(carrinho).filter(jogoId => carrinho[jogoId].length > 0).length}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-yellow-700">Total de combinações:</span>
+                      <span className="font-bold text-yellow-900">
+                        {calcularCombinacoes() || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-yellow-700">Valor por bilhete:</span>
+                      <span className="font-bold text-yellow-900">R$ 10,00</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-yellow-700">Valor total:</span>
+                      <span className="font-bold text-yellow-900 text-lg">
+                        R$ {(calcularCombinacoes() * 10).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
               
@@ -575,7 +638,7 @@ export default function ConcursoDetalhes() {
                     onClick={adicionarPalpitesAoCarrinho}
                     className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
                   >
-                    💾 SALVAR E ADICIONAR MAIS
+                    💾 ADICIONAR AO CARRINHO
                   </button>
                 )}
                 <button
@@ -594,8 +657,9 @@ export default function ConcursoDetalhes() {
                     }, 100);
                   }}
                   className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                  disabled={calcularCombinacoes() === 0}
                 >
-                  🎯 FINALIZAR BILHETE
+                  🎯 FINALIZAR ({calcularCombinacoes()} bilhetes)
                 </button>
               </div>
             </div>
