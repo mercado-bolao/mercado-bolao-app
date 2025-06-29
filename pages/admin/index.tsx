@@ -753,6 +753,77 @@ export default function AdminPanel() {
           )}
         </div>
 
+        {/* Seção de Bilhetes */}
+        <div className="bg-white rounded-lg shadow-sm border mb-8">
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Resumo de Bilhetes
+            </h2>
+            <Link href="/admin/bilhetes">
+              <span className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 cursor-pointer">
+                💳 Ver Todos os Bilhetes
+              </span>
+            </Link>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <span className="text-yellow-600 text-lg">⏳</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-yellow-600 font-medium">Pendentes</p>
+                    <p className="text-2xl font-bold text-yellow-800">-</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 text-lg">✅</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 font-medium">Pagos</p>
+                    <p className="text-2xl font-bold text-green-800">-</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                    <span className="text-red-600 text-lg">❌</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-red-600 font-medium">Cancelados</p>
+                    <p className="text-2xl font-bold text-red-800">-</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-lg">💰</span>
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 font-medium">Total Arrecadado</p>
+                    <p className="text-2xl font-bold text-blue-800">R$ -</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-6 text-center">
+              <p className="text-gray-600">
+                Use a página de <Link href="/admin/bilhetes"><span className="text-green-600 hover:text-green-800 font-semibold cursor-pointer">Bilhetes</span></Link> para visualizar detalhes completos dos pagamentos
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Gerenciamento de Jogos */}
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-6 py-4 border-b border-gray-200">

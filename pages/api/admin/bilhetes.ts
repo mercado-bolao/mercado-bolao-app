@@ -13,20 +13,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: {
         status: { in: ["PENDENTE", "PAGO", "CANCELADO", "EXPIRADO"] }
       },
-      include: {
-        pix: {
-          select: {
-            id: true,
-            status: true,
-            ambiente: true
-          }
-        },
+      select: {
+        id: true,
+        nome: true,
+        whatsapp: true,
+        status: true,
+        valor: true,
+        txid: true,
+        createdAt: true,
+        updatedAt: true,
         palpites: {
           include: {
             jogo: {
-              select: {
-                mandante: true,
-                visitante: true
+              include: {
+                concurso: true
               }
             }
           }
