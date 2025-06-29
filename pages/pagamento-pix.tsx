@@ -47,25 +47,41 @@ export default function PagamentoPix() {
   const [copiado, setCopiado] = useState(false);
   const [tempoRestante, setTempoRestante] = useState<string>('');
   const [statusPix, setStatusPix] = useState<string>('ATIVA');
+  const [bilheteId, setBilheteId] = useState<string>('');
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
 
-  // Função para verificar status do PIX
-  const verificarStatusPix = async () => {
+  // Função para verificar status do bilhete
+  const verificarStatusBilhete = async () => {
     if (!pixData?.txid) return;
 
     try {
-      const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
+      const response = await fetch(`/api/status-bilhete?txid=${pixData.txid}`);
       const data = await response.json();
       
-      if (data.success && data.pix) {
-        setStatusPix(data.pix.status);
+      if (data.success && data.bilhete) {
+        const status = data.bilhete.status;
+        setBilheteId(data.bilhete.id);
         
-        if (data.pix.status === 'PAGA') {
-          // PIX foi pago, redirecionar ou mostrar sucesso
+        if (status === 'PAGO' && !pagamentoConfirmado) {
+          setPagamentoConfirmado(true);
+          setStatusPix('PAGA');
+          
+          // Mostrar mensagem de sucesso
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
+          
+          // Opcional: redirecionar após 3 segundos
+          setTimeout(() => {
+            router.push('/');
+          }, 3000);
+          
+        } else if (status === 'CANCELADO' || data.bilhete.expirado) {
+          setStatusPix('EXPIRADA');
+        } else {
+          setStatusPix(status === 'PENDENTE' ? 'ATIVA' : status);
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar status:', error);
+      console.error('Erro ao verificar status do bilhete:', error);
     }
   };
 
@@ -83,7 +99,7 @@ export default function PagamentoPix() {
     setPixData(pix);
     setWhatsapp(whatsappStorage);
 
-    // Timer para expiração e verificação de status
+    // Timer para expiração (atualizado a cada segundo)
     const interval = setInterval(() => {
       const agora = new Date().getTime();
       const expiracao = new Date(pix.expiracao).getTime();
@@ -100,8 +116,11 @@ export default function PagamentoPix() {
       }
     }, 1000);
 
-    // Verificar status do PIX a cada 30 segundos
-    const statusInterval = setInterval(verificarStatusPix, 30000);
+    // Verificar status do bilhete a cada 3 segundos
+    const statusInterval = setInterval(verificarStatusBilhete, 3000);
+    
+    // Verificar status imediatamente
+    verificarStatusBilhete();
 
     return () => {
       clearInterval(interval);
@@ -120,6 +139,61 @@ export default function PagamentoPix() {
       }
     }
   };
+
+  // Tela de pagamento confirmado
+  if (pagamentoConfirmado) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100">
+        <header className="bg-white shadow-sm border-b">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold">✅</span>
+                </div>
+                <h1 className="text-xl font-bold text-gray-900">Pagamento Confirmado</h1>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+              <span className="text-5xl">🎉</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800 mb-4">Pagamento Confirmado!</h2>
+            <p className="text-lg text-gray-600 mb-6">
+              Seus palpites foram validados com sucesso!
+            </p>
+            
+            {pixData && (
+              <div className="bg-green-50 rounded-lg p-4 mb-6">
+                <div className="text-green-800 font-semibold">Valor pago: R$ {pixData.valor.toFixed(2)}</div>
+                <div className="text-green-700 text-sm">WhatsApp: {whatsapp}</div>
+                {bilheteId && (
+                  <div className="text-green-700 text-sm">Bilhete: #{bilheteId}</div>
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/" className="flex-1">
+                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                  🏠 Voltar ao Início
+                </button>
+              </Link>
+              <Link href="/ranking/geral" className="flex-1">
+                <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
+                  🏆 Ver Ranking
+                </button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!pixData) {
     return (
@@ -281,7 +355,7 @@ export default function PagamentoPix() {
           
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-yellow-800 text-sm">
-              <strong>⚠️ Importante:</strong> O PIX expira em 1 hora. Após o vencimento, será necessário gerar um novo pagamento.
+              <strong>⚠️ Importante:</strong> O PIX expira em 5 minutos. Após o vencimento, será necessário gerar um novo pagamento.
             </p>
           </div>
         </div>

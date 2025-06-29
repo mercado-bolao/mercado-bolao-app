@@ -77,12 +77,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Configurar certificado para produção
   if (!isSandbox) {
     const certificatePath = path.resolve('./certs/certificado-efi.p12');
-    
+
     console.log('🔍 Verificando certificado:');
     console.log('- Caminho:', certificatePath);
     console.log('- Existe:', fs.existsSync(certificatePath));
     console.log('- Passphrase configurada:', !!process.env.EFI_CERTIFICATE_PASSPHRASE);
-    
+
     if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
       efiConfig.certificate = certificatePath;
       efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
@@ -159,7 +159,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     console.log('🔄 Criando cobrança PIX na EFÍ...');
     console.log('📤 Body da requisição:', JSON.stringify(body, null, 2));
-    
+
     let pixResponse;
     try {
       pixResponse = await efipay.pixCreateImmediateCharge([], body);
@@ -196,7 +196,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('- Chaves em pixResponse:', Object.keys(pixResponse));
       console.error('- Chaves em pixResponse.loc:', pixResponse.loc ? Object.keys(pixResponse.loc) : 'N/A');
       console.error('📋 Resposta COMPLETA:', JSON.stringify(pixResponse, null, 2));
-      
+
       return res.status(500).json({
         error: 'Cobrança PIX criada, mas loc.id não foi retornado',
         details: 'A EFÍ Pay criou a cobrança mas não retornou o campo loc.id necessário para gerar o QR Code',
@@ -213,7 +213,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Usar PIX Copia e Cola da própria cobrança (disponível no retorno)
     console.log('🔄 Usando PIX Copia e Cola da cobrança...');
     const pixCopiaCola = pixResponse.pixCopiaECola;
-    
+
     if (!pixCopiaCola) {
       console.error('❌ PIX Copia e Cola não disponível na resposta');
       return res.status(500).json({
@@ -234,12 +234,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Salvar dados do PIX no banco de dados
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
-    
+
     // Verificar se o Prisma foi carregado corretamente
     if (!prisma || !prisma.pixPagamento) {
       console.error('❌ Prisma não carregado corretamente');
       console.log('✅ PIX gerado com sucesso, mas não foi salvo no banco');
-      
+
       return res.status(200).json({
         success: true,
         pix: {
@@ -248,7 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           qrcode: qrCodeResponse.qrcode,
           imagemQrcode: qrCodeResponse.imagemQrcode,
           valor: valorTotal,
-          expiracao: new Date(Date.now() + 3600000).toISOString(),
+          expiracao: new Date(Date.now() + 300000).toISOString(),
           ambiente: isSandbox ? 'sandbox' : 'produção',
           aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX',
           dbWarning: 'PIX não foi salvo no banco de dados'
@@ -258,7 +258,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       console.log('💾 Salvando dados do PIX no banco...');
-      
+
       const pixSalvo = await prisma.pixPagamento.create({
         data: {
           txid: pixResponse.txid,
@@ -314,7 +314,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         qrcode: qrCodeResponse.qrcode,
         imagemQrcode: qrCodeResponse.imagemQrcode,
         valor: valorTotal,
-        expiracao: new Date(Date.now() + 3600000).toISOString(),
+        expiracao: new Date(Date.now() + 300000).toISOString(),
         ambiente: isSandbox ? 'sandbox' : 'produção',
         aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX'
       },
@@ -370,7 +370,7 @@ Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
       }
     } else if (error?.message) {
       mensagemErro = error.message;
-      
+
       // Tratamento específico para erros de loc.id
       if (error.message.includes('loc.id não foi retornado')) {
         statusCode = 502;
@@ -396,7 +396,7 @@ Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
           errorKeys: error && typeof error === 'object' ? Object.keys(error) : []
         }
       };
-      
+
       console.log('📤 Enviando resposta de erro:', JSON.stringify(errorResponse, null, 2));
       return res.status(statusCode).json(errorResponse);
     } catch (jsonError) {
