@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
@@ -73,7 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 4. VERIFICAR NA EFI TODOS OS PIX PENDENTES
     const resultadosVerificacao = [];
-    
+
     for (const bilhete of pixPendentes) {
       if (!bilhete.txid) {
         resultadosVerificacao.push({
@@ -92,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const isSandbox = efiSandbox === 'true';
 
         const EfiPay = require('sdk-node-apis-efi');
-        
+
         let efiConfig: any = {
           sandbox: isSandbox,
           client_id: process.env.EFI_CLIENT_ID,
@@ -127,7 +126,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Se está pago na EFI mas pendente no banco, atualizar
         if (pixResponse.status === 'CONCLUIDA' && bilhete.status === 'PENDENTE') {
           console.log(`✅ Atualizando bilhete ${bilhete.id} para PAGO`);
-          
+
           await prisma.bilhete.update({
             where: { id: bilhete.id },
             data: { status: 'PAGO' }

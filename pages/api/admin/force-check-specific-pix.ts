@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
@@ -18,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Buscar bilhete por diferentes critérios
     let bilhete;
-    
+
     if (bilheteId) {
       bilhete = await prisma.bilhete.findUnique({
         where: { id: bilheteId }
@@ -38,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           createdAt: 'desc'
         }
       });
-      
+
       if (bilhetes.length > 0) {
         bilhete = bilhetes[0]; // Pegar o mais recente
       }
@@ -69,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🌍 Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
 
     const EfiPay = require('sdk-node-apis-efi');
-    
+
     let efiConfig: any = {
       sandbox: isSandbox,
       client_id: process.env.EFI_CLIENT_ID,
@@ -89,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
-      
+
       console.log('📋 Resposta da EFI:', JSON.stringify(pixResponse, null, 2));
 
       const statusEfi = pixResponse.status;
@@ -100,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (foiPago && bilhete.status === 'PENDENTE') {
         console.log('🔄 Atualizando bilhete para PAGO...');
-        
+
         // Atualizar bilhete
         await prisma.bilhete.update({
           where: { id: bilhete.id },
@@ -155,7 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     } catch (efiError) {
       console.error('❌ Erro na EFI:', efiError);
-      
+
       return res.status(500).json({
         success: false,
         error: 'Erro ao consultar EFI',
