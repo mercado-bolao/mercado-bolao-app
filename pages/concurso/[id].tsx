@@ -49,9 +49,11 @@ export default function ConcursoDetalhes() {
   }, [id]);
 
   const handlePalpiteChange = (jogoId: string, resultado: string) => {
+    // Converte X para 0 para manter consistência com a explicação
+    const resultadoFinal = resultado === 'X' ? '0' : resultado;
     setPalpites(prev => ({
       ...prev,
-      [jogoId]: resultado
+      [jogoId]: resultadoFinal
     }));
   };
 
@@ -349,7 +351,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "X")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          palpites[jogo.id] === "X"
+                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0")
                             ? "bg-gray-600 text-white shadow-lg transform scale-105"
                             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                         }`}
@@ -373,7 +375,7 @@ export default function ConcursoDetalhes() {
                     {palpites[jogo.id] && (
                       <div className="mt-3 text-center">
                         <span className="text-sm text-green-600 font-semibold">
-                          ✓ Palpite: {palpites[jogo.id]}
+                          ✓ Palpite: {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
                         </span>
                       </div>
                     )}
@@ -402,15 +404,18 @@ export default function ConcursoDetalhes() {
                 🛒 CARRINHO DE APOSTAS
               </h3>
               
-              {/* Grid de todos os jogos do concurso */}
+              {/* Lista de palpites na ordem dos jogos */}
               <div className="bg-white rounded-lg p-4 mb-4">
-                <div className="grid gap-3">
+                <div className="space-y-3">
                   {concurso.jogos.map((jogo, index) => {
                     // Verifica se há palpite para este jogo (no carrinho ou nos palpites atuais)
                     const palpiteCarrinho = carrinho[jogo.id];
                     const palpiteAtual = palpites[jogo.id];
                     const temPalpite = palpiteCarrinho || palpiteAtual;
                     const resultado = palpiteCarrinho || palpiteAtual;
+                    
+                    // Converte 0 para X na exibição
+                    const resultadoExibir = resultado === '0' ? 'X' : resultado;
                     
                     return (
                       <div 
@@ -464,13 +469,15 @@ export default function ConcursoDetalhes() {
                               <div className="text-center">
                                 <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg ${
                                   resultado === '1' ? 'bg-blue-600 text-white' :
-                                  resultado === 'X' ? 'bg-gray-600 text-white' :
+                                  (resultado === '0' || resultado === 'X') ? 'bg-gray-600 text-white' :
                                   resultado === '2' ? 'bg-red-600 text-white' : 'bg-gray-300'
                                 }`}>
-                                  {resultado}
+                                  {resultadoExibir}
                                 </div>
                                 <div className="text-xs mt-1 font-medium text-gray-600">
-                                  {resultado === '1' ? 'Casa' : resultado === 'X' ? 'Empate' : resultado === '2' ? 'Fora' : ''}
+                                  {resultado === '1' ? 'Casa' : 
+                                   (resultado === '0' || resultado === 'X') ? 'Empate' : 
+                                   resultado === '2' ? 'Fora' : ''}
                                 </div>
                               </div>
                               
@@ -659,7 +666,10 @@ export default function ConcursoDetalhes() {
             </div>
             <div className="ml-3">
               <p className="text-blue-700 text-sm">
-                <strong>Dica:</strong> 1 = Vitória do mandante, X = Empate, 2 = Vitória do visitante
+                <strong>Como apostar:</strong> 1 = Casa vence, X = Empate, 2 = Fora vence
+              </p>
+              <p className="text-blue-600 text-xs mt-1">
+                Os palpites aparecem no carrinho na ordem dos jogos do concurso.
               </p>
             </div>
           </div>
