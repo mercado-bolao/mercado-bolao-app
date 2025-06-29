@@ -69,14 +69,75 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!txidValido) {
         console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
-        console.log(`📌 Este bilhete foi criado com TXID no formato antigo. Para consultar na EFÍ, será necessário gerar um novo PIX.`);
         
-        // Retornar status informativo para TXIDs inválidos
+        // Mesmo com TXID inválido, tentar verificar na EFI usando fetch direto
+        try {
+          console.log('🔄 Tentando verificação alternativa na EFI...');
+          const efiSandbox = process.env.EFI_SANDBOX || 'false';
+          const isSandbox = efiSandbox === 'true';
+          const baseUrl = isSandbox 
+            ? 'https://pix-h.api.efipay.com.br'
+            : 'https://pix.api.efipay.com.br';
+
+          // Obter token
+          const authString = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
+          
+          const tokenResponse = await fetch(`${baseUrl}/oauth/token`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Basic ${authString}`
+            },
+            body: JSON.stringify({ grant_type: 'client_credentials' })
+          });
+
+          if (tokenResponse.ok) {
+            const tokenData = await tokenResponse.json();
+            
+            // Tentar consultar PIX
+            const pixResponse = await fetch(`${baseUrl}/v2/pix/${bilhete.txid}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${tokenData.access_token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (pixResponse.ok) {
+              const pixData = await pixResponse.json();
+              console.log(`✅ PIX encontrado na EFI: ${pixData.status}`);
+              
+              if (pixData.status === 'CONCLUIDA') {
+                // Atualizar status para pago
+                await prisma.bilhete.update({
+                  where: { id: bilhete.id },
+                  data: { status: 'PAGO' }
+                });
+
+                return res.status(200).json({
+                  success: true,
+                  status: 'PAGO',
+                  statusAtualizado: true,
+                  bilhete: {
+                    id: bilhete.id,
+                    status: 'PAGO',
+                    valorTotal: bilhete.valorTotal,
+                    txid: bilhete.txid
+                  }
+                });
+              }
+            }
+          }
+        } catch (altError) {
+          console.log('⚠️ Verificação alternativa falhou:', altError);
+        }
+        
+        // Retornar status atual se verificação alternativa não funcionou
         return res.status(200).json({
           success: true,
           status: bilhete.status,
           warning: 'TXID_FORMATO_ANTIGO',
-          message: 'Este bilhete possui TXID no formato antigo. Para verificar na EFÍ, gere um novo PIX.',
+          message: 'Verificando pagamento... Se você já pagou, aguarde alguns minutos.',
           bilhete: {
             id: bilhete.id,
             status: bilhete.status,

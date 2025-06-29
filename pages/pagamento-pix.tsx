@@ -60,7 +60,7 @@ export default function PagamentoPix() {
 
     try {
       console.log('🔍 Verificando status do pagamento...', { bilheteId: bilhete.id, txid: bilhete.txid || pix.txid });
-      
+
       // Primeiro verificar status local do bilhete
       const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilhete.id}`);
       const data = await response.json();
@@ -72,7 +72,7 @@ export default function PagamentoPix() {
         if (data.status === 'PAGO') {
           // Pagamento confirmado
           console.log('✅ Pagamento confirmado via verificação automática!');
-          
+
           // Mostrar notificação de sucesso
           if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('🎉 Pagamento Confirmado!', {
@@ -80,7 +80,7 @@ export default function PagamentoPix() {
               icon: '/favicon.ico'
             });
           }
-          
+
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
           localStorage.removeItem('bilheteData');
           localStorage.removeItem('pixData');
@@ -102,11 +102,11 @@ export default function PagamentoPix() {
         if (data.status === 'PENDENTE' && (bilhete.txid || pix.txid)) {
           const txidParaVerificar = bilhete.txid || pix.txid;
           console.log('🔍 Tentando verificar diretamente na EFÍ...', txidParaVerificar);
-          
+
           try {
             const efiResponse = await fetch(`/api/admin/verificar-status-efi?txid=${txidParaVerificar}`);
             const efiData = await efiResponse.json();
-            
+
             if (efiData.success && efiData.status === 'CONCLUIDA') {
               console.log('✅ PIX confirmado diretamente na EFÍ!');
               // O sistema já deve ter atualizado automaticamente, verificar novamente

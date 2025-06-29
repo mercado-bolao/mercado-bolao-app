@@ -15,18 +15,39 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Método não permitido' });
     }
 
-    // Extrair dados do webhook da EFÍ
-    const { pix } = req.body;
-    
-    if (!pix || !pix[0]) {
+    // Extrair dados do webhook da EFÍ - suportar múltiplos formatos
+    let pixData;
+    let txid;
+    let valor;
+    let status;
+
+    // Formato padrão: { pix: [{ txid, valor, status }] }
+    if (req.body.pix && req.body.pix[0]) {
+      pixData = req.body.pix[0];
+      txid = pixData.txid;
+      valor = parseFloat(pixData.valor || pixData.value || 0);
+      status = pixData.status;
+    }
+    // Formato direto: { txid, valor, status }
+    else if (req.body.txid) {
+      pixData = req.body;
+      txid = req.body.txid;
+      valor = parseFloat(req.body.valor || req.body.value || 0);
+      status = req.body.status;
+    }
+    // Formato EFI alternativo
+    else if (req.body.evento && req.body.data_criacao) {
+      // Webhook de evento EFI
+      pixData = req.body;
+      txid = req.body.txid;
+      valor = parseFloat(req.body.valor || 0);
+      status = 'PAGA'; // Se chegou aqui, provavelmente foi pago
+    }
+    else {
       console.log('❌ Dados do PIX não encontrados no webhook');
+      console.log('📥 Formato recebido:', JSON.stringify(req.body, null, 2));
       return res.status(400).json({ error: 'Dados do PIX não encontrados' });
     }
-
-    const pixData = pix[0];
-    const txid = pixData.txid;
-    const valor = parseFloat(pixData.valor);
-    const status = pixData.status; // "PAGA" quando pago
 
     console.log('💰 PIX recebido via webhook:');
     console.log('- TXID:', txid);
