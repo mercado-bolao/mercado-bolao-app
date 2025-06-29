@@ -129,9 +129,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-    // Gerar TXID único
-    const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-    console.log('🆔 TXID gerado:', txid);
+    // Gerar TXID único (alfanumérico, 26-35 caracteres para EFí Pay)
+    const timestamp = Date.now().toString();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const txid = `${timestamp}${randomString}`.replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+
+    // Garantir que o TXID tenha pelo menos 26 caracteres
+    const finalTxid = txid.length >= 26 ? txid : (txid + Math.random().toString(36).substring(2)).substring(0, 32);
+    console.log('🆔 TXID gerado:', finalTxid);
 
     const body = {
       calendario: {
@@ -246,7 +251,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // 1. Salvar PIX
       pixSalvo = await prisma.pixPagamento.create({
         data: {
-          txid: pixResponse.txid,
+          txid: finalTxid,
           whatsapp: whatsapp,
           valor: valorTotal,
           status: 'ATIVA',
@@ -298,7 +303,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             quantidadePalpites: palpitesPendentes.length,
             valorTotal: valorTotal,
             status: 'PENDENTE', // Status será alterado para PAGO no webhook
-            txid: pixResponse.txid,
+            txid: finalTxid,
             orderId: locationId.toString(),
             pixId: pixSalvo.id,
             expiresAt: new Date(Date.now() + 300000), // 5 minutos

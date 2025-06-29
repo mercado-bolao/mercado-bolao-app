@@ -86,7 +86,11 @@ export default function BilhetesAdmin() {
         // Recarregar lista após verificação
         await buscarBilhetes();
       } else {
-        alert(`❌ Erro ao verificar status:\n\n${data.error || 'Erro desconhecido'}`);
+        if (data.error?.includes('TXID inválido')) {
+          alert(`❌ TXID com formato inválido:\n\n${data.error}\n\nEste bilhete foi criado com um TXID no formato antigo. Para corrigir, será necessário gerar um novo PIX.`);
+        } else {
+          alert(`❌ Erro ao verificar status:\n\n${data.error || 'Erro desconhecido'}`);
+        }
       }
     } catch (error) {
       console.error('Erro ao verificar status:', error);

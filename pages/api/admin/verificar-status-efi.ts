@@ -18,6 +18,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
+  // Validar formato do TXID (26-35 caracteres alfanuméricos)
+  const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+  if (!txidPattern.test(txid)) {
+    return res.status(400).json({
+      success: false,
+      error: `TXID inválido. Deve ter 26-35 caracteres alfanuméricos. TXID recebido: ${txid} (${txid.length} caracteres)`
+    });
+  }
+
   try {
     console.log('🔍 Verificando status do PIX na EFÍ:', txid);
 
