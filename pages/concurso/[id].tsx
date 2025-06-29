@@ -692,6 +692,37 @@ export default function ConcursoDetalhes() {
             </div>
           )}
 
+          {/* Botões de ação - Adicionar e Limpar */}
+          {(Object.keys(palpites).length > 0 || calcularTotalBilhetes() > 0) && (
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <div className="flex gap-3">
+                {Object.keys(palpites).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={adicionarPalpitesAoCarrinho}
+                    className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <span>💾</span>
+                    <span>ADICIONAR AO CARRINHO</span>
+                  </button>
+                )}
+
+                {calcularTotalBilhetes() > 0 && (
+                  <button
+                    type="button"
+                    onClick={limparCarrinho}
+                    className="py-3 px-4 bg-red-500 text-white rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-2"
+                    title="Limpar carrinho"
+                  >
+                    <span>🗑️</span>
+                    <span>LIMPAR</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+
           {/* Carrinho de Apostas */}
           {(Object.keys(carrinho).length > 0 || Object.keys(palpites).length > 0) && (
             <div className="bg-yellow-50 rounded-xl border border-yellow-200 p-4">
@@ -805,30 +836,6 @@ export default function ConcursoDetalhes() {
                 </div>
               </div>
 
-              {/* Botões de ação compactos */}
-              <div className="mt-3 flex gap-2">
-                {Object.keys(palpites).length > 0 && (
-                  <button
-                    type="button"
-                    onClick={adicionarPalpitesAoCarrinho}
-                    className="flex-1 py-2 px-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
-                  >
-                    💾 Adicionar
-                  </button>
-                )}
-
-                {calcularTotalBilhetes() > 0 && (
-                  <button
-                    type="button"
-                    onClick={limparCarrinho}
-                    className="py-2 px-3 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors"
-                    title="Limpar carrinho"
-                  >
-                    🗑️
-                  </button>
-                )}
-              </div>
-
               {/* Botão principal de gerar pagamento */}
               <button
                 onClick={handleGerarPagamento}
@@ -854,7 +861,7 @@ export default function ConcursoDetalhes() {
             </div>
           )}
 
-          
+
         </div>
 
         {/* Dica */}
