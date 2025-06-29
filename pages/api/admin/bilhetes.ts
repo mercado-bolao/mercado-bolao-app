@@ -1,6 +1,8 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../../lib/prisma';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -52,5 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Erro ao buscar bilhetes',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
+  } finally {
+    await prisma.$disconnect();
   }
 }
