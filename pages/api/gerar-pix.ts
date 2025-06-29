@@ -85,40 +85,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Gerar identificadores únicos
     const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Gerar TXID válido conforme padrão EFÍ (26-35 caracteres alfanuméricos)
-    const generateValidTxid = (): string => {
-      const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-      let txid = '';
-      
-      // Gerar exatamente 32 caracteres (meio do range 26-35)
-      for (let i = 0; i < 32; i++) {
-        txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-      }
-      
-      // Sanitizar para garantir que não há caracteres inválidos
-      txid = txid.replace(/[^a-zA-Z0-9]/g, '');
-      
-      // Se por algum motivo ficou menor que 32, completar
-      while (txid.length < 32) {
-        txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-      }
-      
-      // Garantir exatamente 32 caracteres
-      if (txid.length > 32) {
-        txid = txid.substring(0, 32);
-      }
-      
-      console.log('🔧 TXID gerado limpo:', {
-        txid: txid,
-        comprimento: txid.length,
-        somenteAlfanumerico: /^[a-zA-Z0-9]+$/.test(txid),
-        dentroDoRange: txid.length >= 26 && txid.length <= 35
-      });
-      
-      return txid;
-    };
-
-    const txid = generateValidTxid();
+    // Usar utilitária de TXID para geração confiável
+    const { TxidUtils } = await import('../../lib/txid-utils');
+    const txid = TxidUtils.gerarTxidUnico('PIX');
 
     // 🔒 VALIDAÇÃO: Verificar se TXID está no formato correto
     const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
