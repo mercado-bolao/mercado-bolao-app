@@ -1,9 +1,19 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     console.log('🏥 Verificação de saúde EFI Pay...');
+
+    const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
+
+    // Em produção, verificar se o certificado existe
+    let certificateExists = false;
+    try {
+      const fs = require('fs');
+      certificateExists = fs.existsSync(certificatePath);
+    } catch (error) {
+      console.warn('Não foi possível verificar certificado:', error);
+    }
 
     const config = {
       EFI_SANDBOX: process.env.EFI_SANDBOX || 'false',
@@ -11,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       EFI_CLIENT_SECRET: !!process.env.EFI_CLIENT_SECRET,
       EFI_PIX_KEY: !!process.env.EFI_PIX_KEY,
       EFI_CERTIFICATE_PASSPHRASE: !!process.env.EFI_CERTIFICATE_PASSPHRASE,
-      certificateExists: require('fs').existsSync('./certs/certificado-efi.p12')
+      certificateExists: certificateExists
     };
 
     const isSandbox = config.EFI_SANDBOX === 'true';
