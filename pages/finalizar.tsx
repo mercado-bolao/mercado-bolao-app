@@ -21,6 +21,7 @@ interface Palpite {
 interface PalpitesPendentes {
   palpites: Palpite[];
   totalPalpites: number;
+  totalBilhetes: number;
   valorTotal: number;
   usuario: {
     nome: string;
@@ -72,14 +73,7 @@ export default function FinalizarAposta() {
     }
   };
 
-  const formatResultado = (resultado: string) => {
-    switch (resultado) {
-      case "1": return "Casa";
-      case "X": return "Empate";
-      case "2": return "Fora";
-      default: return resultado;
-    }
-  };
+  
 
   const gerarPagamento = async () => {
     if (!palpitesPendentes) return;
@@ -183,8 +177,8 @@ export default function FinalizarAposta() {
               <div className="text-lg font-semibold text-blue-800">{palpitesPendentes.usuario.nome}</div>
             </div>
             <div className="bg-green-50 rounded-lg p-4">
-              <div className="text-sm text-green-600 font-medium">Total de Palpites</div>
-              <div className="text-lg font-semibold text-green-800">{palpitesPendentes.totalPalpites}</div>
+              <div className="text-sm text-green-600 font-medium">Total de Bilhetes</div>
+              <div className="text-lg font-semibold text-green-800">{palpitesPendentes.totalBilhetes}</div>
             </div>
             <div className="bg-purple-50 rounded-lg p-4">
               <div className="text-sm text-purple-600 font-medium">Valor Total</div>
@@ -193,42 +187,7 @@ export default function FinalizarAposta() {
           </div>
         </div>
 
-        {/* Lista de palpites */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">🎯 Seus Palpites</h3>
-          <div className="space-y-3">
-            {palpitesPendentes.palpites.map((palpite, index) => (
-              <div key={palpite.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div className="flex justify-between items-center">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <span className="w-6 h-6 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center text-xs font-bold">
-                        {index + 1}
-                      </span>
-                      <h4 className="font-semibold text-gray-800">
-                        {palpite.jogo.mandante} x {palpite.jogo.visitante}
-                      </h4>
-                    </div>
-                    <div className="flex items-center space-x-4 text-sm text-gray-600">
-                      <span>📅 {new Date(palpite.jogo.horario).toLocaleDateString('pt-BR')}</span>
-                      <span>🕒 {new Date(palpite.jogo.horario).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                      palpite.resultado === "1" ? "bg-blue-100 text-blue-800" :
-                      palpite.resultado === "X" ? "bg-gray-100 text-gray-800" :
-                      "bg-red-100 text-red-800"
-                    }`}>
-                      {formatResultado(palpite.resultado)}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-1">R$ {palpite.valor.toFixed(2)}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        
 
         {/* Total e botão de pagamento */}
         <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-2xl shadow-lg p-6 border-2 border-green-200">
@@ -238,7 +197,7 @@ export default function FinalizarAposta() {
               R$ {palpitesPendentes.valorTotal.toFixed(2)}
             </div>
             <p className="text-gray-600">
-              {palpitesPendentes.totalPalpites} palpite(s) × R$ 10,00 cada
+              {palpitesPendentes.totalBilhetes} bilhete(s) × R$ 10,00 cada
             </p>
           </div>
 

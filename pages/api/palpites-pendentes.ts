@@ -50,7 +50,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Calcular totais
     const totalPalpites = palpites.length;
-    const valorTotal = palpites.reduce((total, palpite) => total + palpite.valor, 0);
+    
+    // Calcular número de bilhetes: cada bilhete tem 8 palpites
+    const totalBilhetes = Math.ceil(totalPalpites / 8);
+    
+    // Valor total: R$ 10,00 por bilhete (não por palpite)
+    const valorTotal = totalBilhetes * 10;
 
     // Pegar informações do usuário do primeiro palpite
     const usuario = {
@@ -58,11 +63,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       whatsapp: palpites[0].whatsapp
     };
 
+    console.log('💰 Total de palpites:', totalPalpites);
+    console.log('🎫 Total de bilhetes:', totalBilhetes);
     console.log('💰 Valor total calculado:', valorTotal);
 
     return res.status(200).json({
       palpites,
       totalPalpites,
+      totalBilhetes,
       valorTotal,
       usuario
     });
