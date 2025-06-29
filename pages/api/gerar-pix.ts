@@ -24,6 +24,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
   }
 
+  console.log('✅ Método POST confirmado');
+
+    // Usar variáveis dos Secrets do Replit - PRODUÇÃO
+    const efiSandbox = process.env.EFI_SANDBOX || 'false';
+    const efiClientId = process.env.EFI_CLIENT_ID;
+    const efiClientSecret = process.env.EFI_CLIENT_SECRET;
+    const efiPixKey = process.env.EFI_PIX_KEY;
+
   // Validar credenciais obrigatórias para produção
   if (!efiClientId || !efiClientSecret || !efiPixKey) {
     console.error('❌ Credenciais EFI não configuradas:', {
@@ -41,14 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     });
   }
-
-  console.log('✅ Método POST confirmado');
-
-    // Usar variáveis dos Secrets do Replit - PRODUÇÃO
-    const efiSandbox = process.env.EFI_SANDBOX || 'false';
-    const efiClientId = process.env.EFI_CLIENT_ID;
-    const efiClientSecret = process.env.EFI_CLIENT_SECRET;
-    const efiPixKey = process.env.EFI_PIX_KEY;
 
     const isSandbox = efiSandbox === 'true';
 
