@@ -387,7 +387,7 @@ export default function ConcursoDetalhes() {
       // Calcular valor total correto
       const totalBilhetesLocal = calcularTotalBilhetes();
       const valorTotalLocal = totalBilhetesLocal * 10;
-      
+
       console.log('💰 Cálculo local:', {
         totalBilhetes: totalBilhetesLocal,
         valorTotal: valorTotalLocal
@@ -409,7 +409,7 @@ export default function ConcursoDetalhes() {
 
       // 3. Gerar PIX com valor correto calculado localmente
       const valorTotalCorreto = calcularTotalBilhetes() * 10;
-      
+
       const pixResponse = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
@@ -665,7 +665,7 @@ export default function ConcursoDetalhes() {
                   </div>
                 </div>
 
-                
+
               </div>
             ))}
           </div>
@@ -789,7 +789,8 @@ export default function ConcursoDetalhes() {
               </div>
 
               {/* Resumo compacto e dados obrigatórios */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2```python
+ gap-4">
                 {/* Resumo financeiro compacto */}
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-3 border border-green-200">
                   <div className="text-xs font-medium text-green-700 mb-1">💰 Resumo</div>
@@ -866,7 +867,7 @@ export default function ConcursoDetalhes() {
         </div>
 
         {/* Dica */}
-        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mt-6">
+        <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-lg mt-6 mb-24">
           <div className="flex">
             <div className="flex-shrink-0">
               <span className="text-2xl">💡</span>
@@ -876,10 +877,10 @@ export default function ConcursoDetalhes() {
                 <strong>Como apostar:</strong> 1 = Casa vence, X = Empate, 2 = Fora vence
               </p>
               <p className="text-blue-600 text-xs mt-1">
-                <strong>Nova regra:</strong> Cada conjunto completo de palpites = 1 bilhete de R$ 10,00
+                <strong>Nova regra:</strong> Cada conjunto completo de palpites = 1 bilhete de R$ 1,00
               </p>
               <p className="text-blue-600 text-xs mt-1">
-                <strong>Exemplo:</strong> 3 conjuntos diferentes de palpites = 3 bilhetes = R$ 30,00 total
+                <strong>Exemplo:</strong> 3 conjuntos diferentes de palpites = 3 bilhetes = R$ 3,00 total
               </p>
               <p className="text-blue-600 text-xs mt-1">
                 <strong>Permitido:</strong> Mesmo resultado em palpites diferentes (Ex: Casa em Bilhete 1 e 2)
@@ -888,6 +889,71 @@ export default function ConcursoDetalhes() {
           </div>
         </div>
       </div>
+
+      {/* Rodapé fixo para pagamento - só aparece se não há palpites encerrados e há bilhetes no carrinho */}
+      {!palpitesEncerrados && calcularTotalBilhetes() > 0 && (
+        <div className="fixed bottom-0 left-0 w-full bg-white border-t-2 border-green-200 shadow-lg p-4 z-50">
+          <div className="max-w-2xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              {/* Campo Nome */}
+              <div className="flex-1 md:max-w-xs">
+                <input
+                  type="text"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                  placeholder="Nome completo"
+                  required
+                />
+              </div>
+
+              {/* Campo WhatsApp */}
+              <div className="flex-1 md:max-w-xs">
+                <input
+                  type="tel"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 placeholder-gray-500"
+                  placeholder="WhatsApp (11) 99999-9999"
+                  required
+                />
+              </div>
+
+              {/* Botão de Pagamento */}
+              <div className="flex-1 md:flex-none">
+                <button
+                  onClick={handleGerarPagamento}
+                  disabled={!canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento}
+                  className={`w-full md:w-auto px-6 py-3 rounded-lg font-bold text-sm transition-all ${
+                    !canSubmit || calcularTotalBilhetes() === 0 || processandoPagamento
+                      ? 'bg-gray-400 cursor-not-allowed text-gray-700'
+                      : 'bg-green-600 hover:bg-green-700 shadow-md text-white'
+                  } flex items-center justify-center space-x-2 whitespace-nowrap`}
+                >
+                  {processandoPagamento ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      <span>Gerando...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💳</span>
+                      <span>GERAR PAGAMENTO - R$ {(calcularTotalBilhetes() * 1).toFixed(2)}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Resumo compacto */}
+            <div className="mt-2 text-center">
+              <span className="text-xs text-gray-600">
+                {calcularTotalBilhetes()} bilhete(s) • R$ 1,00 cada • Total: R$ {(calcularTotalBilhetes() * 1).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
