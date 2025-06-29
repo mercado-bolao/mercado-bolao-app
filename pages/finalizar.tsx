@@ -176,6 +176,9 @@ export default function FinalizarAposta() {
 
       console.log('📋 Palpites encontrados:', palpitesData.palpites.length);
 
+      // Buscar nome do usuário dos palpites ou usar um padrão
+      const nomeUsuario = palpitesPendentes.usuario?.nome || palpitesData.usuario?.nome || `Cliente ${whatsapp}`;
+
       const response = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
@@ -183,6 +186,7 @@ export default function FinalizarAposta() {
         },
         body: JSON.stringify({
           whatsapp: whatsapp,
+          nome: nomeUsuario,
           valorTotal: palpitesPendentes.valorTotal,
           totalBilhetes: palpitesPendentes.totalBilhetes,
           palpites: palpitesData.palpites

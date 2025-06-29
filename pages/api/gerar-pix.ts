@@ -16,15 +16,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Método não permitido' });
     }
 
-    const { whatsapp, valorTotal, totalBilhetes, palpites } = req.body;
+    const { whatsapp, valorTotal, totalBilhetes, palpites, nome } = req.body;
 
     console.log('🔄 Iniciando geração de PIX...');
-    console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes, palpites: palpites?.length });
+    console.log('📥 Dados recebidos:', { whatsapp, nome, valorTotal, totalBilhetes, palpites: palpites?.length });
 
     if (!whatsapp || !valorTotal || !totalBilhetes || !palpites || palpites.length === 0) {
       console.error('❌ Dados obrigatórios não fornecidos');
       return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
     }
+
+    // Se nome não foi fornecido, usar um padrão
+    const nomeUsuario = nome || `Cliente ${whatsapp}`;
 
     // Usar variáveis dos Secrets do Replit
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
@@ -90,6 +93,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const bilhete = await prisma.bilhete.create({
       data: {
         whatsapp: whatsapp,
+        nome: nomeUsuario,
         valor: valorTotal,
         status: 'PENDENTE',
         orderId: orderId,
