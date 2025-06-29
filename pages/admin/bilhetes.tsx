@@ -209,6 +209,27 @@ export default function BilhetesAdmin() {
   };
 
   const formatarDispositivo = (userAgent?: string) => {
+    if (!userAgent || userAgent === 'Não informado') {
+      return 'Dispositivo não identificado';
+    }
+
+    // Detectar navegador
+    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
+      return '🌐 Chrome';
+    } else if (userAgent.includes('Firefox')) {
+      return '🦊 Firefox';
+    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
+      return '🧭 Safari';
+    } else if (userAgent.includes('Edg')) {
+      return '🔵 Edge';
+    } else if (userAgent.includes('Opera')) {
+      return '🎭 Opera';
+    } else if (userAgent.includes('Mobile')) {
+      return '📱 Mobile';
+    } else {
+      return '🖥️ Desktop';
+    }
+  }; => {
     if (!userAgent) return 'Não informado';
 
     let dispositivo = 'Desconhecido';
@@ -486,16 +507,11 @@ export default function BilhetesAdmin() {
                               <div className="text-gray-600 mb-1">
                                 🖥️ {formatarDispositivo(bilhete.userAgent)}
                               </div>
-                              {bilhete.ipAddress && (
-                                <div className="text-gray-500 font-mono">
-                                  🌐 IP: {bilhete.ipAddress}
-                                </div>
-                              )}
-                              {!bilhete.ipAddress && (
-                                <div className="text-gray-400">
-                                  🌐 IP: Não informado
-                                </div>
-                              )}
+                              <div className={`font-mono text-xs ${bilhete.ipAddress && bilhete.ipAddress !== 'IP não detectado' 
+                                ? 'text-gray-600' 
+                                : 'text-gray-400'}`}>
+                                🌐 IP: {bilhete.ipAddress || 'Não detectado'}
+                              </div>
                             </div>
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap">

@@ -20,12 +20,36 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('🎫 Criando bilhete:', { whatsapp, nome, quantidadePalpites: palpites.length });
 
     // Capturar informações do cliente
-    const userAgent = req.headers['user-agent'] || null;
-    const ipAddress = req.headers['x-forwarded-for'] || 
-                     req.headers['x-real-ip'] || 
-                     req.connection?.remoteAddress || 
-                     req.socket?.remoteAddress || 
-                     null;
+    const userAgent = req.headers['user-agent'] || 'Não informado';
+    
+    // Captura mais robusta do IP
+    let ipAddress = null;
+    
+    if (req.headers['x-forwarded-for']) {
+      // Pega o primeiro IP da lista se houver múltiplos
+      ipAddress = req.headers['x-forwarded-for'].toString().split(',')[0].trim();
+    } else if (req.headers['x-real-ip']) {
+      ipAddress = req.headers['x-real-ip'].toString();
+    } else if (req.connection?.remoteAddress) {
+      ipAddress = req.connection.remoteAddress;
+    } else if (req.socket?.remoteAddress) {
+      ipAddress = req.socket.remoteAddress;
+    } else if (req.headers['cf-connecting-ip']) {
+      // Para Cloudflare
+      ipAddress = req.headers['cf-connecting-ip'].toString();
+    } else {
+      ipAddress = 'IP não detectado';
+    }
+
+    console.log('📱 Informações do cliente capturadas:', {
+      userAgent: userAgent,
+      ipAddress: ipAddress,
+      headers: {
+        'x-forwarded-for': req.headers['x-forwarded-for'],
+        'x-real-ip': req.headers['x-real-ip'],
+        'cf-connecting-ip': req.headers['cf-connecting-ip']
+      }
+    });
 
     // Calcular valor total (R$ 10,00 por palpite)
     const valorTotal = palpites.length * 10.0;
@@ -42,8 +66,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         quantidadePalpites: palpites.length,
         status: 'PENDENTE',
         expiresAt,
-        ipAddress: typeof ipAddress === 'string' ? ipAddress.split(',')[0].trim() : null,
-        userAgent
+        ipAddress: ipAddress,
+        userAgent: userAgent
       }
     });
 
