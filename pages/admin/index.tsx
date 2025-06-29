@@ -37,11 +37,55 @@ export default function AdminPanel() {
   const [palpites, setPalpites] = useState<Palpite[]>([]);
   const [jogos, setJogos] = useState<Jogo[]>([]);
   const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState<string | null>(null);
   const [filtros, setFiltros] = useState({
     concursoId: "",
     jogoId: "",
-    usuario: ""
+    usuario: "",
+    nome: "",
+    whatsapp: "",
+    status: ""
   });
+
+  const buscarConcursos = async () => {
+    try {
+      const response = await fetch("/api/admin/concursos");
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      // Garantir que data é um array
+      if (Array.isArray(data)) {
+        setConcursos(data);
+      } else {
+        console.error("API retornou dados inválidos:", data);
+        setConcursos([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar concursos:", error);
+      setConcursos([]); // Garantir que concursos seja um array vazio em caso de erro
+    }
+  };
+
+  const buscarJogos = async (concursoId: string) => {
+    try {
+      const response = await fetch(`/api/admin/jogos?concursoId=${concursoId}`);
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setJogos(data);
+      } else {
+        console.error("API retornou dados inválidos para jogos:", data);
+        setJogos([]);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar jogos:", error);
+      setJogos([]);
+    }
+  };
 
   useEffect(() => {
     buscarConcursos();
