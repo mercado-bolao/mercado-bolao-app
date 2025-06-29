@@ -3,68 +3,89 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import https from 'https';
 import { URL } from 'url';
 
-function makeHttpsRequest(url: string, options: any, postData?: string): Promise<any> {
+function makeHttpsRequestWithRetry(url: string, options: any, postData?: string, retries = 3): Promise<any> {
   return new Promise((resolve, reject) => {
-    const parsedUrl = new URL(url);
-    
-    const requestOptions = {
-      hostname: parsedUrl.hostname,
-      port: parsedUrl.port || 443,
-      path: parsedUrl.pathname + parsedUrl.search,
-      method: options.method || 'GET',
-      headers: options.headers || {},
-      timeout: 30000
-    };
-
-    console.log('🌐 Fazendo requisição HTTPS para:', url);
-    console.log('🔧 Opções da requisição:', requestOptions);
-
-    const req = https.request(requestOptions, (res) => {
-      let data = '';
+    const attemptRequest = (attempt: number) => {
+      const parsedUrl = new URL(url);
       
-      res.on('data', (chunk) => {
-        data += chunk;
-      });
-      
-      res.on('end', () => {
-        console.log('📡 Status da resposta:', res.statusCode);
-        console.log('📋 Dados recebidos:', data);
+      const requestOptions = {
+        hostname: parsedUrl.hostname,
+        port: parsedUrl.port || 443,
+        path: parsedUrl.pathname + parsedUrl.search,
+        method: options.method || 'GET',
+        headers: {
+          ...options.headers,
+          'Connection': 'close', // Força fechar conexão após uso
+          'User-Agent': 'Replit-API-Test/1.0'
+        },
+        timeout: 15000, // Timeout menor
+        // Configurações SSL mais permissivas
+        rejectUnauthorized: false,
+        secureProtocol: 'TLSv1_2_method'
+      };
+
+      console.log(`🌐 Tentativa ${attempt}/${retries} para: ${url}`);
+
+      const req = https.request(requestOptions, (res) => {
+        let data = '';
         
-        try {
-          const jsonData = JSON.parse(data);
-          resolve({
-            ok: res.statusCode >= 200 && res.statusCode < 300,
-            status: res.statusCode,
-            data: jsonData,
-            text: data
-          });
-        } catch (err) {
-          resolve({
-            ok: res.statusCode >= 200 && res.statusCode < 300,
-            status: res.statusCode,
-            data: null,
-            text: data
-          });
+        res.on('data', (chunk) => {
+          data += chunk;
+        });
+        
+        res.on('end', () => {
+          console.log(`✅ Tentativa ${attempt} - Status: ${res.statusCode}`);
+          
+          try {
+            const jsonData = JSON.parse(data);
+            resolve({
+              ok: res.statusCode >= 200 && res.statusCode < 300,
+              status: res.statusCode,
+              data: jsonData,
+              text: data
+            });
+          } catch (err) {
+            resolve({
+              ok: res.statusCode >= 200 && res.statusCode < 300,
+              status: res.statusCode,
+              data: null,
+              text: data
+            });
+          }
+        });
+      });
+
+      req.on('error', (err) => {
+        console.error(`❌ Tentativa ${attempt} falhou:`, err.message);
+        
+        if (attempt < retries) {
+          console.log(`🔄 Tentando novamente em 2 segundos...`);
+          setTimeout(() => attemptRequest(attempt + 1), 2000);
+        } else {
+          reject(new Error(`Falha após ${retries} tentativas: ${err.message}`));
         }
       });
-    });
 
-    req.on('error', (err) => {
-      console.error('❌ Erro na requisição HTTPS:', err);
-      reject(err);
-    });
+      req.on('timeout', () => {
+        console.error(`⏰ Timeout na tentativa ${attempt}`);
+        req.destroy();
+        
+        if (attempt < retries) {
+          console.log(`🔄 Tentando novamente após timeout...`);
+          setTimeout(() => attemptRequest(attempt + 1), 2000);
+        } else {
+          reject(new Error(`Timeout após ${retries} tentativas`));
+        }
+      });
 
-    req.on('timeout', () => {
-      console.error('⏰ Timeout na requisição HTTPS');
-      req.destroy();
-      reject(new Error('Request timeout'));
-    });
+      if (postData) {
+        req.write(postData);
+      }
+      
+      req.end();
+    };
 
-    if (postData) {
-      req.write(postData);
-    }
-    
-    req.end();
+    attemptRequest(1);
   });
 }
 
@@ -83,7 +104,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🧪 Teste direto da API EFÍ usando HTTPS nativo:', txid);
+    console.log('🧪 Teste ROBUSTO da API EFÍ com retry:', txid);
 
     // Configurações da EFÍ
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
@@ -93,12 +114,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!efiClientId || !efiClientSecret) {
       return res.status(400).json({
         success: false,
-        error: 'Credenciais EFI não configuradas',
-        env_check: {
-          EFI_SANDBOX: !!process.env.EFI_SANDBOX,
-          EFI_CLIENT_ID: !!process.env.EFI_CLIENT_ID,
-          EFI_CLIENT_SECRET: !!process.env.EFI_CLIENT_SECRET
-        }
+        error: 'Credenciais EFI não configuradas'
       });
     }
 
@@ -107,82 +123,100 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? 'https://pix-h.api.efipay.com.br'
       : 'https://pix.api.efipay.com.br';
 
-    console.log('🏗️ Usando ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
+    console.log('🏗️ Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
     console.log('🌐 Base URL:', baseUrl);
 
-    // Primeiro, obter token de acesso
-    console.log('🔑 Obtendo token de acesso...');
+    // Testar conectividade primeiro
+    console.log('🔌 Testando conectividade...');
     
-    const authString = Buffer.from(`${efiClientId}:${efiClientSecret}`).toString('base64');
-    
-    const tokenResponse = await makeHttpsRequest(`${baseUrl}/oauth/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${authString}`
+    try {
+      // Primeiro, obter token de acesso com retry
+      console.log('🔑 Obtendo token de acesso com retry...');
+      
+      const authString = Buffer.from(`${efiClientId}:${efiClientSecret}`).toString('base64');
+      
+      const tokenResponse = await makeHttpsRequestWithRetry(`${baseUrl}/oauth/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${authString}`
+        }
+      }, JSON.stringify({
+        grant_type: 'client_credentials'
+      }), 2); // 2 tentativas para o token
+
+      if (!tokenResponse.ok) {
+        console.error('❌ Erro ao obter token:', tokenResponse);
+        return res.status(400).json({
+          success: false,
+          error: 'Erro ao obter token de acesso',
+          details: tokenResponse.text,
+          statusCode: tokenResponse.status
+        });
       }
-    }, JSON.stringify({
-      grant_type: 'client_credentials'
-    }));
 
-    if (!tokenResponse.ok) {
-      console.error('❌ Erro ao obter token:', tokenResponse);
-      return res.status(400).json({
-        success: false,
-        error: 'Erro ao obter token de acesso',
-        details: tokenResponse.text,
-        statusCode: tokenResponse.status
-      });
-    }
+      const accessToken = tokenResponse.data.access_token;
+      console.log('✅ Token obtido com sucesso');
 
-    const accessToken = tokenResponse.data.access_token;
-    console.log('✅ Token obtido com sucesso');
+      // Consultar o PIX usando o TXID com retry
+      console.log('📡 Consultando PIX com retry...');
+      
+      const pixResponse = await makeHttpsRequestWithRetry(`${baseUrl}/v2/pix/${txid}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        }
+      }, undefined, 3); // 3 tentativas para a consulta PIX
 
-    // Agora consultar o PIX usando o TXID
-    console.log('📡 Consultando PIX diretamente na API...');
-    console.log('🔍 URL da requisição:', `${baseUrl}/v2/pix/${txid}`);
-    console.log('🔍 TXID sendo enviado:', txid);
+      if (pixResponse.ok) {
+        return res.status(200).json({
+          success: true,
+          message: '✅ API com retry funcionou!',
+          txid: txid,
+          status: pixResponse.data.status,
+          pixData: pixResponse.data,
+          environment: isSandbox ? 'sandbox' : 'production'
+        });
 
-    const pixResponse = await makeHttpsRequest(`${baseUrl}/v2/pix/${txid}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'TXID rejeitado pela API EFÍ (com retry)',
+          statusCode: pixResponse.status,
+          errorData: pixResponse.data || pixResponse.text,
+          txidTentado: txid,
+          environment: isSandbox ? 'sandbox' : 'production'
+        });
       }
-    });
 
-    console.log('📋 Resposta da EFÍ:', pixResponse);
-
-    if (pixResponse.ok) {
-      return res.status(200).json({
-        success: true,
-        message: '✅ API direta com HTTPS nativo funcionou!',
-        txid: txid,
-        status: pixResponse.data.status,
-        pixData: pixResponse.data,
-        environment: isSandbox ? 'sandbox' : 'production'
-      });
-
-    } else {
-      console.log('❌ Erro da API EFÍ:', pixResponse);
-
-      return res.status(400).json({
+    } catch (connectivityError) {
+      console.error('❌ Erro de conectividade:', connectivityError);
+      
+      return res.status(503).json({
         success: false,
-        error: 'TXID rejeitado pela API direta da EFÍ',
-        statusCode: pixResponse.status,
-        errorData: pixResponse.data || pixResponse.text,
-        txidTentado: txid,
-        urlUsada: `${baseUrl}/v2/pix/${txid}`,
-        environment: isSandbox ? 'sandbox' : 'production'
+        error: 'Problema de conectividade com a API EFÍ',
+        details: connectivityError instanceof Error ? connectivityError.message : String(connectivityError),
+        possibleCauses: [
+          'Firewall do Replit bloqueando conexões HTTPS',
+          'DNS não resolvendo efipay.com.br',
+          'Timeout de rede',
+          'Instabilidade temporária da API EFÍ'
+        ],
+        nextSteps: [
+          'Tente novamente em alguns minutos',
+          'Verifique se as credenciais estão corretas',
+          'Considere usar ambiente SANDBOX se estiver em produção'
+        ]
       });
     }
 
   } catch (error) {
-    console.error('❌ Erro no teste direto:', error);
+    console.error('❌ Erro geral:', error);
     
     return res.status(500).json({
       success: false,
-      error: 'Erro no teste da API direta',
+      error: 'Erro no teste da API',
       details: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     });
