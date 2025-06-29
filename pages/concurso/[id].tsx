@@ -52,20 +52,21 @@ export default function ConcursoDetalhes() {
     // Converte X para 0 para manter consistência com a explicação
     const resultadoFinal = resultado === 'X' ? '0' : resultado;
     
-    // Verifica se o jogo já está no carrinho
+    // Sempre adiciona aos palpites pendentes (não confirmados)
+    // Se o jogo já estava nos palpites, substitui
+    // Se o jogo estava no carrinho, remove do carrinho e coloca nos palpites para edição
     if (carrinho[jogoId]) {
-      // Se já está no carrinho, atualiza diretamente no carrinho
-      setCarrinho(prev => ({
-        ...prev,
-        [jogoId]: resultadoFinal
-      }));
-    } else {
-      // Se não está no carrinho, adiciona aos palpites pendentes
-      setPalpites(prev => ({
-        ...prev,
-        [jogoId]: resultadoFinal
-      }));
+      // Remove do carrinho
+      const newCarrinho = { ...carrinho };
+      delete newCarrinho[jogoId];
+      setCarrinho(newCarrinho);
     }
+    
+    // Adiciona ou atualiza nos palpites pendentes
+    setPalpites(prev => ({
+      ...prev,
+      [jogoId]: resultadoFinal
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -351,7 +352,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "1")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          palpites[jogo.id] === "1"
+                          (palpites[jogo.id] === "1" || carrinho[jogo.id] === "1")
                             ? "bg-blue-600 text-white shadow-lg transform scale-105"
                             : "bg-blue-100 text-blue-800 hover:bg-blue-200"
                         }`}
@@ -362,7 +363,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "X")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0")
+                          (palpites[jogo.id] === "X" || palpites[jogo.id] === "0" || carrinho[jogo.id] === "X" || carrinho[jogo.id] === "0")
                             ? "bg-gray-600 text-white shadow-lg transform scale-105"
                             : "bg-gray-100 text-gray-800 hover:bg-gray-200"
                         }`}
@@ -373,7 +374,7 @@ export default function ConcursoDetalhes() {
                         type="button"
                         onClick={() => handlePalpiteChange(jogo.id, "2")}
                         className={`py-3 px-4 rounded-lg font-semibold text-lg transition-all ${
-                          palpites[jogo.id] === "2"
+                          (palpites[jogo.id] === "2" || carrinho[jogo.id] === "2")
                             ? "bg-red-600 text-white shadow-lg transform scale-105"
                             : "bg-red-100 text-red-800 hover:bg-red-200"
                         }`}
@@ -383,10 +384,14 @@ export default function ConcursoDetalhes() {
                     </div>
 
                     {/* Palpite selecionado */}
-                    {palpites[jogo.id] && (
+                    {(palpites[jogo.id] || carrinho[jogo.id]) && (
                       <div className="mt-3 text-center">
-                        <span className="text-sm text-green-600 font-semibold">
-                          ✓ Palpite: {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
+                        <span className={`text-sm font-semibold ${
+                          carrinho[jogo.id] ? 'text-green-600' : 'text-blue-600'
+                        }`}>
+                          {carrinho[jogo.id] ? '✅ Confirmado' : '⏳ Selecionado'}: {
+                            (palpites[jogo.id] || carrinho[jogo.id]) === '0' ? 'X' : (palpites[jogo.id] || carrinho[jogo.id])
+                          }
                         </span>
                       </div>
                     )}
