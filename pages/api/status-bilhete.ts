@@ -80,7 +80,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('Erro ao verificar status do bilhete:', error);
     return res.status(500).json({ error: 'Erro interno do servidor' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

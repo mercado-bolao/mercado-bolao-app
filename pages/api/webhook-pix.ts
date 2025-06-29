@@ -179,7 +179,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       details: error instanceof Error ? error.message : 'Erro desconhecido',
       received: true
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }
