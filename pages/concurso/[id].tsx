@@ -552,7 +552,7 @@ export default function ConcursoDetalhes() {
                   {/* Time mandante com sigla */}
                   <div className="flex items-center space-x-2 flex-1">
                     <div className="w-6 h-6 flex-shrink-0">
-                      {jogo.fotoMandante ? (
+                      {jogo.fotoMandante && !jogo.fotoMandante.startsWith('data:') ? (
                         <img 
                           src={jogo.fotoMandante.startsWith('/uploads/') ? jogo.fotoMandante : `/uploads/${jogo.fotoMandante}`}
                           alt={jogo.mandante}
@@ -567,8 +567,8 @@ export default function ConcursoDetalhes() {
                         />
                       ) : null}
                       <div 
-                        className={`w-full h-full rounded-full bg-blue-50 flex items-center justify-center border ${jogo.fotoMandante ? 'hidden' : 'flex'}`}
-                        style={{ display: jogo.fotoMandante ? 'none' : 'flex' }}
+                        className={`w-full h-full rounded-full bg-blue-50 flex items-center justify-center border ${jogo.fotoMandante && !jogo.fotoMandante.startsWith('data:') ? 'hidden' : 'flex'}`}
+                        style={{ display: jogo.fotoMandante && !jogo.fotoMandante.startsWith('data:') ? 'none' : 'flex' }}
                       >
                         <span className="text-blue-600 font-bold text-xs">
                           {jogo.mandante.substring(0, 2).toUpperCase()}
@@ -629,7 +629,7 @@ export default function ConcursoDetalhes() {
                       {jogo.visitante.length > 12 ? `${jogo.visitante.substring(0, 12)}...` : jogo.visitante}
                     </span>
                     <div className="w-6 h-6 flex-shrink-0">
-                      {jogo.fotoVisitante ? (
+                      {jogo.fotoVisitante && !jogo.fotoVisitante.startsWith('data:') ? (
                         <img 
                           src={jogo.fotoVisitante.startsWith('/uploads/') ? jogo.fotoVisitante : `/uploads/${jogo.fotoVisitante}`}
                           alt={jogo.visitante}
@@ -644,8 +644,8 @@ export default function ConcursoDetalhes() {
                         />
                       ) : null}
                       <div 
-                        className={`w-full h-full rounded-full bg-red-50 flex items-center justify-center border ${jogo.fotoVisitante ? 'hidden' : 'flex'}`}
-                        style={{ display: jogo.fotoVisitante ? 'none' : 'flex' }}
+                        className={`w-full h-full rounded-full bg-red-50 flex items-center justify-center border ${jogo.fotoVisitante && !jogo.fotoVisitante.startsWith('data:') ? 'hidden' : 'flex'}`}
+                        style={{ display: jogo.fotoVisitante && !jogo.fotoVisitante.startsWith('data:') ? 'none' : 'flex' }}
                       >
                         <span className="text-red-600 font-bold text-xs">
                           {jogo.visitante.substring(0, 2).toUpperCase()}
