@@ -28,5 +28,7 @@ app.prepare().then(() => {
   })
   .listen(port, hostname, () => {
     console.log(`> Ready on http://${hostname}:${port}`)
+    console.log(`> Environment: ${process.env.NODE_ENV || 'development'}`)
+    console.log(`> Database: ${process.env.DATABASE_URL ? 'Connected' : 'Not configured'}`)
   })
 })
