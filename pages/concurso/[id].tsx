@@ -35,6 +35,9 @@ export default function ConcursoDetalhes() {
   const [error, setError] = useState('');
   const [palpitesPendentes, setPalpitesPendentes] = useState<any>(null);
   const [mostrarAvisoPendentes, setMostrarAvisoPendentes] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [processandoPagamento, setProcessandoPagamento] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -52,6 +55,10 @@ export default function ConcursoDetalhes() {
         verificarPalpitesPendentes();
     }
   }, [id]);
+
+  useEffect(() => {
+    setCanSubmit(nome.trim() !== '' && whatsapp.trim() !== '');
+  }, [nome, whatsapp]);
 
   const verificarPalpitesPendentes = async () => {
     const whatsappStorage = localStorage.getItem('whatsapp');
@@ -324,6 +331,129 @@ export default function ConcursoDetalhes() {
 
     } catch (error) {
       alert(`Erro ao limpar carrinho: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  };
+
+  const handleGerarPagamento = async () => {
+    if (!canSubmit || Object.keys(palpites).length === 0) {
+      return;
+    }
+
+    setProcessandoPagamento(true);
+
+    try {
+      console.log('=== INICIANDO GERAÇÃO DE PAGAMENTO DIRETO ===');
+      console.log('Nome:', nome);
+      console.log('WhatsApp:', whatsapp);
+      console.log('Palpites:', palpites);
+
+      // Salvar dados no localStorage
+      localStorage.setItem('nome', nome);
+      localStorage.setItem('whatsapp', whatsapp);
+
+      // 1. Primeiro salvar os palpites
+      const bilhetes = [palpites];
+      const dadosEnvio = {
+        nome,
+        whatsapp,
+        bilhetes
+      };
+
+      console.log('📤 Salvando palpites primeiro...');
+      const palpitesResponse = await fetch('/api/palpites', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosEnvio),
+      });
+
+      const palpitesResult = await palpitesResponse.json();
+      console.log('📋 Resposta dos palpites:', palpitesResult);
+
+      if (!palpitesResponse.ok || !palpitesResult.success) {
+        throw new Error(palpitesResult.error || 'Erro ao salvar palpites');
+      }
+
+      console.log('✅ Palpites salvos, gerando pagamento PIX...');
+
+      // 2. Buscar os palpites pendentes para criar o PIX
+      const palpitesPendentesResponse = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsapp)}`);
+      const palpitesPendentesData = await palpitesPendentesResponse.json();
+
+      if (!palpitesPendentesResponse.ok || !palpitesPendentesData.palpites || palpitesPendentesData.palpites.length === 0) {
+        throw new Error('Erro ao buscar palpites pendentes para pagamento');
+      }
+
+      console.log('📋 Palpites pendentes encontrados:', palpitesPendentesData.palpites.length);
+
+      // 3. Gerar PIX
+      const pixResponse = await fetch('/api/gerar-pix', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          whatsapp: whatsapp,
+          nome: nome,
+          valorTotal: palpitesPendentesData.valorTotal,
+          totalBilhetes: palpitesPendentesData.totalBilhetes,
+          palpites: palpitesPendentesData.palpites
+        }),
+      });
+
+      let pixData;
+      try {
+        const responseText = await pixResponse.text();
+        if (!responseText.trim()) {
+          throw new Error('Resposta vazia do servidor');
+        }
+        pixData = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('❌ Erro ao fazer parse da resposta PIX:', parseError);
+        throw new Error('Servidor retornou resposta inválida');
+      }
+
+      console.log('📥 Dados recebidos PIX:', pixData);
+
+      if (!pixResponse.ok) {
+        const errorMessage = pixData?.error || pixData?.details || pixData?.message || `Erro HTTP ${pixResponse.status}`;
+        throw new Error(errorMessage);
+      }
+
+      if (pixResponse.ok && pixData.success) {
+        console.log('✅ PIX e Bilhete gerados com sucesso');
+
+        // Salvar dados para a página de pagamento
+        localStorage.setItem('bilheteData', JSON.stringify(pixData.bilhete));
+        localStorage.setItem('pixData', JSON.stringify(pixData.pix));
+
+        // Limpar seleções após sucesso
+        setPalpites({});
+
+        alert('✅ Pagamento PIX gerado com sucesso! Redirecionando...');
+
+        // Redirecionar para página de pagamento
+        router.push('/pagamento-pix');
+      } else {
+        throw new Error('Resposta inválida da API PIX');
+      }
+
+    } catch (error) {
+      console.error('❌ Erro ao gerar pagamento:', error);
+
+      let mensagemErro = 'Erro desconhecido ao processar pagamento';
+      if (error instanceof Error) {
+        mensagemErro = error.message;
+
+        if (error.message.includes('Credenciais EFI Pay inválidas')) {
+          mensagemErro = '🔑 Credenciais EFI Pay inválidas.\n\nVerifique nos Secrets:\n• EFI_CLIENT_ID\n• EFI_CLIENT_SECRET';
+        }
+      }
+
+      alert(`❌ Erro ao gerar pagamento PIX:\n\n${mensagemErro}\n\n🔧 Verifique o console para mais detalhes.`);
+    } finally {
+      setProcessandoPagamento(false);
     }
   };
 
@@ -700,24 +830,25 @@ export default function ConcursoDetalhes() {
                 )}
 
                 <button
-                  type="button"
-                  onClick={() => {
-                    // Se há palpites não salvos, salvar primeiro
-                    if (Object.keys(palpites).length > 0) {
-                      adicionarPalpitesAoCarrinho();
-                    }
-                    // Scroll para a seção de finalização
-                    setTimeout(() => {
-                      const finalizarSection = document.querySelector('form');
-                      if (finalizarSection) {
-                        finalizarSection.scrollIntoView({ behavior: 'smooth' });
-                      }
-                    }, 100);
-                  }}
-                  className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
-                  disabled={calcularTotalBilhetes() === 0}
+                  onClick={handleGerarPagamento}
+                  disabled={!canSubmit || isLoading || Object.keys(palpites).length === 0 || palpitesEncerrados || processandoPagamento}
+                  className={`w-full py-4 px-8 rounded-xl font-bold text-lg transition-all transform ${
+                    !canSubmit || isLoading || Object.keys(palpites).length === 0 || palpitesEncerrados || processandoPagamento
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-green-600 hover:bg-green-700 hover:scale-105 shadow-lg'
+                  } text-white flex items-center justify-center space-x-2`}
                 >
-                  🎯 FINALIZAR ({calcularTotalBilhetes()} bilhete{calcularTotalBilhetes() !== 1 ? 's' : ''})
+                  {isLoading || processandoPagamento ? (
+                    <>
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                      <span>{processandoPagamento ? 'Gerando Pagamento...' : 'Enviando...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>💳</span>
+                      <span>GERAR PAGAMENTO ({Object.keys(palpites).length} palpites)</span>
+                    </>
+                  )}
                 </button>
               </div>
             </div>
