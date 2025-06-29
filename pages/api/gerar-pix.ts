@@ -86,28 +86,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Gerar TXID válido conforme padrão EFÍ (26-35 caracteres alfanuméricos)
-    const generateValidTxid = () => {
-      const timestamp = Date.now().toString();
+    const generateValidTxid = (): string => {
+      const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+      let txid = '';
       
-      // Gerar caracteres alfanuméricos aleatórios (mais restritivo)
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let randomPart = '';
-      for (let i = 0; i < 10; i++) {
-        randomPart += chars.charAt(Math.floor(Math.random() * chars.length));
+      // Gerar exatamente 32 caracteres (meio do range 26-35)
+      for (let i = 0; i < 32; i++) {
+        txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
       }
       
-      // Combinar timestamp + random (garantindo apenas alfanuméricos)
-      let txid = (timestamp + randomPart).replace(/[^A-Z0-9]/g, '');
+      // Sanitizar para garantir que não há caracteres inválidos
+      txid = txid.replace(/[^a-zA-Z0-9]/g, '');
       
-      // Garantir que tenha exatamente 32 caracteres (meio do range 26-35)
+      // Se por algum motivo ficou menor que 32, completar
+      while (txid.length < 32) {
+        txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+      }
+      
+      // Garantir exatamente 32 caracteres
       if (txid.length > 32) {
         txid = txid.substring(0, 32);
-      } else if (txid.length < 32) {
-        // Completar com caracteres aleatórios até 32
-        while (txid.length < 32) {
-          txid += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
       }
+      
+      console.log('🔧 TXID gerado limpo:', {
+        txid: txid,
+        comprimento: txid.length,
+        somenteAlfanumerico: /^[a-zA-Z0-9]+$/.test(txid),
+        dentroDoRange: txid.length >= 26 && txid.length <= 35
+      });
       
       return txid;
     };
@@ -115,18 +121,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const txid = generateValidTxid();
 
     // 🔒 VALIDAÇÃO: Verificar se TXID está no formato correto
-    const txidPattern = /^[A-Z0-9]{32}$/;
+    const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
     if (!txidPattern.test(txid)) {
-      console.error('❌ TXID gerado está inválido:', txid);
-      throw new Error(`TXID inválido gerado: ${txid}`);
+      console.error('❌ TXID gerado está inválido:', {
+        txid: txid,
+        comprimento: txid.length,
+        caracteresInvalidos: txid.match(/[^a-zA-Z0-9]/g) || 'nenhum',
+        hexDump: Buffer.from(txid).toString('hex')
+      });
+      throw new Error(`TXID inválido gerado: ${txid} (${txid.length} chars)`);
     }
 
     console.log('🔑 IDs gerados:', { orderId, txid, txidLength: txid.length });
     console.log('✅ TXID validado com sucesso:', {
       txid: txid,
       comprimento: txid.length,
-      formato: 'alfanumérico uppercase 32 chars',
-      valido: txidPattern.test(txid)
+      formato: 'alfanumérico mixed case 32 chars',
+      valido: txidPattern.test(txid),
+      regexMatch: txid.match(/^[a-zA-Z0-9]{26,35}$/) !== null
     });
 
     // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
