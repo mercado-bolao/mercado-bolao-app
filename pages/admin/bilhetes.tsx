@@ -423,38 +423,39 @@ export default function BilhetesAdmin() {
                             )}
                           </td>
                           <td className="px-4 py-4 whitespace-nowrap text-sm space-y-2">
-                          {/* Botão Verificar Status via EFÍ */}
-                          <button
-                            onClick={() => verificarStatusEfi(bilhete.txid || '', bilhete.id)}
-                            disabled={!bilhete.txid || verificandoStatus === bilhete.id}
-                            className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
-                              !bilhete.txid 
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                : verificandoStatus === bilhete.id
-                                ? 'bg-blue-100 text-blue-600 cursor-wait'
-                                : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
-                            }`}
-                          >
-                            {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔁 Verificar via EFÍ'}
-                          </button>
-
-                          {/* Botão Marcar como PAGO (apenas para não pagos) */}
-                          {abaAtiva === 'nao-pagos' && (
+                            {/* Botão Verificar Status via EFÍ */}
                             <button
-                              onClick={() => marcarComoPago(bilhete.id)}
-                              disabled={!senhaAdmin.trim()}
+                              onClick={() => verificarStatusEfi(bilhete.txid || '', bilhete.id)}
+                              disabled={!bilhete.txid || verificandoStatus === bilhete.id}
                               className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
-                                !senhaAdmin.trim()
+                                !bilhete.txid 
                                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                  : 'bg-green-100 hover:bg-green-200 text-green-700'
+                                  : verificandoStatus === bilhete.id
+                                  ? 'bg-blue-100 text-blue-600 cursor-wait'
+                                  : 'bg-blue-100 hover:bg-blue-200 text-blue-700'
                               }`}
                             >
-                              ✅ Marcar como PAGO
+                              {verificandoStatus === bilhete.id ? '🔄 Verificando...' : '🔁 Verificar via EFÍ'}
                             </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+
+                            {/* Botão Marcar como PAGO (apenas para não pagos) */}
+                            {abaAtiva === 'nao-pagos' && (
+                              <button
+                                onClick={() => marcarComoPago(bilhete.id)}
+                                disabled={!senhaAdmin.trim()}
+                                className={`w-full px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                  !senhaAdmin.trim()
+                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                    : 'bg-green-100 hover:bg-green-200 text-green-700'
+                                }`}
+                              >
+                                ✅ Marcar como PAGO
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
