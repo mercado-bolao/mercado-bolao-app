@@ -265,6 +265,11 @@ export default function ConcursoDetalhes() {
     setCarrinho({});
   };
 
+  const limparCarrinho = () => {
+    setPalpites({});
+    setCarrinho({});
+  };
+
   if (!concurso) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 flex items-center justify-center">
@@ -594,7 +599,7 @@ export default function ConcursoDetalhes() {
               </div>
 
               {/* Botões de ação do carrinho */}
-              <div className="mt-4 flex gap-3">
+              <div className="mt-4 flex gap-2">
                 {Object.keys(palpites).length > 0 && (
                   <button
                     type="button"
@@ -604,6 +609,19 @@ export default function ConcursoDetalhes() {
                     💾 ADICIONAR AO CARRINHO
                   </button>
                 )}
+
+                {/* Botão para limpar carrinho */}
+                {calcularTotalBilhetes() > 0 && (
+                  <button
+                    type="button"
+                    onClick={limparCarrinho}
+                    className="py-3 px-4 bg-red-500 text-white rounded-xl font-semibold hover:bg-red-600 transition-colors"
+                    title="Limpar todo o carrinho"
+                  >
+                    🗑️
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={() => {
@@ -622,7 +640,7 @@ export default function ConcursoDetalhes() {
                   className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
                   disabled={calcularTotalBilhetes() === 0}
                 >
-                  🎯 FINALIZAR ({calcularTotalBilhetes()} bilhetes)
+                  🎯 FINALIZAR ({calcularTotalBilhetes()} bilhete{calcularTotalBilhetes() !== 1 ? 's' : ''})
                 </button>
               </div>
             </div>
