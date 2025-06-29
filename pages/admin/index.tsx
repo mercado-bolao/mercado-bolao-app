@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 
 interface Concurso {
   id: string;
@@ -33,6 +34,7 @@ interface UserPalpites {
 }
 
 export default function AdminPanel() {
+  const router = useRouter();
   const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [palpites, setPalpites] = useState<Palpite[]>([]);
   const [jogos, setJogos] = useState<Jogo[]>([]);
@@ -47,6 +49,11 @@ export default function AdminPanel() {
     whatsapp: "",
     status: ""
   });
+
+  // Redirecionar automaticamente para admin/concursos
+  useEffect(() => {
+    router.push('/admin/concursos');
+  }, [router]);
 
   const buscarConcursos = async () => {
     try {
