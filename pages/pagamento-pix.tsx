@@ -102,6 +102,10 @@ export default function PagamentoPix() {
             <span className="text-4xl">💰</span>
           </div>
           <h2 className="text-2xl font-bold text-gray-800 mb-2">PIX Gerado com Sucesso!</h2>
+          <div className="bg-yellow-100 border border-yellow-400 rounded-lg p-3 mb-4">
+            <p className="text-yellow-800 text-sm font-semibold">🧪 MODO SIMULAÇÃO</p>
+            <p className="text-yellow-700 text-xs">Este é um PIX de teste. Em produção, use as credenciais reais da EFÍ.</p>
+          </div>
           <p className="text-gray-600 mb-4">Escaneie o QR Code ou copie o código PIX</p>
           <div className="bg-green-50 rounded-lg p-4 mb-4">
             <div className="text-3xl font-bold text-green-600">R$ {pixData.valor.toFixed(2)}</div>
