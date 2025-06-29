@@ -79,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (palpites.length === 0) {
       return res.status(200).json({
+        success: true,
         palpites: [],
         totalPalpites: 0,
         valorTotal: 0,
@@ -106,6 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('💰 Valor total calculado:', valorTotal);
 
     return res.status(200).json({
+      success: true,
       palpites,
       totalPalpites,
       totalBilhetes,

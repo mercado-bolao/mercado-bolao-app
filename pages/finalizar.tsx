@@ -166,7 +166,9 @@ export default function FinalizarAposta() {
       const palpitesResponse = await fetch(`/api/palpites-pendentes?whatsapp=${whatsapp}`);
       const palpitesData = await palpitesResponse.json();
 
-      if (!palpitesData.success || !palpitesData.palpites || palpitesData.palpites.length === 0) {
+      console.log('📋 Resposta dos palpites:', palpitesData);
+      
+      if (!palpitesData.palpites || palpitesData.palpites.length === 0) {
         alert('❌ Nenhum palpite pendente encontrado');
         setProcessandoPagamento(false);
         return;
