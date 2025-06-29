@@ -1,1 +1,0 @@
-// Página removida - funcionalidade da API RapidAPI deletada
