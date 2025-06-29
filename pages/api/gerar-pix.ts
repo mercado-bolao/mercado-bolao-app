@@ -1,19 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
-import { prisma } from '../../lib/prisma';
+import { PrismaClient } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
-  console.log('🔍 DEBUG: Verificando Prisma...');
-  console.log('- prisma existe:', !!prisma);
-  console.log('- prisma.pixPagamento existe:', !!prisma?.pixPagamento);
-  console.log('- prisma.pixPagamento.create existe:', !!prisma?.pixPagamento?.create);
-  console.log('📥 Request headers:', JSON.stringify(req.headers, null, 2));
-  console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
+
+  const prisma = new PrismaClient();
 
   try {
-    // Definir headers JSON primeiro
     res.setHeader('Content-Type', 'application/json');
 
     if (req.method !== 'POST') {
@@ -21,419 +16,258 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(405).json({ error: 'Método não permitido' });
     }
 
-  const { whatsapp, valorTotal, totalBilhetes, bilheteId } = req.body;
+    const { whatsapp, valorTotal, totalBilhetes, palpites } = req.body;
 
-  console.log('🔄 Iniciando geração de PIX...');
-  console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes, bilheteId });
+    console.log('🔄 Iniciando geração de PIX...');
+    console.log('📥 Dados recebidos:', { whatsapp, valorTotal, totalBilhetes, palpites: palpites?.length });
 
-  if (!whatsapp || !valorTotal || !totalBilhetes) {
-    console.error('❌ Dados obrigatórios não fornecidos:', { whatsapp, valorTotal, totalBilhetes });
-    return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
-  }
+    if (!whatsapp || !valorTotal || !totalBilhetes || !palpites || palpites.length === 0) {
+      console.error('❌ Dados obrigatórios não fornecidos');
+      return res.status(400).json({ error: 'Dados obrigatórios não fornecidos' });
+    }
 
-  console.log('✅ Método POST confirmado');
-
-    // Usar variáveis dos Secrets do Replit - PRODUÇÃO REAL
-    const efiSandbox = process.env.EFI_SANDBOX || 'false'; // Produção real
+    // Usar variáveis dos Secrets do Replit
+    const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const efiClientId = process.env.EFI_CLIENT_ID;
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
     const efiPixKey = process.env.EFI_PIX_KEY;
 
-  // Validar credenciais obrigatórias
-  if (!efiClientId || !efiClientSecret || !efiPixKey) {
-    console.error('❌ Credenciais EFI não configuradas:', {
-      clientId: !!efiClientId,
-      clientSecret: !!efiClientSecret,
-      pixKey: !!efiPixKey
-    });
-    return res.status(400).json({
-      error: 'Credenciais EFI Pay não configuradas',
-      details: 'Configure EFI_CLIENT_ID, EFI_CLIENT_SECRET e EFI_PIX_KEY nos Secrets',
-      missing: {
-        EFI_CLIENT_ID: !efiClientId,
-        EFI_CLIENT_SECRET: !efiClientSecret,
-        EFI_PIX_KEY: !efiPixKey
-      }
-    });
-  }
-
-  const isSandbox = efiSandbox === 'true';
-  const certificadoDisponivel = process.env.EFI_CERTIFICATE_PASSPHRASE && 
-                                process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
-  const isProducao = efiSandbox === 'false' && certificadoDisponivel;
-
-  console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
-  console.log('📋 Configurações:');
-  console.log('- Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
-  console.log('- EFI_CLIENT_ID:', efiClientId ? '✅' : '❌');
-  console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅' : '❌');
-  console.log('- EFI_PIX_KEY:', efiPixKey ? '✅' : '❌');
-  console.log('- Certificado:', certificadoDisponivel ? '✅' : '❌');
-
-  const EfiPay = require('sdk-node-apis-efi');
-
-    // Configurar EFÍ baseado no ambiente
-  let efiConfig: any = {
-    sandbox: isSandbox,
-    client_id: efiClientId,
-    client_secret: efiClientSecret
-  };
-
-  // Configurar certificado para produção
-  if (!isSandbox) {
-    const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-    console.log('🔍 Verificando certificado:');
-    console.log('- Caminho:', certificatePath);
-    console.log('- Existe:', fs.existsSync(certificatePath));
-    console.log('- Passphrase configurada:', !!process.env.EFI_CERTIFICATE_PASSPHRASE);
-
-    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-      efiConfig.certificate = certificatePath;
-      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      console.log('✅ Certificado configurado para produção');
-    } else {
+    // Validar credenciais obrigatórias
+    if (!efiClientId || !efiClientSecret || !efiPixKey) {
+      console.error('❌ Credenciais EFI não configuradas');
       return res.status(400).json({
-        error: 'Certificado não configurado para PRODUÇÃO',
-        details: 'Para usar produção, o certificado deve estar na pasta certs/certificado-efi.p12 e a senha EFI_CERTIFICATE_PASSPHRASE nos Secrets',
-        debug: {
-          certificateExists: fs.existsSync(certificatePath),
-          hasPassphrase: !!process.env.EFI_CERTIFICATE_PASSPHRASE,
-          certificatePath: certificatePath
-        }
+        error: 'Credenciais EFI Pay não configuradas',
+        details: 'Configure EFI_CLIENT_ID, EFI_CLIENT_SECRET e EFI_PIX_KEY nos Secrets'
       });
     }
-  } else {
-    // Para sandbox, não configurar certificado
-    console.log('✅ Modo sandbox - sem certificado');
-  }
 
-  console.log('⚙️ Config EFI final:');
-  console.log('- sandbox:', efiConfig.sandbox);
-  console.log('- client_id:', efiConfig.client_id);
-  console.log('- client_secret:', efiConfig.client_secret ? '✅' : '❌');
-  console.log('- certificate:', efiConfig.certificate || 'Não configurado');
-  console.log('- passphrase:', efiConfig.passphrase ? '✅' : 'Não configurado');
+    const isSandbox = efiSandbox === 'true';
+    const EfiPay = require('sdk-node-apis-efi');
 
-  console.log('🔧 Criando instância EFI Pay...');
-  let efipay;
-  try {
-    efipay = new EfiPay(efiConfig);
-    console.log('✅ Instância EFI criada com sucesso');
-  } catch (instanceError) {
-    console.error('❌ Erro ao criar instância EFI:', instanceError);
-    return res.status(500).json({
-      error: 'Erro ao criar instância EFI Pay',
-      details: instanceError instanceof Error ? instanceError.message : 'Erro desconhecido',
-      debug: { config: efiConfig }
+    // Configurar EFÍ baseado no ambiente
+    let efiConfig: any = {
+      sandbox: isSandbox,
+      client_id: efiClientId,
+      client_secret: efiClientSecret
+    };
+
+    // Configurar certificado para produção
+    if (!isSandbox) {
+      const certificatePath = path.resolve('./certs/certificado-efi.p12');
+
+      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+        efiConfig.certificate = certificatePath;
+        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+        console.log('✅ Certificado configurado para produção');
+      } else {
+        return res.status(400).json({
+          error: 'Certificado não configurado para PRODUÇÃO'
+        });
+      }
+    }
+
+    console.log('🔧 Criando instância EFI Pay...');
+    let efipay;
+    try {
+      efipay = new EfiPay(efiConfig);
+      console.log('✅ Instância EFI criada com sucesso');
+    } catch (instanceError) {
+      console.error('❌ Erro ao criar instância EFI:', instanceError);
+      return res.status(500).json({
+        error: 'Erro ao criar instância EFI Pay',
+        details: instanceError instanceof Error ? instanceError.message : 'Erro desconhecido'
+      });
+    }
+
+    // Gerar TXID único e orderId
+    const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    const orderId = `ORDER${Date.now()}`;
+    console.log('🆔 TXID gerado:', txid);
+    console.log('🆔 OrderID gerado:', orderId);
+
+    // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos
+
+    console.log('💾 Criando bilhete...');
+    const bilhete = await prisma.bilhete.create({
+      data: {
+        whatsapp: whatsapp,
+        valor: valorTotal,
+        status: 'PENDENTE',
+        txid: txid,
+        orderId: orderId,
+        expiresAt: expiresAt
+      }
     });
-  }
 
-    // Gerar TXID único (alfanumérico, 26-35 caracteres para EFí Pay)
-    const timestamp = Date.now().toString();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const txid = `${timestamp}${randomString}`.replace(/[^a-zA-Z0-9]/g, '').substring(0, 32);
+    console.log('✅ Bilhete criado com ID:', bilhete.id);
 
-    // Garantir que o TXID tenha pelo menos 26 caracteres
-    const finalTxid = txid.length >= 26 ? txid : (txid + Math.random().toString(36).substring(2)).substring(0, 32);
-    console.log('🆔 TXID gerado:', finalTxid);
+    // 2. ASSOCIAR PALPITES AO BILHETE
+    const palpitesIds = palpites.map((p: any) => p.id);
+    const palpitesAtualizados = await prisma.palpite.updateMany({
+      where: {
+        id: { in: palpitesIds },
+        whatsapp: whatsapp,
+        status: 'pendente'
+      },
+      data: {
+        status: 'pendente_pagamento'
+      }
+    });
 
+    console.log('✅ Palpites associados:', palpitesAtualizados.count);
+
+    // 3. PROGRAMAR CANCELAMENTO AUTOMÁTICO EM 5 MINUTOS
+    setTimeout(async () => {
+      try {
+        const prismaTimeout = new PrismaClient();
+
+        // Verificar se ainda está pendente
+        const bilheteAtual = await prismaTimeout.bilhete.findUnique({
+          where: { id: bilhete.id }
+        });
+
+        if (bilheteAtual?.status === 'PENDENTE') {
+          console.log('⏰ Cancelando bilhete expirado:', bilhete.id);
+
+          await prismaTimeout.bilhete.update({
+            where: { id: bilhete.id },
+            data: { status: 'CANCELADO' }
+          });
+
+          // Reverter palpites para pendente
+          await prismaTimeout.palpite.updateMany({
+            where: {
+              id: { in: palpitesIds }
+            },
+            data: {
+              status: 'pendente'
+            }
+          });
+
+          console.log('✅ Bilhete cancelado automaticamente');
+        }
+
+        await prismaTimeout.$disconnect();
+      } catch (error) {
+        console.error('❌ Erro no cancelamento automático:', error);
+      }
+    }, 5 * 60 * 1000); // 5 minutos
+
+    // 4. GERAR PIX NA EFÍ
     const body = {
       calendario: {
         expiracao: 300, // 5 minutos
       },
       devedor: {
         nome: `Cliente WhatsApp ${whatsapp}`,
-        cpf: '12345678909', // Em produção, você pode pedir o CPF real
+        cpf: '12345678909',
       },
       valor: {
         original: valorTotal.toFixed(2),
       },
       chave: efiPixKey,
-      solicitacaoPagador: `Pagamento de ${totalBilhetes} bilhete(s) - Bolão TVLoteca`,
+      solicitacaoPagador: `Bolão TVLoteca - ${totalBilhetes} bilhete(s) - Order: ${orderId}`,
       infoAdicionais: [
         {
           nome: 'WhatsApp',
           valor: whatsapp,
         },
         {
-          nome: 'Bilhetes',
-          valor: totalBilhetes.toString(),
+          nome: 'OrderID',
+          valor: orderId,
         },
         {
-          nome: 'Ambiente',
-          valor: isSandbox ? 'Sandbox' : 'Produção',
-        },
+          nome: 'Bilhetes',
+          valor: totalBilhetes.toString(),
+        }
       ],
     };
 
     console.log('🔄 Criando cobrança PIX na EFÍ...');
-    console.log('📤 Body da requisição:', JSON.stringify(body, null, 2));
 
     let pixResponse;
     try {
-      pixResponse = await efipay.pixCreateImmediateCharge([], body, { txid: finalTxid });
+      pixResponse = await efipay.pixCreateImmediateCharge([], body);
       console.log('✅ Cobrança PIX criada com sucesso!');
-      console.log('📋 Resposta COMPLETA da cobrança PIX:', JSON.stringify(pixResponse, null, 2));
     } catch (cobrancaError) {
-      console.error('❌ ERRO AO CRIAR COBRANÇA PIX:');
-      console.error('📝 Erro completo:', JSON.stringify(cobrancaError, null, 2));
-      console.error('📝 Response data:', JSON.stringify(cobrancaError?.response?.data, null, 2));
-      console.error('📝 Status:', cobrancaError?.response?.status);
-      console.error('📝 Message:', cobrancaError?.message);
+      console.error('❌ ERRO AO CRIAR COBRANÇA PIX:', cobrancaError);
+
+      // Se falhar, cancelar bilhete
+      await prisma.bilhete.update({
+        where: { id: bilhete.id },
+        data: { status: 'CANCELADO' }
+      });
+
       throw cobrancaError;
     }
 
     if (!pixResponse || !pixResponse.txid) {
-      console.error('❌ Resposta da cobrança inválida:', pixResponse);
+      console.error('❌ Resposta da cobrança inválida');
+      await prisma.bilhete.update({
+        where: { id: bilhete.id },
+        data: { status: 'CANCELADO' }
+      });
       throw new Error('Erro ao gerar cobrança PIX - resposta inválida');
     }
 
-    console.log('🆔 TXID da cobrança:', pixResponse.txid);
-
-    // Verificar se loc.id está presente
-    const locationId = pixResponse.loc?.id;
-    console.log('📍 Verificando locationId:');
-    console.log('- locationId extraído:', locationId);
-    console.log('- Tipo do locationId:', typeof locationId);
-    console.log('- loc completo:', JSON.stringify(pixResponse.loc, null, 2));
-
-    if (!locationId) {
-      console.error('❌ CRÍTICO: loc.id não foi retornado na resposta da cobrança');
-      console.error('🔍 Análise da resposta:');
-      console.error('- pixResponse existe:', !!pixResponse);
-      console.error('- pixResponse.loc existe:', !!pixResponse.loc);
-      console.error('- Chaves em pixResponse:', Object.keys(pixResponse));
-      console.error('- Chaves em pixResponse.loc:', pixResponse.loc ? Object.keys(pixResponse.loc) : 'N/A');
-      console.error('📋 Resposta COMPLETA:', JSON.stringify(pixResponse, null, 2));
-
-      return res.status(500).json({
-        error: 'Cobrança PIX criada, mas loc.id não foi retornado',
-        details: 'A EFÍ Pay criou a cobrança mas não retornou o campo loc.id necessário para gerar o QR Code',
-        debug: {
-          hasPixResponse: !!pixResponse,
-          hasLoc: !!pixResponse?.loc,
-          txid: pixResponse?.txid,
-          locKeys: pixResponse?.loc ? Object.keys(pixResponse.loc) : null,
-          responseKeys: pixResponse ? Object.keys(pixResponse) : null
-        }
-      });
-    }
-
-    // Usar PIX Copia e Cola da própria cobrança (disponível no retorno)
-    console.log('🔄 Usando PIX Copia e Cola da cobrança...');
-    const pixCopiaCola = pixResponse.pixCopiaECola;
-
-    if (!pixCopiaCola) {
-      console.error('❌ PIX Copia e Cola não disponível na resposta');
-      return res.status(500).json({
-        error: 'PIX Copia e Cola não disponível',
-        details: 'A EFÍ Pay não retornou o código PIX Copia e Cola'
-      });
-    }
-
-    console.log('✅ PIX Copia e Cola obtido com sucesso!');
-    console.log('📋 PIX Copia e Cola:', pixCopiaCola);
-
-    // Criar resposta simulando QR Code para manter compatibilidade
-    const qrCodeResponse = {
-      qrcode: pixCopiaCola,
-      imagemQrcode: null // Será null até conseguir gerar QR Code
-    };
-
-    // Salvar dados do PIX no banco de dados e criar bilhetes
-    let pixSalvo = null;
-    let bilhetesCriados = [];
-
+    // 5. SALVAR PIX NO BANCO
     try {
-      console.log('💾 Salvando dados do PIX no banco...');
-
-      // 1. Salvar PIX
-      pixSalvo = await prisma.pixPagamento.create({
+      const pixSalvo = await prisma.pixPagamento.create({
         data: {
-          txid: finalTxid,
+          txid: pixResponse.txid,
           whatsapp: whatsapp,
           valor: valorTotal,
           status: 'ATIVA',
-          pixCopiaECola: qrCodeResponse.qrcode,
+          pixCopiaECola: pixResponse.pixCopiaECola,
           pixLocationUrl: pixResponse.loc?.location,
-          imagemQrcode: qrCodeResponse.imagemQrcode,
-          locationId: locationId.toString(),
+          locationId: pixResponse.loc?.id?.toString(),
           ambiente: isSandbox ? 'sandbox' : 'producao',
-          expiracao: new Date(Date.now() + 300000), // 5 minutos
+          expiracao: expiresAt,
         }
       });
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
-
-      // 2. Buscar palpites pendentes do usuário
-      console.log('🎫 Buscando palpites pendentes...');
-      const palpitesPendentes = await prisma.palpite.findMany({
-        where: {
-          whatsapp: whatsapp,
-          bilheteId: null,
-          status: 'pendente'
-        },
-        include: {
-          jogo: true
-        }
-      });
-
-      console.log(`📊 Encontrados ${palpitesPendentes.length} palpites pendentes`);
-
-      if (palpitesPendentes.length > 0) {
-        // 3. Buscar concurso ativo
-        const concursoAtivo = await prisma.concurso.findFirst({
-          where: { status: 'ativo' }
-        });
-
-        if (!concursoAtivo) {
-          console.error('❌ Nenhum concurso ativo encontrado');
-          throw new Error('Nenhum concurso ativo encontrado');
-        }
-
-        console.log('🏆 Concurso ativo encontrado:', concursoAtivo.id);
-
-        // 4. Criar bilhete com status PENDENTE
-        const bilhete = await prisma.bilhete.create({
-          data: {
-            nome: `Cliente WhatsApp ${whatsapp}`,
-            whatsapp: whatsapp,
-            concursoId: concursoAtivo.id,
-            quantidadePalpites: palpitesPendentes.length,
-            valorTotal: valorTotal,
-            status: 'PENDENTE', // Status será alterado para PAGO no webhook
-            txid: finalTxid, // Usar o TXID que geramos localmente
-            orderId: locationId.toString(),
-            pixId: pixSalvo.id,
-            expiresAt: new Date(Date.now() + 300000), // 5 minutos
-          }
-        });
-
-        console.log('✅ Bilhete criado com ID:', bilhete.id, 'e status:', bilhete.status);
-        bilhetesCriados.push(bilhete);
-
-        // 5. Associar palpites ao bilhete
-        const updateResult = await prisma.palpite.updateMany({
-          where: {
-            id: { in: palpitesPendentes.map(p => p.id) }
-          },
-          data: {
-            bilheteId: bilhete.id,
-            nome: `Cliente WhatsApp ${whatsapp}`,
-            status: 'pendente'
-          }
-        });
-
-        console.log(`✅ ${updateResult.count} palpites associados ao bilhete ${bilhete.id}`);
-      } else {
-        console.log('⚠️ Nenhum palpite pendente encontrado para o usuário');
-      }
-
     } catch (dbError) {
-      console.error('❌ Erro ao salvar PIX/bilhetes no banco:', dbError);
-      console.error('📝 Detalhes do erro:', dbError instanceof Error ? dbError.message : 'Erro desconhecido');
-      // Continuar mesmo com erro no banco, pois o PIX foi gerado na EFI
+      console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
 
     return res.status(200).json({
       success: true,
-      pixId: pixSalvo ? pixSalvo.id : null,
+      bilhete: {
+        id: bilhete.id,
+        txid: txid,
+        orderId: orderId,
+        expiresAt: expiresAt.toISOString(),
+        status: 'PENDENTE'
+      },
       pix: {
-        txid: finalTxid, // Usar o TXID que geramos localmente
-        txidEfi: pixResponse.txid, // TXID retornado pela EFí para referência
-        locationId: locationId,
-        qrcode: qrCodeResponse.qrcode,
-        imagemQrcode: qrCodeResponse.imagemQrcode,
+        txid: pixResponse.txid,
+        qrcode: pixResponse.pixCopiaECola,
         valor: valorTotal,
-        expiracao: new Date(Date.now() + 300000).toISOString(),
-        ambiente: isSandbox ? 'sandbox' : 'produção',
-        aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX'
+        expiracao: expiresAt.toISOString(),
+        ambiente: isSandbox ? 'sandbox' : 'produção'
       },
     });
 
   } catch (error: any) {
-    console.error('❌ ERRO DETALHADO AO GERAR PIX:');
-    console.error('📄 Tipo do erro:', typeof error);
-    console.error('📝 Erro completo:', JSON.stringify(error, null, 2));
-    console.error('📝 Response data completa:', JSON.stringify(error?.response?.data, null, 2));
-    console.error('📝 Response status:', error?.response?.status);
-    console.error('📝 Response headers:', JSON.stringify(error?.response?.headers, null, 2));
-    console.error('📝 Request config:', JSON.stringify(error?.config, null, 2));
-    console.error('📝 Error message:', error?.message);
-    console.error('📝 Error stack:', error?.stack);
+    console.error('❌ ERRO DETALHADO AO GERAR PIX:', error);
 
-    // Tratamento mais específico do erro
     let mensagemErro = 'Erro desconhecido ao gerar PIX';
     let statusCode = 500;
 
-    if (typeof error === 'string') {
-      mensagemErro = error;
-      // Se for erro de certificado, forçar sandbox
-      if (error.includes('certificate') || error.includes('sandbox')) {
-        statusCode = 400;
-        mensagemErro = 'Certificado não configurado. Operação em modo sandbox desabilitada.';
-      }
-    } else if (error?.error === 'invalid_client') {
-      // Erro específico de credenciais inválidas
-      statusCode = 401;
-      mensagemErro = 'Credenciais EFI Pay inválidas ou inativas. Verifique CLIENT_ID e CLIENT_SECRET nos Secrets.';
-    } else if (error?.error_description) {
+    if (error?.error_description) {
       mensagemErro = error.error_description;
-      // Determinar status code baseado no tipo de erro
-      if (error.error_description.includes('Invalid or inactive credentials')) {
-        statusCode = 401;
-        mensagemErro = 'Credenciais EFI Pay inválidas ou inativas. Verifique CLIENT_ID e CLIENT_SECRET nos Secrets.';
-      } else if (error.error_description.includes('certificate')) {
-        statusCode = 400;
-        mensagemErro = 'Erro de certificado EFI Pay. Verifique o certificado e senha nos Secrets.';
-      } else if (error.error_description.includes('insufficient scope')) {
-        statusCode = 403;
-        mensagemErro = `🔒 PERMISSÕES INSUFICIENTES
-
-Sua conta EFI Pay não tem as permissões de PIX habilitadas para PRODUÇÃO.
-
-📞 AÇÕES NECESSÁRIAS:
-1. Entre em contato com a EFI Pay: 0800 775 0040
-2. Solicite habilitação das APIs de PIX para PRODUÇÃO
-3. Informe que você tem certificado digital válido
-
-💡 TEMPORÁRIO: Volte para SANDBOX configurando EFI_SANDBOX=true nos Secrets`;
-      }
     } else if (error?.message) {
       mensagemErro = error.message;
-
-      // Tratamento específico para erros de loc.id
-      if (error.message.includes('loc.id não foi retornado')) {
-        statusCode = 502;
-        mensagemErro = '🔗 Erro na API EFÍ Pay: A cobrança foi criada mas o campo loc.id não foi retornado. Isso pode indicar um problema na API da EFÍ ou na configuração da conta.';
-      } else if (error.message.includes('QR Code não foi gerado')) {
-        statusCode = 502;
-        mensagemErro = '📱 Erro ao gerar QR Code: A cobrança foi criada mas o QR Code não pôde ser gerado. Verifique se o locationId está correto.';
-      }
     }
 
-    // Garantir que sempre retornamos JSON válido
-    try {
-      const errorResponse = {
-        success: false,
-        error: 'Erro ao gerar PIX',
-        details: mensagemErro,
-        suggestion: statusCode === 400 ? 'Configure o certificado EFI nas variáveis de ambiente' : 'Verifique os logs do servidor para mais detalhes',
-        debug: {
-          tipo: typeof error,
-          timestamp: new Date().toISOString(),
-          statusCode: statusCode,
-          hasResponseData: !!(error?.response?.data),
-          errorKeys: error && typeof error === 'object' ? Object.keys(error) : []
-        }
-      };
-
-      console.log('📤 Enviando resposta de erro:', JSON.stringify(errorResponse, null, 2));
-      return res.status(statusCode).json(errorResponse);
-    } catch (jsonError) {
-      console.error('❌ Erro ao enviar resposta JSON:', jsonError);
-      res.status(500).json({ error: 'Erro crítico no servidor', details: 'Falha ao processar resposta' });
-    }
+    return res.status(statusCode).json({
+      success: false,
+      error: 'Erro ao gerar PIX',
+      details: mensagemErro
+    });
+  } finally {
+    await prisma.$disconnect();
   }
 }

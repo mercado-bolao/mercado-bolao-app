@@ -1,119 +1,112 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '../../lib/prisma';
+import { PrismaClient } from '@prisma/client';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
+  const { bilheteId, txid } = req.query;
+
+  if (!bilheteId && !txid) {
+    return res.status(400).json({ 
+      error: 'bilheteId ou txid é obrigatório' 
+    });
+  }
+
+  const prisma = new PrismaClient();
+
   try {
-    const { id, txid, whatsapp } = req.query;
+    let bilhete;
 
-    if (!id && !txid && !whatsapp) {
-      return res.status(400).json({
-        error: 'Parâmetro obrigatório não fornecido',
-        details: 'Forneça id, txid ou whatsapp para consultar o bilhete'
-      });
-    }
-
-    console.log('🔍 Consultando bilhete:', { id, txid, whatsapp });
-
-    let whereClause: any = {};
-
-    if (id) {
-      whereClause.id = id as string;
-    } else if (txid) {
-      whereClause.txid = txid as string;
-    } else if (whatsapp) {
-      whereClause.whatsapp = whatsapp as string;
-    }
-
-    const bilhete = await prisma.bilhete.findFirst({
-      where: whereClause,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        palpites: {
-          include: {
-            jogo: {
-              include: {
-                concurso: true
-              }
+    if (bilheteId) {
+      bilhete = await prisma.bilhete.findUnique({
+        where: { id: bilheteId as string },
+        include: {
+          palpites: {
+            include: {
+              jogo: true,
+              concurso: true
             }
           }
-        },
-        pix: true
-      }
-    });
+        }
+      });
+    } else if (txid) {
+      bilhete = await prisma.bilhete.findFirst({
+        where: { txid: txid as string },
+        include: {
+          palpites: {
+            include: {
+              jogo: true,
+              concurso: true
+            }
+          }
+        }
+      });
+    }
 
     if (!bilhete) {
-      return res.status(404).json({
-        error: 'Bilhete não encontrado',
-        details: 'Não foi encontrado nenhum bilhete com os dados fornecidos'
+      return res.status(404).json({ 
+        error: 'Bilhete não encontrado' 
       });
     }
 
-    // Verificar se expirou
+    // Verificar se expirou e ainda está pendente
     const agora = new Date();
-    const expirado = agora > bilhete.expiresAt;
+    const expirou = agora > bilhete.expiresAt;
 
-    // Se estava pendente e expirou, atualizar para expirado
-    if (bilhete.status === 'PENDENTE' && expirado) {
+    let statusAtual = bilhete.status;
+
+    if (expirou && statusAtual === 'PENDENTE') {
+      // Atualizar para cancelado se expirou
       await prisma.bilhete.update({
         where: { id: bilhete.id },
-        data: { status: 'EXPIRADO' }
+        data: { status: 'CANCELADO' }
       });
 
+      // Reverter palpites
       await prisma.palpite.updateMany({
-        where: { bilheteId: bilhete.id },
-        data: { status: 'cancelado' }
+        where: {
+          id: { in: bilhete.palpites.map(p => p.id) }
+        },
+        data: { status: 'pendente' }
       });
 
-      bilhete.status = 'EXPIRADO';
+      statusAtual = 'CANCELADO';
     }
 
-    // Calcular tempo restante
-    const tempoRestante = Math.max(0, bilhete.expiresAt.getTime() - agora.getTime());
-    const minutosRestantes = Math.floor(tempoRestante / (1000 * 60));
-    const segundosRestantes = Math.floor((tempoRestante % (1000 * 60)) / 1000);
+    const tempoRestante = expirou ? 0 : Math.max(0, bilhete.expiresAt.getTime() - agora.getTime());
 
     return res.status(200).json({
       success: true,
       bilhete: {
         id: bilhete.id,
+        status: statusAtual,
+        valor: bilhete.valor,
         whatsapp: bilhete.whatsapp,
-        nome: bilhete.nome,
-        valorTotal: bilhete.valorTotal,
-        quantidadePalpites: bilhete.quantidadePalpites,
-        status: bilhete.status,
         txid: bilhete.txid,
         orderId: bilhete.orderId,
         expiresAt: bilhete.expiresAt.toISOString(),
         createdAt: bilhete.createdAt.toISOString(),
-        expirado: expirado,
-        tempoRestante: {
-          total: tempoRestante,
-          minutos: minutosRestantes,
-          segundos: segundosRestantes,
-          formatado: `${minutosRestantes}:${segundosRestantes.toString().padStart(2, '0')}`
-        },
-        palpites: bilhete.palpites,
-        pix: bilhete.pix ? {
-          txid: bilhete.pix.txid,
-          status: bilhete.pix.status,
-          valor: bilhete.pix.valor,
-          qrcode: bilhete.pix.pixCopiaECola,
-          imagemQrcode: bilhete.pix.imagemQrcode,
-          ambiente: bilhete.pix.ambiente
-        } : null
+        tempoRestanteMs: tempoRestante,
+        expirou: expirou,
+        palpites: bilhete.palpites.map(p => ({
+          id: p.id,
+          resultado: p.resultado,
+          jogo: `${p.jogo.mandante} x ${p.jogo.visitante}`,
+          concurso: p.concurso.nome || `Concurso ${p.concurso.numero}`
+        }))
       }
     });
 
   } catch (error) {
     console.error('❌ Erro ao consultar bilhete:', error);
     return res.status(500).json({
-      error: 'Erro interno do servidor',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
+      success: false,
+      error: 'Erro interno do servidor'
     });
+  } finally {
+    await prisma.$disconnect();
   }
 }

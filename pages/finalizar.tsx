@@ -226,14 +226,14 @@ export default function FinalizarAposta() {
         return; // Não jogar erro, apenas retornar
       }
 
-      if (data.success && data.pix) {
-        console.log('✅ PIX gerado com sucesso!');
+      if (response.ok && data.success) {
+        console.log('✅ PIX e Bilhete gerados com sucesso:', data);
 
-        // Salvar dados do PIX no localStorage para mostrar na próxima tela
+        // Salvar dados para a página de pagamento
+        localStorage.setItem('bilheteData', JSON.stringify(data.bilhete));
         localStorage.setItem('pixData', JSON.stringify(data.pix));
-        localStorage.setItem('pixWhatsapp', whatsapp);
 
-        // Redirecionar para tela de pagamento PIX
+        // Redirecionar para página de pagamento
         router.push('/pagamento-pix');
       } else {
         throw new Error('Resposta inválida da API');

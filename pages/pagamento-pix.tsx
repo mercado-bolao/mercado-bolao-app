@@ -47,96 +47,77 @@ export default function PagamentoPix() {
   const [copiado, setCopiado] = useState(false);
   const [tempoRestante, setTempoRestante] = useState<string>('');
   const [statusPix, setStatusPix] = useState<string>('ATIVA');
-  const [bilheteId, setBilheteId] = useState<string>('');
-  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
-  const [verificandoPagamento, setVerificandoPagamento] = useState(false);
-
-  // Função para verificar pagamento manualmente via EFÍ
-  const verificarPagamentoManual = async () => {
-    if (!bilheteId) {
-      alert('❌ ID do bilhete não encontrado. Recarregue a página.');
-      return;
-    }
-
-    setVerificandoPagamento(true);
-    try {
-      const response = await fetch(`/api/admin/verificar-status-efi-v2?bilheteId=${bilheteId}`);
-      const data = await response.json();
-      
-      if (data.success && data.statusEfi === 'CONCLUIDA') {
-        // Aguardar um pouco e verificar status do bilhete
-        setTimeout(verificarStatusBilhete, 2000);
-        alert('🎉 Pagamento confirmado pela EFÍ! Aguarde a atualização...');
-      } else {
-        alert(`ℹ️ Status atual: ${data.statusEfi || 'Não identificado'}\n\nSe você já realizou o pagamento, aguarde alguns segundos para a confirmação automática.`);
-      }
-    } catch (error) {
-      console.error('Erro ao verificar pagamento:', error);
-      alert('❌ Erro ao consultar status do pagamento. Tente novamente.');
-    } finally {
-      setVerificandoPagamento(false);
-    }
-  };
 
   // Função para verificar status do bilhete
-  const verificarStatusBilhete = async () => {
-    if (!pixData?.txid) return;
+  const verificarStatusPix = async () => {
+    const bilheteData = localStorage.getItem('bilheteData');
+    if (!bilheteData) return;
 
+    const bilhete = JSON.parse(bilheteData);
+    
     try {
-      const response = await fetch(`/api/status-bilhete?txid=${pixData.txid}`);
+      const response = await fetch(`/api/consultar-bilhete?bilheteId=${bilhete.id}`);
       const data = await response.json();
       
       if (data.success && data.bilhete) {
-        const status = data.bilhete.status;
-        const bilheteIdAtual = data.bilhete.id;
+        setStatusPix(data.bilhete.status);
         
-        // Atualizar bilheteId se ainda não temos
-        if (!bilheteId && bilheteIdAtual) {
-          setBilheteId(bilheteIdAtual);
-          console.log('✅ BilheteId definido:', bilheteIdAtual);
-        }
-        
-        if (status === 'PAGO' && !pagamentoConfirmado) {
-          setPagamentoConfirmado(true);
-          setStatusPix('PAGA');
-          
-          // Mostrar mensagem de sucesso
+        if (data.bilhete.status === 'PAGO') {
+          // Pagamento confirmado
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
-          
-          // Opcional: redirecionar após 3 segundos
-          setTimeout(() => {
-            router.push('/');
-          }, 3000);
-          
-        } else if (status === 'CANCELADO' || data.bilhete.expirado) {
+          localStorage.removeItem('bilheteData');
+          localStorage.removeItem('pixData');
+          router.push('/');
+        } else if (data.bilhete.status === 'CANCELADO') {
+          // Bilhete cancelado/expirado
           setStatusPix('EXPIRADA');
-        } else {
-          setStatusPix(status === 'PENDENTE' ? 'ATIVA' : status);
+          alert('⏰ O tempo para pagamento expirou. Gere um novo PIX.');
+          localStorage.removeItem('bilheteData');
+          localStorage.removeItem('pixData');
+          router.push('/finalizar');
         }
       }
     } catch (error) {
-      console.error('Erro ao verificar status do bilhete:', error);
+      console.error('Erro ao verificar status:', error);
+    }n;
+
+    try {
+      const response = await fetch(`/api/consultar-pix?txid=${pixData.txid}`);
+      const data = await response.json();
+      
+      if (data.success && data.pix) {
+        setStatusPix(data.pix.status);
+        
+        if (data.pix.status === 'PAGA') {
+          // PIX foi pago, redirecionar ou mostrar sucesso
+          alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status:', error);
     }
   };
 
   useEffect(() => {
-    // Recuperar dados do PIX do localStorage
+    // Recuperar dados do bilhete do localStorage
+    const bilheteDataStorage = localStorage.getItem('bilheteData');
     const pixDataStorage = localStorage.getItem('pixData');
-    const whatsappStorage = localStorage.getItem('pixWhatsapp');
 
-    if (!pixDataStorage || !whatsappStorage) {
+    if (!bilheteDataStorage || !pixDataStorage) {
       router.push('/finalizar');
       return;
     }
 
+    const bilhete = JSON.parse(bilheteDataStorage);
     const pix = JSON.parse(pixDataStorage);
+    
     setPixData(pix);
-    setWhatsapp(whatsappStorage);
+    setWhatsapp(bilhete.whatsapp || pix.whatsapp);
 
-    // Timer para expiração (atualizado a cada segundo)
+    // Timer para expiração e verificação de status (5 minutos)
     const interval = setInterval(() => {
       const agora = new Date().getTime();
-      const expiracao = new Date(pix.expiracao).getTime();
+      const expiracao = new Date(bilhete.expiresAt || pix.expiracao).getTime();
       const diferenca = expiracao - agora;
 
       if (diferenca > 0) {
@@ -150,33 +131,12 @@ export default function PagamentoPix() {
       }
     }, 1000);
 
-    // Verificar status do bilhete a cada 2 segundos (mais frequente)
-    const statusInterval = setInterval(verificarStatusBilhete, 2000);
-    
-    // Verificar status imediatamente
-    verificarStatusBilhete();
-    
-    // Verificar status via EFÍ a cada 5 segundos se ainda estiver ativo
-    const efiStatusInterval = setInterval(async () => {
-      if (pixData && statusPix === 'ATIVA' && bilheteId) {
-        try {
-          const response = await fetch(`/api/admin/verificar-status-efi-v2?bilheteId=${bilheteId}`);
-          const data = await response.json();
-          
-          if (data.success && data.statusEfi === 'CONCLUIDA') {
-            // Recarregar status do bilhete após confirmação da EFÍ
-            setTimeout(verificarStatusBilhete, 1000);
-          }
-        } catch (error) {
-          console.error('Erro ao verificar status na EFÍ:', error);
-        }
-      }
-    }, 5000);
+    // Verificar status do PIX a cada 30 segundos
+    const statusInterval = setInterval(verificarStatusPix, 30000);
 
     return () => {
       clearInterval(interval);
       clearInterval(statusInterval);
-      clearInterval(efiStatusInterval);
     };
   }, [router]);
 
@@ -191,61 +151,6 @@ export default function PagamentoPix() {
       }
     }
   };
-
-  // Tela de pagamento confirmado
-  if (pagamentoConfirmado) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-100">
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold">✅</span>
-                </div>
-                <h1 className="text-xl font-bold text-gray-900">Pagamento Confirmado</h1>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
-            <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-5xl">🎉</span>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-800 mb-4">Pagamento Confirmado!</h2>
-            <p className="text-lg text-gray-600 mb-6">
-              Seus palpites foram validados com sucesso!
-            </p>
-            
-            {pixData && (
-              <div className="bg-green-50 rounded-lg p-4 mb-6">
-                <div className="text-green-800 font-semibold">Valor pago: R$ {pixData.valor.toFixed(2)}</div>
-                <div className="text-green-700 text-sm">WhatsApp: {whatsapp}</div>
-                {bilheteId && (
-                  <div className="text-green-700 text-sm">Bilhete: #{bilheteId}</div>
-                )}
-              </div>
-            )}
-
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/" className="flex-1">
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
-                  🏠 Voltar ao Início
-                </button>
-              </Link>
-              <Link href="/ranking/geral" className="flex-1">
-                <button className="w-full bg-green-600 hover:bg-green-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors">
-                  🏆 Ver Ranking
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   if (!pixData) {
     return (
@@ -407,7 +312,7 @@ export default function PagamentoPix() {
           
           <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
             <p className="text-yellow-800 text-sm">
-              <strong>⚠️ Importante:</strong> O PIX expira em 5 minutos. Após o vencimento, será necessário gerar um novo pagamento.
+              <strong>⚠️ Importante:</strong> O PIX expira em 1 hora. Após o vencimento, será necessário gerar um novo pagamento.
             </p>
           </div>
         </div>
@@ -419,17 +324,6 @@ export default function PagamentoPix() {
               🏠 Voltar ao Início
             </button>
           </Link>
-          <button 
-            onClick={verificarPagamentoManual}
-            disabled={verificandoPagamento}
-            className={`flex-1 text-white py-3 px-6 rounded-lg font-semibold transition-colors ${
-              verificandoPagamento 
-                ? 'bg-orange-400 cursor-wait' 
-                : 'bg-orange-600 hover:bg-orange-700'
-            }`}
-          >
-            {verificandoPagamento ? '🔄 Verificando...' : '🔍 Verificar Pagamento'}
-          </button>
           <button 
             onClick={() => window.location.reload()}
             className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg font-semibold transition-colors"
