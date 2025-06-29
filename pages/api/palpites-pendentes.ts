@@ -1,11 +1,11 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
+import { VALORES } from '../../lib/constants';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Definir headers JSON primeiro
   res.setHeader('Content-Type', 'application/json');
-  
+
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
@@ -47,9 +47,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     console.log('🔍 TODOS os palpites do usuário:', todosPalpites.length);
-    console.log('📋 Status dos palpites:', todosPalpites.map(p => ({ 
-      id: p.id.substring(0, 8), 
-      status: p.status, 
+    console.log('📋 Status dos palpites:', todosPalpites.map(p => ({
+      id: p.id.substring(0, 8),
+      status: p.status,
       jogo: `${p.jogo.mandante} x ${p.jogo.visitante}`,
       created: p.createdAt
     })));
@@ -89,12 +89,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Calcular totais
     const totalPalpites = palpites.length;
-    
+
     // Calcular número de bilhetes: cada bilhete tem 8 palpites
     const totalBilhetes = Math.ceil(totalPalpites / 8);
-    
+
     // Valor total: R$ 10,00 por bilhete (não por palpite)
-    const valorTotal = totalBilhetes * 10;
+    const valorTotal = totalBilhetes * VALORES.BILHETE;
 
     // Pegar informações do usuário do primeiro palpite
     const usuario = {
@@ -117,10 +117,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao buscar palpites pendentes:', error);
-    
+
     // Garantir que sempre retornamos JSON
     try {
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Erro interno do servidor',
         details: error instanceof Error ? error.message : 'Erro desconhecido'
       });

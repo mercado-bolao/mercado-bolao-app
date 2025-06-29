@@ -57,9 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Configurar certificado para produção
-    if (!isSandbox) {
+    if (isSandbox) {
       const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      
+
       if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
         efiConfig.certificate = certificatePath;
         efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
@@ -78,7 +78,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Teste 1: TXID exato como recebido
     try {
       const pixResponse1 = await efipay.pixDetailCharge([], { txid: txid });
-      
+
       return res.status(200).json({
         success: true,
         message: 'TXID aceito pela EFÍ!',
@@ -91,13 +91,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Teste 2: TXID sanitizado
       const txidLimpo = txid.trim().replace(/[^a-zA-Z0-9]/g, '');
-      
+
       if (txidLimpo !== txid) {
         console.log('🔄 Tentando com TXID sanitizado:', txidLimpo);
-        
+
         try {
           const pixResponse2 = await efipay.pixDetailCharge([], { txid: txidLimpo });
-          
+
           return res.status(200).json({
             success: true,
             message: 'TXID aceito após sanitização!',
@@ -123,7 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro no teste:', error);
-    
+
     return res.status(500).json({
       success: false,
       error: 'Erro no teste',

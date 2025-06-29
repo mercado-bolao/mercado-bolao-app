@@ -99,7 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         // Configurar certificado para produção
-        if (!isSandbox) {
+        if (isSandbox) {
           const certificatePath = path.resolve('./certs/certificado-efi.p12');
           if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
             efiConfig.certificate = certificatePath;

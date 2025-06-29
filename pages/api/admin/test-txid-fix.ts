@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    if (!isSandbox) {
+    if (isSandbox) {
       const certificatePath = path.resolve('./certs/certificado-efi.p12');
       if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
         efiConfig.certificate = certificatePath;
@@ -111,7 +111,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       success: true,
       message: '🎉 Teste do TXID fix concluído!',
       resultado: resultado,
-      conclusao: resultado.consistencia.todos_iguais 
+      conclusao: resultado.consistencia.todos_iguais
         ? '✅ TXID consistente! Fix funcionando!'
         : '❌ TXID inconsistente! Revisar implementação.'
     });

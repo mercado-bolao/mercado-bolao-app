@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
 import path from 'path';
@@ -15,8 +14,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { bilheteId, whatsapp, forcarAtualizacao = false } = req.body;
 
     if (!bilheteId && !whatsapp) {
-      return res.status(400).json({ 
-        error: 'bilheteId ou whatsapp é obrigatório' 
+      return res.status(400).json({
+        error: 'bilheteId ou whatsapp é obrigatório'
       });
     }
 
@@ -31,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     } else if (whatsapp) {
       bilhete = await prisma.bilhete.findFirst({
-        where: { 
+        where: {
           whatsapp: whatsapp,
           status: 'PENDENTE'
         },
@@ -41,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (!bilhete) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Bilhete não encontrado',
         detalhes: 'Nenhum bilhete pendente encontrado para este WhatsApp ou ID'
       });
@@ -62,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Atualizar bilhete
       await prisma.bilhete.update({
         where: { id: bilhete.id },
-        data: { 
+        data: {
           status: 'PAGO',
           updatedAt: new Date()
         }
@@ -72,7 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (bilhete.pix) {
         await prisma.pixPagamento.update({
           where: { id: bilhete.pix.id },
-          data: { 
+          data: {
             status: 'PAGA',
             updatedAt: new Date()
           }
@@ -116,13 +115,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           client_secret: process.env.EFI_CLIENT_SECRET
         };
 
-        // Configurar certificado para produção
-        if (!isSandbox) {
-          const certificatePath = path.resolve('./certs/certificado-efi.p12');
-          if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-            efiConfig.certificate = certificatePath;
-            efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-          }
+        const certificatePath = path.resolve('./certs/certificado-efi.p12');
+        if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+          efiConfig.certificate = certificatePath;
+          efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
         }
 
         const EfiPay = require('sdk-node-apis-efi');

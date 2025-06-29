@@ -64,23 +64,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let efiConfig: any = {
       sandbox: isSandbox,
-      client_id: efiClientId,
-      client_secret: efiClientSecret
+      client_id: process.env.EFI_CLIENT_ID,
+      client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    // Configurar certificado para produção
-    if (!isSandbox) {
-      const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: 'Certificado não configurado para produção'
-        });
-      }
+    const certificatePath = path.resolve('./certs/certificado-efi.p12');
+    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+      efiConfig.certificate = certificatePath;
+      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
     }
 
     const efipay = new EfiPay(efiConfig);

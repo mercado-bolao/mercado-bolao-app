@@ -22,13 +22,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const bilhete = await prisma.bilhete.findUnique({
       where: { id },
       include: {
+        concurso: true,
         palpites: {
           include: {
-            jogo: {
-              include: {
-                concurso: true
-              }
-            }
+            jogo: true
           }
         }
       }
@@ -67,10 +64,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           horario: palpite.jogo.horario.toISOString()
         }
       })),
-      concurso: bilhete.palpites.length > 0 ? {
-        nome: bilhete.palpites[0].jogo.concurso.nome,
-        numero: bilhete.palpites[0].jogo.concurso.numero
-      } : null
+      concurso: {
+        nome: bilhete.concurso.nome,
+        numero: bilhete.concurso.numero
+      }
     };
 
     return res.status(200).json({

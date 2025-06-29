@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
@@ -23,19 +22,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    // Configurar certificado para produção
-    if (!isSandbox) {
-      const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      } else {
-        return res.status(400).json({
-          success: false,
-          error: 'Certificado não configurado para produção'
-        });
-      }
+    const certificatePath = path.resolve('./certs/certificado-efi.p12');
+    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+      efiConfig.certificate = certificatePath;
+      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
     }
 
     const efipay = new EfiPay(efiConfig);
@@ -49,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // URL do webhook (ajuste conforme seu domínio)
-    const webhookUrl = isSandbox 
+    const webhookUrl = isSandbox
       ? `https://${req.headers.host}/api/webhook-pix`
       : `https://${req.headers.host}/api/webhook-pix`;
 

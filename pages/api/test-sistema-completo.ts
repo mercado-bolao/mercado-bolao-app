@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     console.log('🧪 INICIANDO TESTE COMPLETO DO SISTEMA...');
-    
+
     const resultados = {
       database: { status: 'ERRO', details: null },
       efiCredentials: { status: 'ERRO', details: null },
@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const concursos = await prisma.concurso.count();
       const jogos = await prisma.jogo.count();
       const palpites = await prisma.palpite.count();
-      
+
       resultados.database = {
         status: 'OK',
         details: {
@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const efiPixKey = process.env.EFI_PIX_KEY;
 
       const credenciaisOk = !!(efiClientId && efiClientSecret && efiPixKey);
-      
+
       if (credenciaisOk) {
         resultados.efiCredentials = {
           status: 'OK',
@@ -186,7 +186,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const palpitesPendentes = await prisma.palpite.count({
         where: { status: 'pendente' }
       });
-      
+
       const palpitesPagos = await prisma.palpite.count({
         where: { status: 'pago' }
       });
@@ -213,10 +213,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const efiSandbox = process.env.EFI_SANDBOX || 'true';
       const isSandbox = efiSandbox === 'true';
-      
+
       // Verificar se tem certificado para produção
       let certificadoOk = true;
-      if (!isSandbox) {
+      if (isSandbox) {
         const certificatePath = path.resolve('./certs/certificado-efi.p12');
         certificadoOk = fs.existsSync(certificatePath) && !!process.env.EFI_CERTIFICATE_PASSPHRASE;
       }

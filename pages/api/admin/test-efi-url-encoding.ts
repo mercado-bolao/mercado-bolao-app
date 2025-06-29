@@ -42,9 +42,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Configurar certificado para produção
-    if (!isSandbox) {
+    if (isSandbox) {
       const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      
+
       if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
         efiConfig.certificate = certificatePath;
         efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
@@ -60,10 +60,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 1. Sanitizar TXID
     const txidLimpo = txid.trim().replace(/[^a-zA-Z0-9]/g, '');
-    
+
     // 2. Aplicar encodeURIComponent
     const cleanTxid = encodeURIComponent(txidLimpo);
-    
+
     // 3. Log detalhado
     console.log('🔍 Análise do TXID:', {
       original: txid,
@@ -117,10 +117,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao testar URL encoding:', error);
-    
+
     let mensagemErro = 'Erro ao consultar EFÍ Pay com URL encoding';
     let detalhesErro = null;
-    
+
     if (error && typeof error === 'object' && 'error_description' in error) {
       mensagemErro = error.error_description as string;
       detalhesErro = error;

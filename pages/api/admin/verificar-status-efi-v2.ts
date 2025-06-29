@@ -56,9 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
 
     // Configurar certificado para produção
-    if (!isSandbox) {
+    if (isSandbox) {
       const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      
+
       if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
         efiConfig.certificate = certificatePath;
         efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
@@ -74,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Usar locationId para buscar o PIX
     console.log('📡 Consultando PIX na EFÍ Pay usando locationId:', bilhete.pix.locationId);
-    
+
     const pixResponse = await efipay.pixDetailLocation([], { id: bilhete.pix.locationId });
 
     console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
@@ -109,7 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Atualizar status no banco se necessário
     if (statusEfi === 'CONCLUIDA' && bilhete.status !== 'PAGO') {
       console.log('✅ PIX confirmado como pago, atualizando banco...');
-      
+
       // Atualizar bilhete
       await prisma.bilhete.update({
         where: { id: bilhete.id },
@@ -142,9 +142,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao verificar status na EFÍ:', error);
-    
+
     let mensagemErro = 'Erro ao consultar EFÍ Pay';
-    
+
     if (error && typeof error === 'object' && 'error_description' in error) {
       mensagemErro = error.error_description as string;
     } else if (error instanceof Error) {

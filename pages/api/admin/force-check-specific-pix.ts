@@ -75,13 +75,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    // Configurar certificado para produção
-    if (!isSandbox) {
-      const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      }
+    const certificatePath = path.resolve('./certs/certificado-efi.p12');
+    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+      efiConfig.certificate = certificatePath;
+      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
     }
 
     const efipay = new EfiPay(efiConfig);

@@ -47,20 +47,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar na EFI usando múltiplos métodos
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const isSandbox = efiSandbox === 'true';
-    
+
     console.log('🔄 Verificando na EFI Pay...');
-    
+
     try {
       // Método 1: SDK EFI
       const EfiPay = require('sdk-node-apis-efi');
-      
+
       let efiConfig: any = {
         sandbox: isSandbox,
         client_id: process.env.EFI_CLIENT_ID,
         client_secret: process.env.EFI_CLIENT_SECRET
       };
 
-      if (!isSandbox) {
+      if (isSandbox) {
         const certificatePath = path.resolve('./certs/certificado-efi.p12');
         if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
           efiConfig.certificate = certificatePath;
@@ -70,9 +70,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const efipay = new EfiPay(efiConfig);
       const pixResponse = await efipay.pixDetailCharge([], { txid: bilhete.txid });
-      
+
       console.log('📋 Resposta EFI SDK:', pixResponse.status);
-      
+
       if (pixResponse.status === 'CONCLUIDA') {
         // Marcar como pago
         await prisma.bilhete.update({
@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
 
         console.log('✅ Pagamento confirmado via SDK EFI');
-        
+
         return res.status(200).json({
           success: true,
           message: 'Pagamento confirmado e atualizado!',
@@ -95,18 +95,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           metodo: 'SDK_EFI'
         });
       }
-      
+
     } catch (sdkError) {
       console.log('⚠️ Erro no SDK EFI:', sdkError);
-      
+
       // Método 2: Fetch direto
       try {
-        const baseUrl = isSandbox 
+        const baseUrl = isSandbox
           ? 'https://pix-h.api.efipay.com.br'
           : 'https://pix.api.efipay.com.br';
 
         const authString = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
-        
+
         const tokenResponse = await fetch(`${baseUrl}/oauth/token`, {
           method: 'POST',
           headers: {
@@ -118,7 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (tokenResponse.ok) {
           const tokenData = await tokenResponse.json();
-          
+
           const pixResponse = await fetch(`${baseUrl}/v2/pix/${bilhete.txid}`, {
             method: 'GET',
             headers: {
@@ -130,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           if (pixResponse.ok) {
             const pixData = await pixResponse.json();
             console.log('📋 Resposta EFI Fetch:', pixData.status);
-            
+
             if (pixData.status === 'CONCLUIDA') {
               // Marcar como pago
               await prisma.bilhete.update({
@@ -145,7 +145,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               });
 
               console.log('✅ Pagamento confirmado via Fetch EFI');
-              
+
               return res.status(200).json({
                 success: true,
                 message: 'Pagamento confirmado e atualizado!',

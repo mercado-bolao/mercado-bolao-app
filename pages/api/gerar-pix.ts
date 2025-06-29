@@ -51,37 +51,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Configurar EFÍ baseado no ambiente
     let efiConfig: any = {
       sandbox: isSandbox,
-      client_id: efiClientId,
-      client_secret: efiClientSecret
+      client_id: process.env.EFI_CLIENT_ID,
+      client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    // Configurar certificado para produção
-    if (!isSandbox) {
-      const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-        console.log('✅ Certificado configurado para produção');
-      } else {
-        return res.status(400).json({
-          error: 'Certificado não configurado para PRODUÇÃO'
-        });
-      }
+    const certificatePath = path.resolve('./certs/certificado-efi.p12');
+    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+      efiConfig.certificate = certificatePath;
+      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
     }
 
-    console.log('🔧 Criando instância EFI Pay...');
-    let efipay;
-    try {
-      efipay = new EfiPay(efiConfig);
-      console.log('✅ Instância EFI criada com sucesso');
-    } catch (instanceError) {
-      console.error('❌ Erro ao criar instância EFI:', instanceError);
-      return res.status(500).json({
-        error: 'Erro ao criar instância EFI Pay',
-        details: instanceError instanceof Error ? instanceError.message : 'Erro desconhecido'
-      });
-    }
+    const efipay = new EfiPay(efiConfig);
 
     // Gerar identificadores únicos
     const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -235,11 +215,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // ✅ USAR PUT AO INVÉS DE POST - GARANTE QUE O TXID SEJA O NOSSO
       const params = { txid: txid };
       pixResponse = await efipay.pixCreateCharge(params, body);
-      
+
       console.log('✅ Cobrança PIX criada com PUT!');
       console.log('📋 TXID enviado para EFÍ:', txid);
       console.log('📋 Resposta da EFÍ:', JSON.stringify(pixResponse, null, 2));
-      
+
       // Garantir que o TXID retornado é o mesmo que enviamos
       if (pixResponse.txid && pixResponse.txid !== txid) {
         console.warn('⚠️ TXID retornado pela EFÍ difere do enviado!', {
@@ -247,7 +227,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           retornado: pixResponse.txid
         });
       }
-      
+
     } catch (cobrancaError) {
       console.error('❌ ERRO AO CRIAR COBRANÇA PIX:', cobrancaError);
 
@@ -298,22 +278,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
       console.log('✅ TXID definitivo salvo no banco:', txid);
       console.log('📋 Log da resposta EFÍ:', efiResponseLog);
-      
+
       // ✅ VALIDAÇÃO FINAL: Confirmar que TXID do banco = TXID da EFÍ
       console.log('🔍 VALIDAÇÃO FINAL:');
       console.log('- TXID gerado por nós:', txid);
       console.log('- TXID salvo no banco:', pixSalvo.txid);
       console.log('- TXID retornado pela EFÍ:', pixResponse.txid || 'N/A');
       console.log('- ✅ TXID consistente:', pixSalvo.txid === txid ? 'SIM' : 'NÃO');
-      
+
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
 
     // Update bilhete with txid - ✅ SEMPRE USAR NOSSO TXID
     await prisma.bilhete.update({
-        where: { id: bilhete.id },
-        data: { txid: txid } // ✅ Usar o TXID gerado por nós, não o da EFÍ
+      where: { id: bilhete.id },
+      data: { txid: txid } // ✅ Usar o TXID gerado por nós, não o da EFÍ
     });
 
     return res.status(200).json({

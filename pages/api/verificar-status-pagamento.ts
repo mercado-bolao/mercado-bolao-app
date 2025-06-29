@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .trim()
         .replace(/[^\x20-\x7E]/g, '') // Remove caracteres não ASCII
         .replace(/[^a-zA-Z0-9]/g, ''); // Remove tudo exceto alfanuméricos
-      
+
       const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
       const txidValido = txidPattern.test(txidLimpo);
 
@@ -73,19 +73,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       if (!txidValido) {
         console.log(`⚠️ TXID com formato inválido (${bilhete.txid.length} caracteres): ${bilhete.txid}`);
-        
+
         // Mesmo com TXID inválido, tentar verificar na EFI usando fetch direto
         try {
           console.log('🔄 Tentando verificação alternativa na EFI...');
           const efiSandbox = process.env.EFI_SANDBOX || 'false';
           const isSandbox = efiSandbox === 'true';
-          const baseUrl = isSandbox 
+          const baseUrl = isSandbox
             ? 'https://pix-h.api.efipay.com.br'
             : 'https://pix.api.efipay.com.br';
 
           // Obter token
           const authString = Buffer.from(`${process.env.EFI_CLIENT_ID}:${process.env.EFI_CLIENT_SECRET}`).toString('base64');
-          
+
           const tokenResponse = await fetch(`${baseUrl}/oauth/token`, {
             method: 'POST',
             headers: {
@@ -97,7 +97,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
           if (tokenResponse.ok) {
             const tokenData = await tokenResponse.json();
-            
+
             // Tentar consultar PIX
             const pixResponse = await fetch(`${baseUrl}/v2/pix/${bilhete.txid}`, {
               method: 'GET',
@@ -110,7 +110,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (pixResponse.ok) {
               const pixData = await pixResponse.json();
               console.log(`✅ PIX encontrado na EFI: ${pixData.status}`);
-              
+
               if (pixData.status === 'CONCLUIDA') {
                 // Atualizar status para pago
                 await prisma.bilhete.update({
@@ -135,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         } catch (altError) {
           console.log('⚠️ Verificação alternativa falhou:', altError);
         }
-        
+
         // Retornar status atual se verificação alternativa não funcionou
         return res.status(200).json({
           success: true,
@@ -166,21 +166,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             client_secret: process.env.EFI_CLIENT_SECRET
           };
 
-          // Configurar certificado para produção
-          if (!isSandbox) {
-            const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-            if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-              efiConfig.certificate = certificatePath;
-              efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-            }
+          const certificatePath = path.resolve('./certs/certificado-efi.p12');
+          if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+            efiConfig.certificate = certificatePath;
+            efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
           }
 
           const efipay = new EfiPay(efiConfig);
 
           // Preparar TXID para URL
           const cleanTxid = encodeURIComponent(txidLimpo);
-          
+
           // Log detalhado da requisição
           console.log('🔧 Preparando requisição para EFÍ:', {
             txidOriginal: bilhete.txid,
@@ -218,7 +214,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // Atualizar palpites
             await prisma.palpite.updateMany({
-              where: { 
+              where: {
                 bilheteId: bilhete.id
               },
               data: { status: 'pago' }
@@ -299,7 +295,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Reverter palpites
       await prisma.palpite.updateMany({
-        where: { 
+        where: {
           bilheteId: bilhete.id
         },
         data: { status: 'pendente' }

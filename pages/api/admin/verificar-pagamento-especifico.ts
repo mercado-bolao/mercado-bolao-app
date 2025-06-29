@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const [dataParte, horaParte] = data.split(', ');
       const [dia, mes, ano] = dataParte.split('/');
       const [hora, minuto, segundo] = horaParte.split(':');
-      
+
       const dataInicio = new Date(parseInt(ano), parseInt(mes) - 1, parseInt(dia), parseInt(hora), parseInt(minuto), parseInt(segundo));
       const dataFim = new Date(dataInicio.getTime() + 60 * 60 * 1000); // +1 hora
 
@@ -57,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log(`📊 Encontrados ${bilhetes.length} bilhetes`);
 
     if (bilhetes.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Nenhum bilhete encontrado',
         dados: { data, whatsapp, txid }
       });
@@ -109,7 +109,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         // Configurar certificado para produção
-        if (!isSandbox) {
+        if (isSandbox) {
           const certificatePath = path.resolve('./certs/certificado-efi.p12');
           if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
             efiConfig.certificate = certificatePath;

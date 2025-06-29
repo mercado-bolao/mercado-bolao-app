@@ -37,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!config.EFI_PIX_KEY) errors.push('EFI_PIX_KEY não configurado');
 
     // Verificações para produção
-    if (!isSandbox) {
+    if (isSandbox) {
       if (!config.certificateExists) {
         errors.push('Certificado não encontrado em ./certs/certificado-efi.p12');
       }

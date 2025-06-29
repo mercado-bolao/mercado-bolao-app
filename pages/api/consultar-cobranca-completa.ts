@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 import { TxidUtils } from '../../lib/txid-utils';
@@ -23,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // Analisar e validar TXID
   const analise = TxidUtils.analisarTxid(txid);
-  
+
   if (!analise.valido) {
     return res.status(400).json({
       success: false,
@@ -65,18 +64,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const isSandbox = efiSandbox === 'true';
       let efiConfig: any = {
         sandbox: isSandbox,
-        client_id: efiClientId,
-        client_secret: efiClientSecret
+        client_id: process.env.EFI_CLIENT_ID,
+        client_secret: process.env.EFI_CLIENT_SECRET
       };
 
-      // Configurar certificado para produção
-      if (!isSandbox) {
-        const certificatePath = path.resolve('./certs/certificado-efi.p12');
-        
-        if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-          efiConfig.certificate = certificatePath;
-          efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-        }
+      const certificatePath = path.resolve('./certs/certificado-efi.p12');
+      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+        efiConfig.certificate = certificatePath;
+        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
       }
 
       const efipay = new EfiPay(efiConfig);
@@ -146,7 +141,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Status consolidado
     if (statusEfi && dadosLocais) {
       response.statusConsolidado = statusEfi === 'CONCLUIDA' ? 'PAGO' : statusEfi;
-      
+
       // Atualizar status local se necessário
       if (statusEfi === 'CONCLUIDA' && dadosLocais.status !== 'CONCLUIDA') {
         await prisma.pixPagamento.update({
