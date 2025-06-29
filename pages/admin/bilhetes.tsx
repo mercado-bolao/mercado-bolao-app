@@ -213,25 +213,6 @@ export default function BilhetesAdmin() {
       return 'Dispositivo não identificado';
     }
 
-    // Detectar navegador
-    if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
-      return '🌐 Chrome';
-    } else if (userAgent.includes('Firefox')) {
-      return '🦊 Firefox';
-    } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
-      return '🧭 Safari';
-    } else if (userAgent.includes('Edg')) {
-      return '🔵 Edge';
-    } else if (userAgent.includes('Opera')) {
-      return '🎭 Opera';
-    } else if (userAgent.includes('Mobile')) {
-      return '📱 Mobile';
-    } else {
-      return '🖥️ Desktop';
-    }
-  }; => {
-    if (!userAgent) return 'Não informado';
-
     let dispositivo = 'Desconhecido';
     let navegador = 'Desconhecido';
 
