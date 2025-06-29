@@ -215,29 +215,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('❌ Erro ao enviar resposta JSON:', jsonError);
       res.status(500).send('Erro interno do servidor');
     }
-
-  } catch (globalError: any) {
-    console.error('❌ ERRO GLOBAL CAPTURADO:');
-    console.error('📄 Tipo:', typeof globalError);
-    console.error('📝 Erro:', globalError);
-    console.error('📚 Stack:', globalError?.stack);
-
-    // Garantir que sempre enviamos JSON
-    try {
-      if (!res.headersSent) {
-        res.setHeader('Content-Type', 'application/json');
-        return res.status(500).json({
-          error: 'Erro interno do servidor',
-          details: globalError?.message || 'Erro desconhecido',
-          timestamp: new Date().toISOString(),
-          caught: 'global-handler'
-        });
-      }
-    } catch (finalError) {
-      console.error('❌ Erro final ao enviar resposta:', finalError);
-      if (!res.headersSent) {
-        res.status(500).end('{"error":"Erro crítico do servidor"}');
-      }
-    }
   }
 }
