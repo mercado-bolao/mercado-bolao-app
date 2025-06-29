@@ -5,10 +5,12 @@ import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   console.log('🔄 Handler iniciado - método:', req.method);
+  console.log('🔍 DEBUG: Verificando Prisma...');
+  console.log('- prisma existe:', !!prisma);
+  console.log('- prisma.pixPagamento existe:', !!prisma?.pixPagamento);
+  console.log('- prisma.pixPagamento.create existe:', !!prisma?.pixPagamento?.create);
   console.log('📥 Request headers:', JSON.stringify(req.headers, null, 2));
   console.log('📥 Request body:', JSON.stringify(req.body, null, 2));
-
-  // Prisma é gerenciado pelo singleton, não precisa testar conexão
 
   try {
     // Definir headers JSON primeiro
