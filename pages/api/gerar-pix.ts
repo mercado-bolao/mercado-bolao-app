@@ -234,6 +234,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Salvar dados do PIX no banco de dados
     const { PrismaClient } = require('@prisma/client');
     const prisma = new PrismaClient();
+    
+    // Verificar se o Prisma foi carregado corretamente
+    if (!prisma || !prisma.pixPagamento) {
+      console.error('❌ Prisma não carregado corretamente');
+      console.log('✅ PIX gerado com sucesso, mas não foi salvo no banco');
+      
+      return res.status(200).json({
+        success: true,
+        pix: {
+          txid: pixResponse.txid,
+          locationId: locationId,
+          qrcode: qrCodeResponse.qrcode,
+          imagemQrcode: qrCodeResponse.imagemQrcode,
+          valor: valorTotal,
+          expiracao: new Date(Date.now() + 3600000).toISOString(),
+          ambiente: isSandbox ? 'sandbox' : 'produção',
+          aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX',
+          dbWarning: 'PIX não foi salvo no banco de dados'
+        },
+      });
+    }
 
     try {
       console.log('💾 Salvando dados do PIX no banco...');
