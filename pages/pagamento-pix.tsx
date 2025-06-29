@@ -85,15 +85,15 @@ export default function PagamentoPix() {
           try {
             const bilheteResponse = await fetch(`/api/consultar-bilhete?id=${bilhete.id}`);
             const bilheteCompleto = await bilheteResponse.json();
-            
+
             if (bilheteCompleto.success) {
               // Salvar dados do bilhete confirmado
               localStorage.setItem('bilheteConfirmado', JSON.stringify(bilheteCompleto.bilhete));
-              
+
               // Limpar dados temporários
               localStorage.removeItem('bilheteData');
               localStorage.removeItem('pixData');
-              
+
               // Redirecionar para tela de confirmação
               router.push('/bilhete-confirmado');
               return;

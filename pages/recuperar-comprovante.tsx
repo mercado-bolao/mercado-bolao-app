@@ -40,8 +40,16 @@ export default function RecuperarComprovante() {
       console.log('📋 Resposta da API:', data);
 
       if (data.success) {
+        console.log('✅ Bilhete encontrado, preparando comprovante...');
+        
+        // Validar dados do bilhete
+        if (!data.bilhete || !data.bilhete.id || !data.bilhete.palpites) {
+          throw new Error('Dados do bilhete inválidos ou incompletos');
+        }
+        
         // Salvar dados do bilhete confirmado
         localStorage.setItem('bilheteConfirmado', JSON.stringify(data.bilhete));
+        console.log('💾 Dados salvos no localStorage para comprovante');
         
         // Redirecionar para o comprovante
         router.push('/bilhete-confirmado');

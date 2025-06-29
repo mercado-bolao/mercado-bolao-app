@@ -224,6 +224,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               data: { status: 'pago' }
             });
 
+            // Buscar dados completos do bilhete para o comprovante
+            const bilheteCompleto = await prisma.bilhete.findUnique({
+              where: { id: bilhete.id },
+              include: {
+                palpites: {
+                  include: {
+                    jogo: {
+                      include: {
+                        concurso: true
+                      }
+                    }
+                  }
+                }
+              }
+            });
+
+            // Formatar dados para o comprovante
+            const bilheteConfirmado = {
+              id: bilheteCompleto.id,
+              txid: bilheteCompleto.txid,
+              valorTotal: bilheteCompleto.valorTotal,
+              whatsapp: bilheteCompleto.whatsapp,
+              nome: bilheteCompleto.nome,
+              status: 'PAGO',
+              createdAt: bilheteCompleto.createdAt.toISOString(),
+              palpites: bilheteCompleto.palpites.map(palpite => ({
+                id: palpite.id,
+                resultado: palpite.resultado,
+                jogo: {
+                  mandante: palpite.jogo.mandante,
+                  visitante: palpite.jogo.visitante,
+                  horario: palpite.jogo.horario.toISOString()
+                }
+              })),
+              concurso: bilheteCompleto.palpites.length > 0 ? {
+                nome: bilheteCompleto.palpites[0].jogo.concurso.nome,
+                numero: bilheteCompleto.palpites[0].jogo.concurso.numero
+              } : null
+            };
+
             return res.status(200).json({
               success: true,
               status: 'PAGO',
@@ -233,7 +273,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 status: 'PAGO',
                 valorTotal: bilhete.valorTotal,
                 txid: bilhete.txid
-              }
+              },
+              bilheteCompleto: bilheteConfirmado,
+              redirectTo: '/bilhete-confirmado'
             });
           }
 
