@@ -55,8 +55,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Se tem TXID, verificar na EFI (apenas se TXID for válido)
     if (bilhete.txid) {
-      // Sanitizar e validar TXID
-      const txidLimpo = bilhete.txid.trim().replace(/[^a-zA-Z0-9]/g, '');
+      // Sanitizar e validar TXID - remover caracteres invisíveis
+      const txidLimpo = bilhete.txid
+        .trim()
+        .replace(/[^\x20-\x7E]/g, '') // Remove caracteres não ASCII
+        .replace(/[^a-zA-Z0-9]/g, ''); // Remove tudo exceto alfanuméricos
+      
       const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
       const txidValido = txidPattern.test(txidLimpo);
 

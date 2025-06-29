@@ -18,17 +18,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         nome: true,
         whatsapp: true,
         status: true,
-        valor: true,
+        valorTotal: true,
+        quantidadePalpites: true,
         txid: true,
+        expiresAt: true,
+        ipAddress: true,
+        userAgent: true,
         createdAt: true,
         updatedAt: true,
-        palpites: {
-          include: {
-            jogo: {
-              include: {
-                concurso: true
-              }
-            }
+        pix: {
+          select: {
+            id: true,
+            status: true,
+            ambiente: true
           }
         }
       },
