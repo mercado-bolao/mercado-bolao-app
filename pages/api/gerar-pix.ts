@@ -85,9 +85,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Gerar identificadores únicos
     const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    // Usar utilitária de TXID para geração confiável
+    // Usar utilitária de TXID para geração confiável (SEM PREFIXO)
     const { TxidUtils } = await import('../../lib/txid-utils');
-    const txid = TxidUtils.gerarTxidUnico('PIX');
+    const txid = TxidUtils.gerarTxidSeguro(32);
 
     // 🔒 VALIDAÇÃO: Verificar se TXID está no formato correto
     const txidPattern = /^[a-zA-Z0-9]{26,35}$/;

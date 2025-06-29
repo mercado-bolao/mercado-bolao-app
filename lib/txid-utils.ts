@@ -11,18 +11,44 @@ export class TxidUtils {
 
   /**
    * Gera um TXID válido conforme padrão EFI Pay
-   * @returns TXID de 32 caracteres alfanuméricos
+   * @param length Comprimento do TXID (padrão: 32)
+   * @returns TXID de caracteres alfanuméricos
    */
-  static gerarTxid(): string {
+  static gerarTxid(length: number = 32): string {
+    if (length < 26 || length > 35) {
+      throw new Error(`Comprimento do TXID deve estar entre 26 e 35 caracteres. Recebido: ${length}`);
+    }
+
     let txid = '';
     
-    for (let i = 0; i < this.TXID_LENGTH; i++) {
+    for (let i = 0; i < length; i++) {
       txid += this.CARACTERES.charAt(Math.floor(Math.random() * this.CARACTERES.length));
     }
     
     // Garantir que está no formato correto
     if (!this.validarTxid(txid)) {
       throw new Error(`TXID gerado inválido: ${txid}`);
+    }
+    
+    return txid;
+  }
+
+  /**
+   * Gera um TXID seguro sem prefixos ou caracteres especiais
+   * @param length Comprimento do TXID (padrão: 32)
+   * @returns TXID seguro para EFI Pay
+   */
+  static gerarTxidSeguro(length: number = 32): string {
+    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let txid = '';
+    
+    for (let i = 0; i < length; i++) {
+      txid += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
+    }
+    
+    // Validar o TXID gerado
+    if (!this.validarTxid(txid)) {
+      throw new Error(`TXID seguro gerado inválido: ${txid}`);
     }
     
     return txid;
@@ -75,33 +101,12 @@ export class TxidUtils {
   }
 
   /**
-   * Gera um TXID único baseado em timestamp e randomização
-   * @param prefixo Prefixo opcional para identificação
-   * @returns TXID único
+   * Gera um TXID único baseado em timestamp e randomização (SEM PREFIXO)
+   * @param ignorePrefixo Ignorar prefixo antigo (compatibilidade)
+   * @returns TXID único sem prefixo
    */
-  static gerarTxidUnico(prefixo?: string): string {
-    const timestamp = Date.now().toString(36); // Base36 para economizar caracteres
-    const random = Math.random().toString(36).substring(2);
-    
-    let txid = prefixo ? `${prefixo}${timestamp}${random}` : `${timestamp}${random}`;
-    
-    // Ajustar para 32 caracteres
-    if (txid.length > 32) {
-      txid = txid.substring(0, 32);
-    } else if (txid.length < 32) {
-      // Completar com caracteres aleatórios
-      while (txid.length < 32) {
-        txid += this.CARACTERES.charAt(Math.floor(Math.random() * this.CARACTERES.length));
-      }
-    }
-    
-    // Sanitizar para garantir que só tem caracteres válidos
-    txid = this.sanitizarTxid(txid);
-    
-    if (!this.validarTxid(txid)) {
-      throw new Error(`Falha ao gerar TXID único válido: ${txid}`);
-    }
-    
-    return txid;
+  static gerarTxidUnico(ignorePrefixo?: string): string {
+    // Usar gerador seguro sempre, ignorando qualquer prefixo
+    return this.gerarTxidSeguro(32);
   }
 }
