@@ -494,14 +494,14 @@ export default function ConcursoDetalhes() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-green-100 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-3 mb-4">
           <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">⚽ Apostar</h1>
-            <div className="bg-green-100 rounded-lg p-3">
-              <p className="text-green-800 font-semibold">
+            <h1 className="text-lg font-semibold text-gray-800 mb-1">⚽ Apostar</h1>
+            <div className="bg-green-50 rounded-md p-2">
+              <p className="text-green-700 font-medium text-sm">
                 Concurso #{concurso.numero}
               </p>
-              <p className="text-green-600 text-sm">
+              <p className="text-green-600 text-xs">
                 {new Date(concurso.dataInicio).toLocaleDateString('pt-BR')}
               </p>
             </div>
