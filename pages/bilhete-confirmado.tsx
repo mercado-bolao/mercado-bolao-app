@@ -38,7 +38,10 @@ export default function BilheteConfirmado() {
     // Recuperar dados do bilhete confirmado do localStorage
     const bilheteConfirmadoData = localStorage.getItem('bilheteConfirmado');
     
+    console.log('📋 Dados do bilhete no localStorage:', bilheteConfirmadoData);
+    
     if (!bilheteConfirmadoData) {
+      console.log('❌ Nenhum dado de bilhete encontrado no localStorage');
       // Se não há dados, redirecionar para home
       router.push('/');
       return;
@@ -46,9 +49,16 @@ export default function BilheteConfirmado() {
 
     try {
       const dadosBilhete = JSON.parse(bilheteConfirmadoData);
+      console.log('✅ Dados do bilhete carregados:', dadosBilhete);
+      
+      // Validar estrutura básica dos dados
+      if (!dadosBilhete.id || !dadosBilhete.palpites || !Array.isArray(dadosBilhete.palpites)) {
+        throw new Error('Dados do bilhete inválidos');
+      }
+      
       setBilhete(dadosBilhete);
     } catch (error) {
-      console.error('Erro ao carregar dados do bilhete:', error);
+      console.error('❌ Erro ao carregar dados do bilhete:', error);
       setError('Erro ao carregar dados do bilhete confirmado');
     } finally {
       setLoading(false);

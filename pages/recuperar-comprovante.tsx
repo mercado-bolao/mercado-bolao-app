@@ -19,8 +19,25 @@ export default function RecuperarComprovante() {
     setError('');
 
     try {
+      console.log('🔍 Buscando bilhete para WhatsApp:', whatsapp);
+      
       const response = await fetch(`/api/recuperar-bilhete-pago?whatsapp=${encodeURIComponent(whatsapp)}`);
+      
+      // Verificar se a resposta é válida
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
+      // Verificar se a resposta é JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Resposta não é JSON:', text);
+        throw new Error('Resposta inválida do servidor');
+      }
+
       const data = await response.json();
+      console.log('📋 Resposta da API:', data);
 
       if (data.success) {
         // Salvar dados do bilhete confirmado
@@ -32,8 +49,17 @@ export default function RecuperarComprovante() {
         setError(data.error || 'Nenhum bilhete pago encontrado');
       }
     } catch (error) {
-      console.error('Erro ao buscar bilhete:', error);
-      setError('Erro ao buscar bilhete. Tente novamente.');
+      console.error('❌ Erro ao buscar bilhete:', error);
+      
+      if (error instanceof Error) {
+        if (error.message.includes('JSON')) {
+          setError('Erro de comunicação com o servidor. Tente novamente.');
+        } else {
+          setError(error.message);
+        }
+      } else {
+        setError('Erro inesperado. Tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

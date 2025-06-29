@@ -3,6 +3,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Definir headers para JSON
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
