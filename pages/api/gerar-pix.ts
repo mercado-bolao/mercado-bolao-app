@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const efiClientSecret = process.env.EFI_CLIENT_SECRET;
     const efiPixKey = process.env.EFI_PIX_KEY;
 
-  // Validar credenciais obrigatórias para produção
+  // Validar credenciais obrigatórias
   if (!efiClientId || !efiClientSecret || !efiPixKey) {
     console.error('❌ Credenciais EFI não configuradas:', {
       clientId: !!efiClientId,
@@ -50,96 +50,50 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-    const isSandbox = efiSandbox === 'true';
-
-    console.log(`🔄 Gerando PIX ${isSandbox ? 'SANDBOX' : 'PRODUÇÃO'} para:`, { whatsapp, valorTotal, totalBilhetes });
-    console.log('📋 Configurações:');
-    console.log('- Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
-    console.log('- EFI_CLIENT_ID:', efiClientId ? '✅' : '❌');
-    console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅' : '❌');
-    console.log('- EFI_PIX_KEY:', efiPixKey ? '✅' : '❌');
-    console.log('- Certificado:', process.env.EFI_CERTIFICATE_PASSPHRASE ? '✅' : '❌');
-
-    const EfiPay = require('sdk-node-apis-efi');
-
-    // Verificar se certificado está disponível
+  const isSandbox = efiSandbox === 'true';
   const certificadoDisponivel = process.env.EFI_CERTIFICATE_PASSPHRASE && 
-                                 process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
-
-  // Usar modo produção se sandbox=false E certificado disponível
+                                process.env.EFI_CERTIFICATE_PASSPHRASE.trim() !== '';
   const isProducao = efiSandbox === 'false' && certificadoDisponivel;
 
   console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
-  console.log('🔐 Certificado disponível:', certificadoDisponivel ? '✅' : '❌');
-  console.log('🏷️ Modo:', isProducao ? 'PRODUÇÃO' : 'SANDBOX');
-
-  // Configurações baseadas na disponibilidade do certificado
-  const configuracoes = {
-    EFI_SANDBOX: !isProducao,
-    EFI_CLIENT_ID: process.env.EFI_CLIENT_ID,
-    EFI_CLIENT_SECRET: process.env.EFI_CLIENT_SECRET,
-    EFI_PIX_KEY: process.env.EFI_PIX_KEY,
-    EFI_CERTIFICATE_PATH: process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12',
-    EFI_CERTIFICATE_PASSPHRASE: process.env.EFI_CERTIFICATE_PASSPHRASE
-  };
-
   console.log('📋 Configurações:');
-  console.log('- EFI_SANDBOX:', configuracoes.EFI_SANDBOX);
-  console.log('- EFI_CLIENT_ID:', configuracoes.EFI_CLIENT_ID);
-  console.log('- EFI_CLIENT_SECRET:', configuracoes.EFI_CLIENT_SECRET ? '✅ Definido' : '❌ Vazio');
-  console.log('- EFI_PIX_KEY:', configuracoes.EFI_PIX_KEY);
+  console.log('- Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
+  console.log('- EFI_CLIENT_ID:', efiClientId ? '✅' : '❌');
+  console.log('- EFI_CLIENT_SECRET:', efiClientSecret ? '✅' : '❌');
+  console.log('- EFI_PIX_KEY:', efiPixKey ? '✅' : '❌');
+  console.log('- Certificado:', certificadoDisponivel ? '✅' : '❌');
 
-    // Configuração para sandbox ou produção
-    let efiConfig: any = {
-      client_id: efiClientId,
-      client_secret: efiClientSecret,
-      sandbox: isSandbox,
-    };
+  const EfiPay = require('sdk-node-apis-efi');
 
     // Configurar EFÍ baseado no ambiente
-  let efiConfig2: any = {
-    sandbox: !isProducao,
-    client_id: configuracoes.EFI_CLIENT_ID,
-    client_secret: configuracoes.EFI_CLIENT_SECRET
+  let efiConfig: any = {
+    sandbox: isSandbox,
+    client_id: efiClientId,
+    client_secret: efiClientSecret
   };
 
-  // Configurar certificado baseado no modo
-  if (isProducao) {
-    console.log('🔐 Configurando certificado para PRODUÇÃO...');
-
-    if (fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH) && configuracoes.EFI_CERTIFICATE_PASSPHRASE) {
-      efiConfig2.certificate = configuracoes.EFI_CERTIFICATE_PATH;
-      efiConfig2.passphrase = configuracoes.EFI_CERTIFICATE_PASSPHRASE;
+  // Configurar certificado apenas para produção
+  if (!isSandbox) {
+    const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
+    
+    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
+      efiConfig.certificate = certificatePath;
+      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
       console.log('✅ Certificado configurado para produção');
     } else {
-      console.log('❌ Certificado não disponível para PRODUÇÃO');
-      console.log('📁 Caminho do certificado:', configuracoes.EFI_CERTIFICATE_PATH);
-      console.log('🔑 Senha disponível:', !!configuracoes.EFI_CERTIFICATE_PASSPHRASE);
-      console.log('📂 Arquivo existe:', fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH));
-
       return res.status(400).json({
         error: 'Certificado não configurado para PRODUÇÃO',
-        details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets',
-        suggestion: 'Verifique se o arquivo certificado-efi.p12 está na pasta certs/ e EFI_CERTIFICATE_PASSPHRASE está nos Secrets',
-        debug: {
-          certificatePath: configuracoes.EFI_CERTIFICATE_PATH,
-          certificateExists: fs.existsSync(configuracoes.EFI_CERTIFICATE_PATH),
-          hasPassphrase: !!configuracoes.EFI_CERTIFICATE_PASSPHRASE
-        }
+        details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets'
       });
     }
-  } else {
-    console.log('🧪 Modo SANDBOX - certificado não necessário');
-    // Para sandbox, não incluir certificate no config
   }
 
   console.log('⚙️ Config EFI final:');
-  console.log('- sandbox:', efiConfig2.sandbox);
-  console.log('- client_id:', efiConfig2.client_id);
-  console.log('- client_secret:', efiConfig2.client_secret ? '✅' : '❌');
-  console.log('- certificate:', efiConfig2.certificate);
+  console.log('- sandbox:', efiConfig.sandbox);
+  console.log('- client_id:', efiConfig.client_id);
+  console.log('- client_secret:', efiConfig.client_secret ? '✅' : '❌');
 
-  const efipay = new EfiPay(efiConfig2);
+  const efipay = new EfiPay(efiConfig);
 
     // Gerar TXID único
     const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
