@@ -210,6 +210,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         {
           nome: 'Bilhetes',
           valor: totalBilhetes.toString(),
+        },
+        {
+          nome: 'TXID',
+          valor: txid,
         }
       ],
     };
@@ -218,8 +222,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let pixResponse;
     try {
-      pixResponse = await efipay.pixCreateImmediateCharge([], body);
+      pixResponse = await efipay.pixCreateImmediateCharge([{ txid }], body);
       console.log('✅ Cobrança PIX criada com sucesso!');
+      console.log('📋 TXID usado:', txid);
+      console.log('📋 TXID retornado pela EFÍ:', pixResponse.txid);
     } catch (cobrancaError) {
       console.error('❌ ERRO AO CRIAR COBRANÇA PIX:', cobrancaError);
 
@@ -232,7 +238,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       throw cobrancaError;
     }
 
-    if (!pixResponse || !pixResponse.txid) {
+    if (!pixResponse || !pixResponse.pixCopiaECola) {
       console.error('❌ Resposta da cobrança inválida');
       await prisma.bilhete.update({
         where: { id: bilhete.id },
@@ -245,7 +251,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const pixSalvo = await prisma.pixPagamento.create({
         data: {
-          txid: pixResponse.txid,
+          txid: txid, // Usar o TXID gerado localmente
           whatsapp: whatsapp,
           valor: valorTotal,
           status: 'ATIVA',
@@ -258,6 +264,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
+      console.log('✅ TXID salvo:', txid);
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
@@ -265,20 +272,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Update bilhete with txid
     await prisma.bilhete.update({
         where: { id: bilhete.id },
-        data: { txid: pixResponse.txid }
+        data: { txid: txid } // Usar o TXID gerado localmente
     });
 
     return res.status(200).json({
       success: true,
       bilhete: {
         id: bilhete.id,
-        txid: pixResponse.txid,
+        txid: txid, // Usar o TXID gerado localmente
         orderId: orderId,
         expiresAt: expiresAt.toISOString(),
         status: 'PENDENTE'
       },
       pix: {
-        txid: pixResponse.txid,
+        txid: txid, // Usar o TXID gerado localmente
         qrcode: pixResponse.pixCopiaECola,
         valor: valorTotal,
         expiracao: expiresAt.toISOString(),
