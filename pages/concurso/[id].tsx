@@ -670,7 +670,7 @@ export default function ConcursoDetalhes() {
                   <div className="mt-1 text-center text-xs">
                     {palpites[jogo.id] && (
                       <span className="inline-block bg-blue-50 text-blue-600 px-2 py-0.5 rounded mr-1">
-                        ⏳ {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
+                        {palpites[jogo.id] === '0' ? 'X' : palpites[jogo.id]}
                       </span>
                     )}
                     {carrinho[jogo.id] && carrinho[jogo.id].length > 0 && (
