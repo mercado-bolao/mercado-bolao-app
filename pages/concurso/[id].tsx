@@ -384,6 +384,15 @@ export default function ConcursoDetalhes() {
 
       console.log('✅ Todos os bilhetes salvos, gerando pagamento PIX...');
 
+      // Calcular valor total correto
+      const totalBilhetesLocal = calcularTotalBilhetes();
+      const valorTotalLocal = totalBilhetesLocal * 10;
+      
+      console.log('💰 Cálculo local:', {
+        totalBilhetes: totalBilhetesLocal,
+        valorTotal: valorTotalLocal
+      });
+
       // 2. Buscar os palpites pendentes para criar o PIX
       const palpitesPendentesResponse = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsapp)}`);
       const palpitesPendentesData = await palpitesPendentesResponse.json();
@@ -393,8 +402,14 @@ export default function ConcursoDetalhes() {
       }
 
       console.log('📋 Palpites pendentes encontrados:', palpitesPendentesData.palpites.length);
+      console.log('📊 Valores da API palpites-pendentes:', {
+        valorTotal: palpitesPendentesData.valorTotal,
+        totalBilhetes: palpitesPendentesData.totalBilhetes
+      });
 
-      // 3. Gerar PIX
+      // 3. Gerar PIX com valor correto calculado localmente
+      const valorTotalCorreto = calcularTotalBilhetes() * 10;
+      
       const pixResponse = await fetch('/api/gerar-pix', {
         method: 'POST',
         headers: {
@@ -403,8 +418,8 @@ export default function ConcursoDetalhes() {
         body: JSON.stringify({
           whatsapp: whatsapp,
           nome: nome,
-          valorTotal: palpitesPendentesData.valorTotal,
-          totalBilhetes: palpitesPendentesData.totalBilhetes,
+          valorTotal: valorTotalCorreto,
+          totalBilhetes: calcularTotalBilhetes(),
           palpites: palpitesPendentesData.palpites
         }),
       });
