@@ -172,7 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     let pixResponse;
     try {
-      pixResponse = await efipay.pixCreateImmediateCharge([], body);
+      pixResponse = await efipay.pixCreateImmediateCharge([], body, { txid: finalTxid });
       console.log('✅ Cobrança PIX criada com sucesso!');
       console.log('📋 Resposta COMPLETA da cobrança PIX:', JSON.stringify(pixResponse, null, 2));
     } catch (cobrancaError) {

@@ -55,6 +55,13 @@ export default function PagamentoPix() {
   const verificarPagamentoManual = async () => {
     if (!pixData?.txid) return;
 
+    // Validar formato do TXID
+    const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+    if (!txidPattern.test(pixData.txid)) {
+      alert(`❌ TXID inválido!\n\nO TXID ${pixData.txid} não está no formato correto.\nEste bilhete foi criado com um formato antigo.\n\nPor favor, gere um novo pagamento.`);
+      return;
+    }
+
     setVerificandoPagamento(true);
     try {
       const response = await fetch(`/api/admin/verificar-status-efi?txid=${pixData.txid}`);
@@ -150,6 +157,13 @@ export default function PagamentoPix() {
     // Verificar status via EFÍ a cada 5 segundos se ainda estiver ativo
     const efiStatusInterval = setInterval(async () => {
       if (pixData && statusPix === 'ATIVA') {
+        // Validar formato do TXID antes de consultar
+        const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+        if (!txidPattern.test(pixData.txid)) {
+          console.log('⚠️ TXID inválido, pulando verificação EFÍ:', pixData.txid);
+          return;
+        }
+
         try {
           const response = await fetch(`/api/admin/verificar-status-efi?txid=${pixData.txid}`);
           const data = await response.json();

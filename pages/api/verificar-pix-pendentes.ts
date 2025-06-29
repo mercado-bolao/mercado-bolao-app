@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -33,9 +32,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const bilhete of bilhetesPendentes) {
       if (!bilhete.txid) continue;
 
-      try {
-        console.log(`🔍 Verificando TXID: ${bilhete.txid}`);
+      // Validar formato do TXID antes de consultar
+      const txidPattern = /^[a-zA-Z0-9]{26,35}$/;
+      if (!txidPattern.test(bilhete.txid)) {
+        console.log(`⚠️ TXID inválido ignorado: ${bilhete.txid} (${bilhete.txid.length} caracteres)`);
+        resultados.push({
+          bilheteId: bilhete.id,
+          txid: bilhete.txid,
+          erro: 'TXID com formato inválido'
+        });
+        continue;
+      }
 
+      console.log(`🔍 Verificando TXID: ${bilhete.txid}`);
+
+      try {
         // Verificar status na EFÍ
         const efiResponse = await fetch(`${req.headers.origin}/api/admin/verificar-status-efi?txid=${bilhete.txid}`);
         const efiData = await efiResponse.json();
