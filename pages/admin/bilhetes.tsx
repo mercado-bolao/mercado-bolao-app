@@ -40,10 +40,10 @@ export default function BilhetesAdmin() {
   useEffect(() => {
     buscarBilhetes();
 
-    // Auto-atualizar a cada 10 segundos
+    // Auto-atualizar a cada 5 segundos
     const autoUpdate = setInterval(() => {
       buscarBilhetes();
-    }, 10000);
+    }, 5000);
 
     return () => clearInterval(autoUpdate);
   }, []);
@@ -314,6 +314,10 @@ export default function BilhetesAdmin() {
                 <span className="text-white font-bold">💳</span>
               </div>
               <h1 className="text-xl font-bold text-gray-900">Bilhetes - Status de Pagamento</h1>
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-xs text-gray-500">Auto-refresh 5s</span>
+              </div>
             </div>
             <Link href="/admin">
               <span className="text-blue-600 hover:text-blue-800 font-medium cursor-pointer">

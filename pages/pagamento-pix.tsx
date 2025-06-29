@@ -59,7 +59,9 @@ export default function PagamentoPix() {
     const pix = JSON.parse(pixDataStorage);
 
     try {
-      console.log('🔍 Verificando status do pagamento...');
+      console.log('🔍 Verificando status do pagamento...', { bilheteId: bilhete.id, txid: bilhete.txid || pix.txid });
+      
+      // Primeiro verificar status local do bilhete
       const response = await fetch(`/api/verificar-status-pagamento?bilheteId=${bilhete.id}`);
       const data = await response.json();
 
@@ -67,26 +69,56 @@ export default function PagamentoPix() {
         console.log('📋 Status atual:', data.status);
         setStatusPix(data.status);
 
-        if (data.warning === 'TXID_FORMATO_ANTIGO') {
-          console.log('⚠️ TXID formato antigo detectado');
-          // Continuar verificando status, mas não tentar consultar EFÍ
-        }
-
         if (data.status === 'PAGO') {
           // Pagamento confirmado
-          console.log('✅ Pagamento confirmado!');
+          console.log('✅ Pagamento confirmado via verificação automática!');
+          
+          // Mostrar notificação de sucesso
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🎉 Pagamento Confirmado!', {
+              body: 'Seus palpites foram validados com sucesso.',
+              icon: '/favicon.ico'
+            });
+          }
+          
           alert('🎉 Pagamento confirmado! Seus palpites foram validados.');
           localStorage.removeItem('bilheteData');
           localStorage.removeItem('pixData');
           router.push('/');
-        } else if (data.status === 'EXPIRADO' || data.status === 'CANCELADO') {
-          // Bilhete cancelado/expirado
-          console.log('⏰ PIX expirado');
+          return;
+        }
+
+        if (data.status === 'EXPIRADO' || data.status === 'CANCELADO') {
+          console.log('⏰ PIX expirado/cancelado');
           setStatusPix('EXPIRADA');
           alert('⏰ O tempo para pagamento expirou. Gere um novo PIX.');
           localStorage.removeItem('bilheteData');
           localStorage.removeItem('pixData');
           router.push('/finalizar');
+          return;
+        }
+
+        // Se status ainda está PENDENTE, tentar verificar na EFÍ
+        if (data.status === 'PENDENTE' && (bilhete.txid || pix.txid)) {
+          const txidParaVerificar = bilhete.txid || pix.txid;
+          console.log('🔍 Tentando verificar diretamente na EFÍ...', txidParaVerificar);
+          
+          try {
+            const efiResponse = await fetch(`/api/admin/verificar-status-efi?txid=${txidParaVerificar}`);
+            const efiData = await efiResponse.json();
+            
+            if (efiData.success && efiData.status === 'CONCLUIDA') {
+              console.log('✅ PIX confirmado diretamente na EFÍ!');
+              // O sistema já deve ter atualizado automaticamente, verificar novamente
+              setTimeout(() => verificarStatus(), 2000);
+            }
+          } catch (efiError) {
+            console.log('⚠️ Não foi possível verificar na EFÍ:', efiError);
+          }
+        }
+
+        if (data.warning === 'TXID_FORMATO_ANTIGO') {
+          console.log('⚠️ TXID formato antigo detectado - verificação limitada');
         }
       }
     } catch (error) {
@@ -137,11 +169,16 @@ export default function PagamentoPix() {
   }, [router, verificarStatus]);
 
   useEffect(() => {
+    // Pedir permissão para notificações
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+
     // Verificar imediatamente ao carregar
     verificarStatus();
 
-    // Depois verificar a cada 10 segundos
-    const interval = setInterval(verificarStatus, 10000);
+    // Verificar mais frequentemente: a cada 5 segundos
+    const interval = setInterval(verificarStatus, 5000);
     return () => clearInterval(interval);
   }, [verificarStatus]);
 
