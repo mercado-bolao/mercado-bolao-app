@@ -130,7 +130,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const body = {
       calendario: {
-        expiracao: 3600, // 1 hora
+        expiracao: 300, // 5 minutos
       },
       devedor: {
         nome: `Cliente WhatsApp ${whatsapp}`,
@@ -233,28 +233,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Salvar dados do PIX no banco de dados
     const { PrismaClient } = require('@prisma/client');
-    const prisma = new PrismaClient();
-
-    // Verificar se o Prisma foi carregado corretamente
-    if (!prisma || !prisma.pixPagamento) {
-      console.error('❌ Prisma não carregado corretamente');
-      console.log('✅ PIX gerado com sucesso, mas não foi salvo no banco');
-
-      return res.status(200).json({
-        success: true,
-        pix: {
-          txid: pixResponse.txid,
-          locationId: locationId,
-          qrcode: qrCodeResponse.qrcode,
-          imagemQrcode: qrCodeResponse.imagemQrcode,
-          valor: valorTotal,
-          expiracao: new Date(Date.now() + 300000).toISOString(),
-          ambiente: isSandbox ? 'sandbox' : 'produção',
-          aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX',
-          dbWarning: 'PIX não foi salvo no banco de dados'
-        },
-      });
+    
+    // Usar singleton pattern para Prisma
+    const globalForPrisma = globalThis as unknown as {
+      prisma: PrismaClient | undefined
     }
+    
+    const prisma = globalForPrisma.prisma ?? new PrismaClient()
+    
+    if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
     try {
       console.log('💾 Salvando dados do PIX no banco...');
@@ -270,7 +257,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           imagemQrcode: qrCodeResponse.imagemQrcode,
           locationId: locationId.toString(),
           ambiente: isSandbox ? 'sandbox' : 'producao',
-          expiracao: new Date(Date.now() + 3600000), // 1 hora
+          expiracao: new Date(Date.now() + 300000), // 5 minutos
         }
       });
 
