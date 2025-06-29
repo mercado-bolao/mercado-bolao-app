@@ -53,50 +53,44 @@ export default function AdminPanel() {
     }
   }, [filtros.concursoId]);
 
-  useEffect(() => {
-    buscarPalpites();
-  }, [filtros, buscarPalpites]);
-
-  const buscarConcursos = async () => {
-    try {
-      const response = await fetch("/api/admin/concursos");
-      const data = await response.json();
-      setConcursos(data);
-    } catch (error) {
-      console.error("Erro ao buscar concursos:", error);
-    }
-  };
-
-  const buscarJogos = async (concursoId: string) => {
-    try {
-      const response = await fetch(`/api/admin/jogos?concursoId=${concursoId}`);
-      const data = await response.json();
-      setJogos(data);
-    } catch (error) {
-      console.error("Erro ao buscar jogos:", error);
-    }
-  };
-
   const buscarPalpites = useCallback(async () => {
-    setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (filtros.concursoId) params.append("concursoId", filtros.concursoId);
-      if (filtros.jogoId) params.append("jogoId", filtros.jogoId);
-      if (filtros.usuario) params.append("usuario", filtros.usuario);
+      setLoading(true);
+      console.log('🔍 Buscando palpites com filtros:', filtros);
 
-      const response = await fetch(`/api/admin/palpites?${params}`);
+      const query = new URLSearchParams();
+      if (filtros.nome) query.append('nome', filtros.nome);
+      if (filtros.whatsapp) query.append('whatsapp', filtros.whatsapp);
+      if (filtros.status) query.append('status', filtros.status);
+      if (filtros.concursoId) query.append('concursoId', filtros.concursoId);
+
+      const response = await fetch(`/api/admin/palpites?${query.toString()}`);
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        throw new Error(`Erro HTTP: ${response.status}`);
+      }
+
       const data = await response.json();
+      console.log('📊 Dados recebidos:', data);
 
-      // Garantir que sempre seja um array
-      setPalpites(Array.isArray(data) ? data : []);
+      if (data.success) {
+        setPalpites(data.palpites);
+        setTotal(data.total);
+      } else {
+        throw new Error(data.error || 'Erro desconhecido');
+      }
     } catch (error) {
-      console.error("Erro ao buscar palpites:", error);
-      setPalpites([]); // Definir como array vazio em caso de erro
+      console.error('❌ Erro ao buscar palpites:', error);
+      setError(error instanceof Error ? error.message : 'Erro desconhecido');
     } finally {
       setLoading(false);
     }
   }, [filtros]);
+
+  useEffect(() => {
+    buscarPalpites();
+  }, [filtros, buscarPalpites]);
 
   const formatResultado = (resultado: string) => {
     switch (resultado) {
@@ -122,11 +116,11 @@ export default function AdminPanel() {
 
     palpitesArray.forEach(palpite => {
       const chaveUsuario = `${palpite.nome}-${palpite.whatsapp}`;
-      
+
       if (!usuariosMap.has(chaveUsuario)) {
         usuariosMap.set(chaveUsuario, []);
       }
-      
+
       usuariosMap.get(chaveUsuario)!.push(palpite);
     });
 
@@ -135,7 +129,7 @@ export default function AdminPanel() {
 
     usuariosMap.forEach((palpitesUsuario, chaveUsuario) => {
       const [nome, whatsapp] = chaveUsuario.split('-');
-      
+
       // Ordenar palpites por data de criação
       palpitesUsuario.sort((a, b) => 
         new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
@@ -144,10 +138,10 @@ export default function AdminPanel() {
       // Dividir palpites em grupos de 8 (número de jogos por bilhete)
       const totalJogos = jogos.length;
       const totalBilhetes = Math.ceil(palpitesUsuario.length / totalJogos);
-      
+
       for (let bilheteNum = 0; bilheteNum < totalBilhetes; bilheteNum++) {
         const palpitesBilhete: { [jogoId: string]: string } = {};
-        
+
         // Pegar os 8 palpites deste bilhete
         for (let jogoIndex = 0; jogoIndex < totalJogos; jogoIndex++) {
           const palpiteIndex = bilheteNum * totalJogos + jogoIndex;
