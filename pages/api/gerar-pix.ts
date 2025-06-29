@@ -1,5 +1,7 @@
 
+
 import { NextApiRequest, NextApiResponse } from 'next';
+import path from 'path';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -13,69 +15,64 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    console.log('🔄 Gerando PIX para:', { whatsapp, valorTotal, totalBilhetes });
+    console.log('🔄 Gerando PIX REAL para:', { whatsapp, valorTotal, totalBilhetes });
     console.log('📋 Variáveis de ambiente:');
     console.log('- EFI_CLIENT_ID:', process.env.EFI_CLIENT_ID ? '✅ Definido' : '❌ Não definido');
     console.log('- EFI_CLIENT_SECRET:', process.env.EFI_CLIENT_SECRET ? '✅ Definido' : '❌ Não definido');
     console.log('- EFI_PIX_KEY:', process.env.EFI_PIX_KEY ? '✅ Definido' : '❌ Não definido');
 
-    // SIMULAÇÃO DE PIX PARA TESTE
-    // Remova este bloco quando a EFÍ estiver funcionando
-    console.log('🧪 Iniciando simulação de PIX...');
-    
-    const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
-    console.log('🆔 TXID gerado:', txid);
-    
-    const pixKey = process.env.EFI_PIX_KEY || 'CHAVE_PIX_TESTE';
-    console.log('🔑 Chave PIX usada:', pixKey);
-    
-    const pixSimulado = {
-      txid: txid,
-      qrcode: '00020101021226580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925BOLAO TVLOTECA6009SAO PAULO62070503***6304' + Math.random().toString().substr(2, 4),
-      imagemQrcode: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==', // Imagem 1x1 transparente em base64
-    };
+    // Verificar se as credenciais estão configuradas
+    if (!process.env.EFI_CLIENT_ID || !process.env.EFI_CLIENT_SECRET || !process.env.EFI_PIX_KEY) {
+      console.log('❌ Credenciais não configuradas, usando simulação...');
+      
+      // SIMULAÇÃO - remova quando credenciais estiverem configuradas
+      const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+      const pixKey = process.env.EFI_PIX_KEY || 'CHAVE_PIX_TESTE';
+      
+      const pixSimulado = {
+        txid: txid,
+        qrcode: '00020101021226580014br.gov.bcb.pix0136' + pixKey + '5204000053039865802BR5925BOLAO TVLOTECA6009SAO PAULO62070503***6304' + Math.random().toString().substr(2, 4),
+        imagemQrcode: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==',
+      };
 
-    console.log('✅ PIX simulado gerado com sucesso:', {
-      txid: pixSimulado.txid,
-      valor: valorTotal,
-      qrcodeLength: pixSimulado.qrcode.length
-    });
+      return res.status(200).json({
+        success: true,
+        pix: {
+          txid: pixSimulado.txid,
+          qrcode: pixSimulado.qrcode,
+          imagemQrcode: pixSimulado.imagemQrcode,
+          valor: valorTotal,
+          expiracao: new Date(Date.now() + 3600000).toISOString(),
+        },
+        debug: { simulacao: true }
+      });
+    }
 
-    return res.status(200).json({
-      success: true,
-      pix: {
-        txid: pixSimulado.txid,
-        qrcode: pixSimulado.qrcode,
-        imagemQrcode: pixSimulado.imagemQrcode,
-        valor: valorTotal,
-        expiracao: new Date(Date.now() + 3600000).toISOString(), // 1 hora
-      },
-      debug: {
-        simulacao: true,
-        hasClientId: !!process.env.EFI_CLIENT_ID,
-        hasClientSecret: !!process.env.EFI_CLIENT_SECRET,
-        hasPixKey: !!process.env.EFI_PIX_KEY,
-      }
-    });
-
-    /* 
-    // CÓDIGO REAL DA EFÍ - USE QUANDO RESOLVER O PROBLEMA DO CERTIFICADO
+    // INTEGRAÇÃO REAL COM EFÍ
     const EfiPay = require('sdk-node-apis-efi');
+    
+    // Caminho para o certificado
+    const certificatePath = path.join(process.cwd(), 'certs', 'certificado-efi.p12');
+    console.log('📜 Usando certificado:', certificatePath);
     
     const efipay = new EfiPay({
       client_id: process.env.EFI_CLIENT_ID,
       client_secret: process.env.EFI_CLIENT_SECRET,
-      sandbox: true,
-      certificate: false,
+      sandbox: false, // PRODUÇÃO - use true para sandbox
+      certificate: certificatePath,
     });
+
+    // Gerar TXID único
+    const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
+    console.log('🆔 TXID gerado:', txid);
 
     const body = {
       calendario: {
-        expiracao: 3600,
+        expiracao: 3600, // 1 hora
       },
       devedor: {
         nome: `Cliente WhatsApp ${whatsapp}`,
-        cpf: '12345678909',
+        cpf: '12345678909', // Você pode pedir o CPF no formulário se necessário
       },
       valor: {
         original: valorTotal.toFixed(2),
@@ -94,15 +91,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ],
     };
 
+    console.log('🔄 Criando cobrança PIX na EFÍ...');
     const pixResponse = await efipay.pixCreateImmediateCharge([], body);
     
     if (!pixResponse || !pixResponse.txid) {
       throw new Error('Erro ao gerar cobrança PIX');
     }
 
+    console.log('✅ Cobrança PIX criada:', pixResponse.txid);
+    console.log('🔄 Gerando QR Code...');
+
     const qrCodeResponse = await efipay.pixGenerateQRCode({
       id: pixResponse.loc.id,
     });
+
+    console.log('✅ QR Code gerado com sucesso!');
 
     return res.status(200).json({
       success: true,
@@ -114,7 +117,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         expiracao: new Date(Date.now() + 3600000).toISOString(),
       },
     });
-    */
 
   } catch (error) {
     console.error('❌ ERRO DETALHADO AO GERAR PIX:');
@@ -130,27 +132,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (error && typeof error === 'object' && 'response' in error) {
       console.error('🌐 Resposta da API EFÍ:', error.response?.data);
       console.error('📊 Status da resposta:', error.response?.status);
-      console.error('📋 Headers da resposta:', error.response?.headers);
     }
-    
-    console.error('🔧 Debug das variáveis:');
-    console.error('- whatsapp:', whatsapp);
-    console.error('- valorTotal:', valorTotal);
-    console.error('- totalBilhetes:', totalBilhetes);
-    console.error('- NODE_ENV:', process.env.NODE_ENV);
     
     return res.status(500).json({
       error: 'Erro ao gerar pagamento PIX',
       details: error instanceof Error ? error.message : 'Erro desconhecido',
-      errorType: typeof error,
       timestamp: new Date().toISOString(),
-      debug: {
-        hasClientId: !!process.env.EFI_CLIENT_ID,
-        hasClientSecret: !!process.env.EFI_CLIENT_SECRET,
-        hasPixKey: !!process.env.EFI_PIX_KEY,
-        nodeEnv: process.env.NODE_ENV,
-        requestData: { whatsapp, valorTotal, totalBilhetes }
-      }
     });
   }
 }
+
