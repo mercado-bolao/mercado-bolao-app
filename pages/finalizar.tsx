@@ -72,17 +72,37 @@ export default function FinalizarAposta() {
   const buscarPalpitesPendentes = async (whatsappUsuario: string) => {
     try {
       setLoading(true);
+      console.log('🔍 Buscando palpites para:', whatsappUsuario);
+      
       const response = await fetch(`/api/palpites-pendentes?whatsapp=${encodeURIComponent(whatsappUsuario)}`);
+      
+      console.log('📡 Response status:', response.status);
+      console.log('📡 Response headers:', response.headers.get('content-type'));
 
       if (!response.ok) {
-        throw new Error('Erro ao buscar palpites pendentes');
+        const errorText = await response.text();
+        console.error('❌ Erro da API:', errorText);
+        throw new Error(`Erro ao buscar palpites pendentes: ${response.status}`);
+      }
+
+      // Verificar se a resposta é JSON válido
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const responseText = await response.text();
+        console.error('❌ Resposta não é JSON:', responseText);
+        throw new Error('Servidor retornou resposta inválida (não JSON)');
       }
 
       const data = await response.json();
+      console.log('✅ Dados recebidos:', data);
       setPalpitesPendentes(data);
     } catch (error) {
-      console.error('Erro ao buscar palpites:', error);
-      setError('Erro ao carregar seus palpites pendentes.');
+      console.error('❌ Erro ao buscar palpites:', error);
+      if (error instanceof Error && error.message.includes('JSON')) {
+        setError('Erro de comunicação com o servidor. Tente recarregar a página.');
+      } else {
+        setError('Erro ao carregar seus palpites pendentes.');
+      }
     } finally {
       setLoading(false);
     }

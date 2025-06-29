@@ -3,6 +3,9 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Definir headers JSON primeiro
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
@@ -77,9 +80,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('❌ Erro ao buscar palpites pendentes:', error);
-    return res.status(500).json({ 
-      error: 'Erro interno do servidor',
-      details: error instanceof Error ? error.message : 'Erro desconhecido'
-    });
+    
+    // Garantir que sempre retornamos JSON
+    try {
+      return res.status(500).json({ 
+        error: 'Erro interno do servidor',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
+    } catch (jsonError) {
+      // Se falhar ao enviar JSON, enviar resposta simples
+      console.error('❌ Erro ao enviar JSON:', jsonError);
+      res.status(500).send('Erro interno do servidor');
+    }
   }
 }
