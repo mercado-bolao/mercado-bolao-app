@@ -64,6 +64,8 @@ model Palpite {
   jogo       Jogo     @relation(fields: [jogoId], references: [id], onDelete: Cascade)
   pixId      String?  // Relacionamento com PIX
   pix        PixPagamento? @relation(fields: [pixId], references: [id])
+  bilheteId  String?
+  bilhete    Bilhete? @relation(fields: [bilheteId], references: [id])
 }
 
 model PixPagamento {
