@@ -88,14 +88,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         details: 'Para usar produção, o certificado deve estar na pasta certs/ e a senha nos Secrets'
       });
     }
+  } else {
+    // Para sandbox, garantir que não há configuração de certificado
+    console.log('✅ Modo sandbox - sem certificado');
   }
 
   console.log('⚙️ Config EFI final:');
   console.log('- sandbox:', efiConfig.sandbox);
   console.log('- client_id:', efiConfig.client_id);
   console.log('- client_secret:', efiConfig.client_secret ? '✅' : '❌');
+  console.log('- certificate:', efiConfig.certificate || 'Não configurado');
+  console.log('- passphrase:', efiConfig.passphrase ? '✅' : 'Não configurado');
 
-  const efipay = new EfiPay(efiConfig);
+  console.log('🔧 Criando instância EFI Pay...');
+  let efipay;
+  try {
+    efipay = new EfiPay(efiConfig);
+    console.log('✅ Instância EFI criada com sucesso');
+  } catch (instanceError) {
+    console.error('❌ Erro ao criar instância EFI:', instanceError);
+    return res.status(500).json({
+      error: 'Erro ao criar instância EFI Pay',
+      details: instanceError instanceof Error ? instanceError.message : 'Erro desconhecido',
+      debug: { config: efiConfig }
+    });
+  }
 
     // Gerar TXID único
     const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
