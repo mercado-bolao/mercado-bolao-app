@@ -255,6 +255,65 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       console.log('✅ PIX salvo no banco com ID:', pixSalvo.id);
 
+      // Agora criar os bilhetes com os palpites pendentes
+      console.log('🎫 Criando bilhetes para os palpites pendentes...');
+      
+      // Buscar palpites pendentes do usuário
+      const palpitesPendentes = await prisma.palpite.findMany({
+        where: {
+          whatsapp: whatsapp,
+          bilheteId: null,
+          status: 'pendente'
+        },
+        include: {
+          jogo: true
+        }
+      });
+
+      console.log(`📊 Encontrados ${palpitesPendentes.length} palpites pendentes`);
+
+      if (palpitesPendentes.length > 0) {
+        // Buscar concurso ativo
+        const concursoAtivo = await prisma.concurso.findFirst({
+          where: { status: 'ativo' }
+        });
+
+        if (concursoAtivo) {
+          // Criar um bilhete para todos os palpites
+          const bilhete = await prisma.bilhete.create({
+            data: {
+              nome: `Cliente WhatsApp ${whatsapp}`,
+              telefone: whatsapp,
+              whatsapp: whatsapp,
+              concursoId: concursoAtivo.id,
+              quantidadePalpites: palpitesPendentes.length,
+              valorTotal: valorTotal,
+              status: 'PENDENTE',
+              txid: pixResponse.txid,
+              orderId: locationId.toString(),
+              pixId: pixSalvo.id,
+              expiresAt: new Date(Date.now() + 300000), // 5 minutos
+            }
+          });
+
+          console.log('✅ Bilhete criado com ID:', bilhete.id);
+
+          // Associar palpites ao bilhete
+          await prisma.palpite.updateMany({
+            where: {
+              id: { in: palpitesPendentes.map(p => p.id) }
+            },
+            data: {
+              bilheteId: bilhete.id,
+              nome: `Cliente WhatsApp ${whatsapp}`,
+              status: 'pendente'
+            }
+          });
+
+          console.log('✅ Palpites associados ao bilhete');
+        }
+      }
+
     } catch (dbError) {
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
       // Continuar mesmo com erro no banco, pois o PIX foi gerado
