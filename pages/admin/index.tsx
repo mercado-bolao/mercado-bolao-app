@@ -296,6 +296,17 @@ export default function AdminPanel() {
               </div>
             </Link>
 
+            <Link href="/admin/bilhetes">
+              <div className="group bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-2 border-green-200 hover:border-green-300 rounded-xl p-4 text-center cursor-pointer transition-all duration-300 transform hover:scale-105">
+                <div className="w-12 h-12 mx-auto mb-3 bg-green-600 rounded-full flex items-center justify-center group-hover:bg-green-700 transition-colors">
+                  <span className="text-white text-xl">💳</span>
+                </div>
+                <span className="block text-sm font-semibold text-green-800 group-hover:text-green-900">
+                  Bilhetes
+                </span>
+              </div>
+            </Link>
+
             <Link href="/admin/estatisticas">
               <div className="group bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 border-2 border-orange-200 hover:border-orange-300 rounded-xl p-4 text-center cursor-pointer transition-all duration-300 transform hover:scale-105">
                 <div className="w-12 h-12 mx-auto mb-3 bg-orange-600 rounded-full flex items-center justify-center group-hover:bg-orange-700 transition-colors">
