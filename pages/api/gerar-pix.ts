@@ -48,18 +48,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    // INTEGRAÇÃO REAL COM EFÍ
+    // INTEGRAÇÃO COM EFÍ - SANDBOX
     const EfiPay = require('sdk-node-apis-efi');
-    
-    // Caminho para o certificado
-    const certificatePath = path.join(process.cwd(), 'certs', 'certificado-efi.p12');
-    console.log('📜 Usando certificado:', certificatePath);
     
     const efipay = new EfiPay({
       client_id: process.env.EFI_CLIENT_ID,
       client_secret: process.env.EFI_CLIENT_SECRET,
-      sandbox: false, // PRODUÇÃO - use true para sandbox
-      certificate: certificatePath,
+      sandbox: true, // SANDBOX para testes
+      certificate: false, // Para sandbox não precisa de certificado
     });
 
     // Gerar TXID único
