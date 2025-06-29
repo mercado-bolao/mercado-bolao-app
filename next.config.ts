@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
     // This allows production builds to successfully complete even if your project has ESLint errors
     ignoreDuringBuilds: true,
   },
+  // Configure for deployment
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client'],
+  },
 };
 
 export default nextConfig;
