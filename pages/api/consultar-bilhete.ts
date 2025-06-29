@@ -1,6 +1,5 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '../../lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -11,91 +10,73 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (!bilheteId && !txid) {
     return res.status(400).json({ 
-      error: 'bilheteId ou txid é obrigatório' 
+      error: 'bilheteId ou txid é obrigatório',
+      details: 'Forneça pelo menos um dos parâmetros: bilheteId ou txid'
     });
   }
 
-  const prisma = new PrismaClient();
-
   try {
-    let bilhete;
+    console.log('🔍 Consultando bilhete:', { bilheteId, txid });
+
+    // Buscar bilhete no banco
+    const whereClause: any = {};
 
     if (bilheteId) {
-      bilhete = await prisma.bilhete.findUnique({
-        where: { id: bilheteId as string },
-        include: {
-          palpites: {
-            include: {
-              jogo: true,
-              concurso: true
-            }
-          }
-        }
-      });
+      whereClause.id = bilheteId as string;
     } else if (txid) {
-      bilhete = await prisma.bilhete.findFirst({
-        where: { txid: txid as string },
-        include: {
-          palpites: {
-            include: {
-              jogo: true,
-              concurso: true
-            }
+      whereClause.txid = txid as string;
+    }
+
+    const bilhete = await prisma.bilhete.findFirst({
+      where: whereClause,
+      include: {
+        palpites: {
+          include: {
+            jogo: true
           }
         }
-      });
-    }
+      }
+    });
 
     if (!bilhete) {
-      return res.status(404).json({ 
-        error: 'Bilhete não encontrado' 
+      return res.status(404).json({
+        error: 'Bilhete não encontrado',
+        details: 'Não foi encontrado nenhum bilhete com os dados fornecidos'
       });
     }
 
-    // Verificar se expirou e ainda está pendente
+    // Verificar se expirou
     const agora = new Date();
-    const expirou = agora > bilhete.expiresAt;
+    const expirado = bilhete.expiresAt && agora > bilhete.expiresAt;
 
-    let statusAtual = bilhete.status;
-
-    if (expirou && statusAtual === 'PENDENTE') {
-      // Atualizar para cancelado se expirou
+    if (expirado && bilhete.status === 'PENDENTE') {
+      // Atualizar status no banco
       await prisma.bilhete.update({
         where: { id: bilhete.id },
-        data: { status: 'CANCELADO' }
+        data: { status: 'EXPIRADO' }
       });
-
-      // Reverter palpites
-      await prisma.palpite.updateMany({
-        where: {
-          id: { in: bilhete.palpites.map(p => p.id) }
-        },
-        data: { status: 'pendente' }
-      });
-
-      statusAtual = 'CANCELADO';
+      bilhete.status = 'EXPIRADO';
     }
-
-    const tempoRestante = expirou ? 0 : Math.max(0, bilhete.expiresAt.getTime() - agora.getTime());
 
     return res.status(200).json({
       success: true,
       bilhete: {
         id: bilhete.id,
-        status: statusAtual,
-        valor: bilhete.valor,
-        whatsapp: bilhete.whatsapp,
         txid: bilhete.txid,
-        orderId: bilhete.orderId,
-        expiresAt: bilhete.expiresAt.toISOString(),
+        whatsapp: bilhete.whatsapp,
+        valor: bilhete.valor,
+        status: bilhete.status,
+        expiresAt: bilhete.expiresAt?.toISOString(),
+        expirado: expirado,
+        totalPalpites: bilhete.palpites.length,
         createdAt: bilhete.createdAt.toISOString(),
-        tempoRestanteMs: tempoRestante,
-        expirou: expirou,
         palpites: bilhete.palpites.map(p => ({
           id: p.id,
           resultado: p.resultado,
-          jogo: `${p.jogo.mandante} x ${p.jogo.visitante}`,
-          concurso: p.concurso.nome || `Concurso ${p.concurso.numero}`
+          jogo: {
+            mandante: p.jogo.mandante,
+            visitante: p.jogo.visitante
+          }
         }))
       }
     });
@@ -103,10 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error('❌ Erro ao consultar bilhete:', error);
     return res.status(500).json({
-      success: false,
-      error: 'Erro interno do servidor'
+      error: 'Erro ao consultar bilhete',
+      details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

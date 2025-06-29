@@ -80,9 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Gerar TXID único e orderId
-    const txid = `PIX${Date.now()}${Math.random().toString(36).substr(2, 9)}`;
     const orderId = `ORDER${Date.now()}`;
-    console.log('🆔 TXID gerado:', txid);
     console.log('🆔 OrderID gerado:', orderId);
 
     // 1. CRIAR BILHETE PRIMEIRO (antes do PIX)
@@ -94,7 +92,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         whatsapp: whatsapp,
         valor: valorTotal,
         status: 'PENDENTE',
-        txid: txid,
         orderId: orderId,
         expiresAt: expiresAt
       }
@@ -232,11 +229,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.error('❌ Erro ao salvar PIX no banco:', dbError);
     }
 
+    // Update bilhete with txid
+    await prisma.bilhete.update({
+        where: { id: bilhete.id },
+        data: { txid: pixResponse.txid }
+    });
+
     return res.status(200).json({
       success: true,
       bilhete: {
         id: bilhete.id,
-        txid: txid,
+        txid: pixResponse.txid,
         orderId: orderId,
         expiresAt: expiresAt.toISOString(),
         status: 'PENDENTE'

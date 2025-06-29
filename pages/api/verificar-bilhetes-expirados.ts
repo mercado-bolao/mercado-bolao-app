@@ -1,4 +1,4 @@
-
+// Verificação automática de bilhetes expirados
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -10,80 +10,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     console.log('🔍 Verificando bilhetes expirados...');
 
-    const agora = new Date();
-
     // Buscar bilhetes pendentes que expiraram
     const bilhetesExpirados = await prisma.bilhete.findMany({
       where: {
         status: 'PENDENTE',
         expiresAt: {
-          lt: agora
+          lt: new Date() // Menor que agora (expirados)
         }
-      },
-      include: {
-        palpites: true
       }
     });
 
-    console.log(`📋 Encontrados ${bilhetesExpirados.length} bilhetes expirados`);
+    console.log(`📊 Encontrados ${bilhetesExpirados.length} bilhetes expirados`);
 
-    if (bilhetesExpirados.length === 0) {
-      return res.status(200).json({
-        success: true,
-        message: 'Nenhum bilhete expirado encontrado',
-        bilhetesProcessados: 0
-      });
-    }
-
-    let bilhetesProcessados = 0;
-
-    for (const bilhete of bilhetesExpirados) {
-      try {
-        console.log(`🔴 Expirando bilhete: ${bilhete.id}`);
-
-        // Atualizar status do bilhete
-        await prisma.bilhete.update({
-          where: { id: bilhete.id },
-          data: { 
-            status: 'EXPIRADO',
-            updatedAt: agora
+    if (bilhetesExpirados.length > 0) {
+      // Atualizar status para EXPIRADO
+      const resultado = await prisma.bilhete.updateMany({
+        where: {
+          id: {
+            in: bilhetesExpirados.map(b => b.id)
           }
-        });
-
-        // Cancelar palpites associados
-        await prisma.palpite.updateMany({
-          where: { bilheteId: bilhete.id },
-          data: { status: 'cancelado' }
-        });
-
-        // Atualizar PIX se existir
-        if (bilhete.pixId) {
-          await prisma.pixPagamento.update({
-            where: { id: bilhete.pixId },
-            data: { status: 'EXPIRADA' }
-          });
+        },
+        data: {
+          status: 'EXPIRADO'
         }
+      });
 
-        bilhetesProcessados++;
-        console.log(`✅ Bilhete ${bilhete.id} expirado com sucesso`);
+      console.log(`✅ ${resultado.count} bilhetes marcados como expirados`);
 
-      } catch (error) {
-        console.error(`❌ Erro ao expirar bilhete ${bilhete.id}:`, error);
-      }
+      // Atualizar palpites associados
+      await prisma.palpite.updateMany({
+        where: {
+          bilheteId: {
+            in: bilhetesExpirados.map(b => b.id)
+          }
+        },
+        data: {
+          status: 'EXPIRADO'
+        }
+      });
+
+      console.log(`✅ Palpites dos bilhetes expirados também atualizados`);
     }
-
-    console.log(`✅ ${bilhetesProcessados} bilhetes processados`);
 
     return res.status(200).json({
       success: true,
-      message: `${bilhetesProcessados} bilhetes expirados processados`,
-      bilhetesProcessados
+      message: `${bilhetesExpirados.length} bilhetes expirados processados`,
+      bilhetesExpirados: bilhetesExpirados.length
     });
 
   } catch (error) {
     console.error('❌ Erro ao verificar bilhetes expirados:', error);
     return res.status(500).json({
-      error: 'Erro interno do servidor',
+      error: 'Erro ao verificar bilhetes expirados',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
