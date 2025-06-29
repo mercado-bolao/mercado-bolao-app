@@ -18,7 +18,8 @@ app.prepare().then(() => {
     } catch (err) {
       console.error('Error occurred handling', req.url, err)
       res.statusCode = 500
-      res.end('internal server error')
+      res.setHeader('Content-Type', 'application/json')
+      res.end(JSON.stringify({ error: 'Internal server error' }))
     }
   })
   .once('error', (err) => {
