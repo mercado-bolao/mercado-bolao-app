@@ -375,22 +375,6 @@ export default function ConcursoDetalhes() {
 
         <div className="space-y-6" style={{ display: palpitesEncerrados ? 'none' : 'block' }}>
 
-          {/* Informações de valor */}
-          <div className="bg-blue-50 border border-blue-200 rounded-2xl shadow-lg p-6 mb-6">
-            <div className="text-center">
-              <h2 className="text-xl font-semibold text-blue-800 mb-3">💰 Informações de Pagamento</h2>
-              <div className="bg-white rounded-lg p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-blue-700 font-medium">Valor por bilhete:</span>
-                  <span className="text-blue-900 font-bold text-lg">R$ 10,00</span>
-                </div>
-                <p className="text-blue-600 text-sm">
-                  1 bilhete inclui todos os palpites da rodada
-                </p>
-              </div>
-            </div>
-          </div>
-
           {/* Carrinho de Palpites */}
           {Object.keys(palpites).length > 0 && (
             <div className="bg-yellow-50 rounded-2xl shadow-lg p-6">
@@ -432,11 +416,31 @@ export default function ConcursoDetalhes() {
                 </div>
               </div>
               
-              {/* Botão para continuar comprando */}
-              <div className="mt-4 text-center">
-                <p className="text-yellow-700 text-sm mb-3">
-                  💡 Você pode adicionar mais palpites ou finalizar seu bilhete
-                </p>
+              {/* Botões de ação do carrinho */}
+              <div className="mt-4 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Scroll para cima para ver os jogos
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  className="flex-1 py-3 px-4 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  ➕ ADICIONAR MAIS PALPITES
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Scroll para a seção de finalização
+                    const finalizarSection = document.querySelector('form');
+                    if (finalizarSection) {
+                      finalizarSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }}
+                  className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 transition-colors"
+                >
+                  🎯 FINALIZAR BILHETE
+                </button>
               </div>
             </div>
           )}
