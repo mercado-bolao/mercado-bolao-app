@@ -1,3 +1,4 @@
+
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -7,50 +8,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { id } = req.query;
+    const { whatsapp, txid } = req.query;
 
-    if (!id || typeof id !== 'string') {
+    if (!whatsapp && !txid) {
       return res.status(400).json({
         success: false,
-        error: 'ID do bilhete é obrigatório'
+        error: 'WhatsApp ou TXID é obrigatório'
       });
     }
 
-    console.log('🔍 Consultando bilhete:', id);
+    console.log('🔍 Buscando bilhete pago:', { whatsapp, txid });
 
-    // Buscar bilhete completo
-    const bilhete = await prisma.bilhete.findUnique({
-      where: { id },
-      include: {
-        palpites: {
-          include: {
-            jogo: {
-              include: {
-                concurso: true
+    // Buscar bilhete pago
+    let bilhete;
+    
+    if (txid) {
+      bilhete = await prisma.bilhete.findFirst({
+        where: { 
+          txid: txid as string,
+          status: 'PAGO'
+        },
+        include: {
+          palpites: {
+            include: {
+              jogo: {
+                include: {
+                  concurso: true
+                }
               }
             }
           }
-        }
-      }
-    });
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } else if (whatsapp) {
+      bilhete = await prisma.bilhete.findFirst({
+        where: { 
+          whatsapp: whatsapp as string,
+          status: 'PAGO'
+        },
+        include: {
+          palpites: {
+            include: {
+              jogo: {
+                include: {
+                  concurso: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
 
     if (!bilhete) {
       return res.status(404).json({
         success: false,
-        error: 'Bilhete não encontrado'
+        error: 'Nenhum bilhete pago encontrado'
       });
     }
 
-    console.log('✅ Bilhete encontrado:', {
+    console.log('✅ Bilhete pago encontrado:', {
       id: bilhete.id,
       status: bilhete.status,
       whatsapp: bilhete.whatsapp,
-      valorTotal: bilhete.valorTotal,
-      palpites: bilhete.palpites.length
+      valorTotal: bilhete.valorTotal
     });
 
-    // Formatar dados para retorno
-    const bilheteFormatado = {
+    // Formatar dados para o comprovante
+    const bilheteConfirmado = {
       id: bilhete.id,
       txid: bilhete.txid,
       valorTotal: bilhete.valorTotal,
@@ -75,11 +102,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
       success: true,
-      bilhete: bilheteFormatado
+      bilhete: bilheteConfirmado,
+      redirectTo: '/bilhete-confirmado'
     });
 
   } catch (error) {
-    console.error('❌ Erro ao consultar bilhete:', error);
+    console.error('❌ Erro ao recuperar bilhete pago:', error);
     return res.status(500).json({
       success: false,
       error: 'Erro interno do servidor',
