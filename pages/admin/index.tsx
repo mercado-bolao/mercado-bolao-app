@@ -136,52 +136,36 @@ export default function AdminPanel() {
     usuariosMap.forEach((palpitesUsuario, chaveUsuario) => {
       const [nome, whatsapp] = chaveUsuario.split('-');
       
-      // Agrupar palpites por timestamp/data para identificar bilhetes únicos
-      const bilhetesMap = new Map<string, { [jogoId: string]: string }>();
-      
-      palpitesUsuario.forEach(palpite => {
-        // Usar a data/hora de criação para agrupar palpites do mesmo bilhete
-        const timestampBilhete = new Date(palpite.createdAt || '').toISOString().slice(0, 16); // Precisão de minuto
-        
-        if (!bilhetesMap.has(timestampBilhete)) {
-          bilhetesMap.set(timestampBilhete, {});
-        }
-        
-        bilhetesMap.get(timestampBilhete)![palpite.jogoId] = formatResultado(palpite.resultado);
-      });
+      // Ordenar palpites por data de criação
+      palpitesUsuario.sort((a, b) => 
+        new Date(a.createdAt || '').getTime() - new Date(b.createdAt || '').getTime()
+      );
 
-      // Se não conseguiu agrupar por timestamp, agrupa por posição de forma sequencial
-      if (bilhetesMap.size === 1 && palpitesUsuario.length > jogos.length) {
-        bilhetesMap.clear();
+      // Dividir palpites em grupos de 8 (número de jogos por bilhete)
+      const totalJogos = jogos.length;
+      const totalBilhetes = Math.ceil(palpitesUsuario.length / totalJogos);
+      
+      for (let bilheteNum = 0; bilheteNum < totalBilhetes; bilheteNum++) {
+        const palpitesBilhete: { [jogoId: string]: string } = {};
         
-        // Dividir palpites em grupos de 8 (número de jogos)
-        const totalJogos = jogos.length;
-        const totalBilhetes = Math.ceil(palpitesUsuario.length / totalJogos);
-        
-        for (let bilheteNum = 0; bilheteNum < totalBilhetes; bilheteNum++) {
-          const bilheteKey = `bilhete-${bilheteNum}`;
-          bilhetesMap.set(bilheteKey, {});
-          
-          for (let jogoIndex = 0; jogoIndex < totalJogos; jogoIndex++) {
-            const palpiteIndex = bilheteNum * totalJogos + jogoIndex;
-            if (palpiteIndex < palpitesUsuario.length) {
-              const palpite = palpitesUsuario[palpiteIndex];
-              bilhetesMap.get(bilheteKey)![palpite.jogoId] = formatResultado(palpite.resultado);
-            }
+        // Pegar os 8 palpites deste bilhete
+        for (let jogoIndex = 0; jogoIndex < totalJogos; jogoIndex++) {
+          const palpiteIndex = bilheteNum * totalJogos + jogoIndex;
+          if (palpiteIndex < palpitesUsuario.length) {
+            const palpite = palpitesUsuario[palpiteIndex];
+            palpitesBilhete[palpite.jogoId] = formatResultado(palpite.resultado);
           }
         }
-      }
 
-      // Converter cada bilhete em uma linha separada
-      let contadorBilhete = 1;
-      bilhetesMap.forEach((palpitesBilhete) => {
-        bilhetesIndividuais.push({
-          nome: bilhetesMap.size > 1 ? `${nome} (#${contadorBilhete})` : nome,
-          whatsapp: whatsapp,
-          palpites: palpitesBilhete
-        });
-        contadorBilhete++;
-      });
+        // Só adicionar se o bilhete tem pelo menos alguns palpites
+        if (Object.keys(palpitesBilhete).length > 0) {
+          bilhetesIndividuais.push({
+            nome: totalBilhetes > 1 ? `${nome} (#${bilheteNum + 1})` : nome,
+            whatsapp: whatsapp,
+            palpites: palpitesBilhete
+          });
+        }
+      }
     });
 
     const resultado = bilhetesIndividuais.sort((a, b) => a.nome.localeCompare(b.nome));
