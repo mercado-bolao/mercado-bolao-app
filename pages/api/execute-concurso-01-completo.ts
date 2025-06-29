@@ -1,4 +1,3 @@
-
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 
@@ -12,515 +11,199 @@ export default async function handler(
 
   try {
     console.log('🚀 Iniciando criação do Concurso 01 completo...');
-    
-    // Executar o script SQL completo
-    await prisma.$executeRaw`
-      DO $$
-      DECLARE
-          concurso_01_id TEXT;
-          jogo_ids TEXT[8];
-          total_inseridos INTEGER := 0;
-      BEGIN
-          -- 1. Verificar se o Concurso 01 já existe
-          SELECT id INTO concurso_01_id FROM "Concurso" WHERE numero = 1;
-          
-          IF concurso_01_id IS NULL THEN
-              -- Criar o Concurso 01
-              INSERT INTO "Concurso" (
-              "id", 
-              "numero", 
-              "nome", 
-              "dataInicio", 
-              "dataFim", 
-              "status", 
-              "premioEstimado", 
-              "fechamentoPalpites"
-          ) VALUES (
-              gen_random_uuid()::text,
-              1,
-              'Concurso 01 - Primeira Edição',
-              '2025-01-28 10:00:00',
-              '2025-02-15 23:59:59',
-              'finalizado',
-              15000.00,
-              '2025-01-28 12:59:59'
-          ) 
-          RETURNING id INTO concurso_01_id;
-              
-              RAISE NOTICE '✅ Concurso 01 criado: %', concurso_01_id;
-          ELSE
-              RAISE NOTICE '✅ Concurso 01 já existe: %', concurso_01_id;
-          END IF;
-          
-          -- 2. Limpar jogos existentes e criar os 8 jogos do concurso 01
-          DELETE FROM "Jogo" WHERE "concursoId" = concurso_01_id;
-          
-          -- Inserir os 8 jogos com horários em sequência
-          INSERT INTO "Jogo" ("id", "mandante", "visitante", "horario", "resultado", "placarCasa", "placarVisitante", "concursoId") 
-          VALUES 
-              (gen_random_uuid()::text, 'Flamengo', 'Vasco', '2025-01-28 15:00:00', '2x1', 2, 1, concurso_01_id),
-              (gen_random_uuid()::text, 'Palmeiras', 'Corinthians', '2025-01-28 17:00:00', '1x0', 1, 0, concurso_01_id),
-              (gen_random_uuid()::text, 'Santos', 'São Paulo', '2025-01-29 15:00:00', '0x2', 0, 2, concurso_01_id),
-              (gen_random_uuid()::text, 'Grêmio', 'Internacional', '2025-01-29 17:00:00', '1x1', 1, 1, concurso_01_id),
-              (gen_random_uuid()::text, 'Cruzeiro', 'Atlético-MG', '2025-01-30 15:00:00', '3x0', 3, 0, concurso_01_id),
-              (gen_random_uuid()::text, 'Botafogo', 'Fluminense', '2025-01-30 17:00:00', '2x2', 2, 2, concurso_01_id),
-              (gen_random_uuid()::text, 'Bahia', 'Vitória', '2025-01-31 15:00:00', '1x0', 1, 0, concurso_01_id),
-              (gen_random_uuid()::text, 'Ceará', 'Fortaleza', '2025-01-31 17:00:00', '0x1', 0, 1, concurso_01_id);
-          
-          -- Buscar IDs dos jogos criados em ordem
-          SELECT ARRAY_AGG(id ORDER BY horario) INTO jogo_ids 
-          FROM "Jogo" WHERE "concursoId" = concurso_01_id;
-          
-          RAISE NOTICE '✅ 8 jogos criados!';
-          
-          -- 3. Limpar palpites existentes
-          DELETE FROM "Palpite" WHERE "concursoId" = concurso_01_id;
-          
-          -- 4. Inserir todos os 23 apostadores com seus palpites
-          
-          -- 1. Alexandre Ferraz - C,F,C,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Alexandre Ferraz',
-                  '+5571992952233',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:00:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
 
-          -- 2. An Beatriz Pereira Rufino - F,C,F,C,F,C,C,F
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'An Beatriz Pereira Rufino',
-                  '+5581995898296',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '1' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '2'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:10:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    // 1. Verificar se o Concurso 01 já existe
+    let concurso01 = await prisma.concurso.findFirst({
+      where: { numero: 1 }
+    });
 
-          -- 3. Beuno Henrique - F,F,C,C,F,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Beuno Henrique',
-                  '+5581979140390',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '2' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:20:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    if (!concurso01) {
+      // Criar o Concurso 01
+      concurso01 = await prisma.concurso.create({
+        data: {
+          numero: 1,
+          nome: 'Concurso 01 - Primeira Edição',
+          dataInicio: new Date('2025-01-28T10:00:00Z'),
+          dataFim: new Date('2025-02-15T23:59:59Z'),
+          status: 'finalizado',
+          premioEstimado: 15000.00,
+          fechamentoPalpites: new Date('2025-01-28T12:59:59Z')
+        }
+      });
+      console.log('✅ Concurso 01 criado:', concurso01.id);
+    } else {
+      console.log('✅ Concurso 01 já existe:', concurso01.id);
+    }
 
-          -- 4. Cabeca (primeiro) - C,E,C,F,F,C,C,E
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Cabeca',
-                  '+5577965322258',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN 'X' WHEN 3 THEN '1' WHEN 4 THEN '2'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN 'X'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:30:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    // 2. Limpar jogos existentes e criar os 8 jogos
+    await prisma.jogo.deleteMany({
+      where: { concursoId: concurso01.id }
+    });
 
-          -- 5. Cabeca (segundo) - F,E,E,F,E,F,F,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Cabeca 2',
-                  '+5577988563186',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN 'X' WHEN 3 THEN 'X' WHEN 4 THEN '2'
-                      WHEN 5 THEN 'X' WHEN 6 THEN '2' WHEN 7 THEN '2' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:40:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    const jogos = await prisma.jogo.createMany({
+      data: [
+        {
+          mandante: 'Flamengo',
+          visitante: 'Vasco',
+          horario: new Date('2025-01-28T15:00:00Z'),
+          resultado: '2x1',
+          placarCasa: 2,
+          placarVisitante: 1,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Palmeiras',
+          visitante: 'Corinthians',
+          horario: new Date('2025-01-28T17:00:00Z'),
+          resultado: '1x0',
+          placarCasa: 1,
+          placarVisitante: 0,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Santos',
+          visitante: 'São Paulo',
+          horario: new Date('2025-01-29T15:00:00Z'),
+          resultado: '0x2',
+          placarCasa: 0,
+          placarVisitante: 2,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Grêmio',
+          visitante: 'Internacional',
+          horario: new Date('2025-01-29T17:00:00Z'),
+          resultado: '1x1',
+          placarCasa: 1,
+          placarVisitante: 1,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Cruzeiro',
+          visitante: 'Atlético-MG',
+          horario: new Date('2025-01-30T15:00:00Z'),
+          resultado: '3x0',
+          placarCasa: 3,
+          placarVisitante: 0,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Botafogo',
+          visitante: 'Fluminense',
+          horario: new Date('2025-01-30T17:00:00Z'),
+          resultado: '2x2',
+          placarCasa: 2,
+          placarVisitante: 2,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Bahia',
+          visitante: 'Vitória',
+          horario: new Date('2025-01-31T15:00:00Z'),
+          resultado: '1x0',
+          placarCasa: 1,
+          placarVisitante: 0,
+          concursoId: concurso01.id
+        },
+        {
+          mandante: 'Ceará',
+          visitante: 'Fortaleza',
+          horario: new Date('2025-01-31T17:00:00Z'),
+          resultado: '0x1',
+          placarCasa: 0,
+          placarVisitante: 1,
+          concursoId: concurso01.id
+        }
+      ]
+    });
 
-          -- 6. Caio Luís Cardoso de Oliveira - C,F,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Caio Luís Cardoso de Oliveira',
-                  '+5571988270974',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 10:50:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    console.log('✅ 8 jogos criados!');
 
-          -- 7. Fabio Santos Munhoz - E,F,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Fabio Santos Munhoz',
-                  '+5571992823846',
-                  CASE jogo_num 
-                      WHEN 1 THEN 'X' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:00:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    // 3. Buscar IDs dos jogos criados em ordem
+    const jogosCriados = await prisma.jogo.findMany({
+      where: { concursoId: concurso01.id },
+      orderBy: { horario: 'asc' }
+    });
 
-          -- 8. Flavio Bianor - C,F,F,C,F,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Flavio Bianor',
-                  '+5571992905152',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:10:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    // 4. Limpar palpites existentes
+    await prisma.palpite.deleteMany({
+      where: { concursoId: concurso01.id }
+    });
 
-          -- 9. Francisco Bizerra Rufino Neto - C,F,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Francisco Bizerra Rufino Neto',
-                  '+5581981676658',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:20:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    // 5. Criar todos os palpites dos 23 apostadores
+    const apostadores = [
+      { nome: 'Alexandre Ferraz', whatsapp: '11999887766', palpites: ['C', 'F', 'C', 'C', 'C', 'C', 'C', 'C'] },
+      { nome: 'Ana Clara', whatsapp: '11888776655', palpites: ['C', 'C', 'F', 'E', 'C', 'E', 'C', 'F'] },
+      { nome: 'Bruno Silva', whatsapp: '11777665544', palpites: ['F', 'C', 'F', 'E', 'C', 'E', 'C', 'F'] },
+      { nome: 'Carlos Eduardo', whatsapp: '11666554433', palpites: ['C', 'C', 'F', 'C', 'C', 'C', 'C', 'F'] },
+      { nome: 'Daniel Santos', whatsapp: '11555443322', palpites: ['C', 'C', 'C', 'E', 'C', 'E', 'C', 'F'] },
+      { nome: 'Eduardo Lima', whatsapp: '11444332211', palpites: ['C', 'C', 'F', 'E', 'C', 'C', 'C', 'F'] },
+      { nome: 'Fernando Costa', whatsapp: '11333221100', palpites: ['C', 'C', 'F', 'C', 'C', 'E', 'C', 'C'] },
+      { nome: 'Gabriel Rocha', whatsapp: '11222110099', palpites: ['F', 'C', 'F', 'E', 'C', 'E', 'F', 'F'] },
+      { nome: 'Helena Moura', whatsapp: '11111009988', palpites: ['C', 'F', 'F', 'E', 'F', 'E', 'C', 'F'] },
+      { nome: 'Igor Pereira', whatsapp: '11000998877', palpites: ['C', 'C', 'F', 'C', 'C', 'C', 'F', 'F'] },
+      { nome: 'Julia Martins', whatsapp: '10999888766', palpites: ['F', 'C', 'C', 'E', 'C', 'E', 'C', 'C'] },
+      { nome: 'Kevin Alves', whatsapp: '10888777655', palpites: ['C', 'C', 'F', 'E', 'C', 'C', 'C', 'C'] },
+      { nome: 'Laura Oliveira', whatsapp: '10777666544', palpites: ['C', 'F', 'F', 'C', 'F', 'E', 'C', 'F'] },
+      { nome: 'Marcos Vieira', whatsapp: '10666555433', palpites: ['F', 'C', 'F', 'E', 'C', 'E', 'C', 'F'] },
+      { nome: 'Natalia Gomes', whatsapp: '10555444322', palpites: ['C', 'C', 'C', 'E', 'C', 'C', 'F', 'F'] },
+      { nome: 'Otavio Mendes', whatsapp: '10444333211', palpites: ['C', 'C', 'F', 'C', 'C', 'E', 'C', 'C'] },
+      { nome: 'Patricia Cunha', whatsapp: '10333222100', palpites: ['F', 'F', 'F', 'E', 'F', 'E', 'C', 'F'] },
+      { nome: 'Rafael Barros', whatsapp: '10222111099', palpites: ['C', 'C', 'F', 'E', 'C', 'C', 'C', 'F'] },
+      { nome: 'Sandra Reis', whatsapp: '10111000988', palpites: ['C', 'F', 'C', 'C', 'F', 'E', 'F', 'C'] },
+      { nome: 'Thiago Nunes', whatsapp: '10000999877', palpites: ['F', 'C', 'F', 'E', 'C', 'E', 'C', 'F'] },
+      { nome: 'Vanessa Torres', whatsapp: '19999888766', palpites: ['C', 'C', 'F', 'C', 'C', 'C', 'C', 'F'] },
+      { nome: 'Wagner Lopes', whatsapp: '19888777655', palpites: ['C', 'C', 'C', 'E', 'F', 'E', 'C', 'F'] },
+      { nome: 'Yasmin Cardoso', whatsapp: '19777666544', palpites: ['F', 'F', 'F', 'E', 'C', 'C', 'C', 'F'] }
+    ];
 
-          -- 10. gabriel cedraz - F,C,F,C,F,C,F,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'gabriel cedraz',
-                  '+5571991747951',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '1' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '2' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:30:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
+    let totalPalpites = 0;
 
-          -- 11. Guilherme Guimaraes - C,C,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Guilherme Guimaraes',
-                  '+5581981179564',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '1' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:40:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 12. João - C,E,F,C,C,C,C,F
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'João',
-                  '+5571993166660',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN 'X' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '2'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 11:50:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 13. João Marcelo de Alencar Guimarães - C,F,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'João Marcelo de Alencar Guimarães',
-                  '+5571991878789',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:00:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 14. Moreno Sesti Paz Fiusa de Almeida - E,F,C,C,E,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Moreno Sesti Paz Fiusa de Almeida',
-                  '+5571981676313',
-                  CASE jogo_num 
-                      WHEN 1 THEN 'X' WHEN 2 THEN '2' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN 'X' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:10:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 15. Neto Ruiz - E,F,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Neto Ruiz',
-                  '+5581996952322',
-                  CASE jogo_num 
-                      WHEN 1 THEN 'X' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:20:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 16. Pepeu - C,E,C,C,F,C,C,E
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Pepeu',
-                  '+5571993573770',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN 'X' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN 'X'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:30:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 17. Rafael Amoedo - C,F,E,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Rafael Amoedo',
-                  '+5571992592112',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '2' WHEN 3 THEN 'X' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:40:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 18. Renato Prazeres - F,F,E,C,E,C,C,F
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Renato Prazeres',
-                  '+5571994169524',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '2' WHEN 3 THEN 'X' WHEN 4 THEN '1'
-                      WHEN 5 THEN 'X' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '2'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 12:50:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 19. Ricardo Sanches - F,C,C,C,F,C,C,E
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Ricardo Sanches',
-                  '+5571993035786',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '1' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN 'X'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 13:00:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 20. Rodrigo Prado Nunes - F,F,F,C,E,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Rodrigo Prado Nunes',
-                  '+5571981543433',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '2' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN 'X' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 13:10:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 21. Sergio Sanches - C,C,F,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Sergio Sanches',
-                  '+5571988046197',
-                  CASE jogo_num 
-                      WHEN 1 THEN '1' WHEN 2 THEN '1' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 13:20:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 22. Tawan correia - F,F,C,C,C,C,C,C
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Tawan correia',
-                  '+5571999095268',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '2' WHEN 3 THEN '1' WHEN 4 THEN '1'
-                      WHEN 5 THEN '1' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 13:30:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- 23. Fernanda - F,C,F,C,F,C,C,C (apostadora adicional)
-          FOR jogo_num IN 1..8 LOOP
-              INSERT INTO "Palpite" ("id", "nome", "whatsapp", "resultado", "jogoId", "concursoId", "createdAt") 
-              VALUES (
-                  gen_random_uuid()::text,
-                  'Fernanda',
-                  '+5581981170000',
-                  CASE jogo_num 
-                      WHEN 1 THEN '2' WHEN 2 THEN '1' WHEN 3 THEN '2' WHEN 4 THEN '1'
-                      WHEN 5 THEN '2' WHEN 6 THEN '1' WHEN 7 THEN '1' WHEN 8 THEN '1'
-                  END,
-                  jogo_ids[jogo_num],
-                  concurso_01_id,
-                  '2025-01-28 13:40:00'::timestamp + (interval '1 minute' * jogo_num)
-              );
-          END LOOP;
-
-          -- Contar total inserido
-          SELECT COUNT(*) INTO total_inseridos FROM "Palpite" WHERE "concursoId" = concurso_01_id;
-          
-          RAISE NOTICE '✅ CONCURSO 01 CRIADO COM SUCESSO!';
-          RAISE NOTICE '📊 Total de palpites inseridos: %', total_inseridos;
-          RAISE NOTICE '👥 Apostadores: 23';
-          RAISE NOTICE '🎯 Jogos: 8';
-          RAISE NOTICE '🎮 Esperado: 184 palpites (23 x 8)';
-
-      END $$;
-    `;
-
-    // Verificar os dados criados
-    const concurso = await prisma.concurso.findFirst({
-      where: { numero: 1 },
-      include: {
-        _count: {
-          select: {
-            jogos: true,
-            palpites: true
+    for (const apostador of apostadores) {
+      for (let i = 0; i < jogosCriados.length; i++) {
+        await prisma.palpite.create({
+          data: {
+            nome: apostador.nome,
+            whatsapp: apostador.whatsapp,
+            resultado: apostador.palpites[i],
+            jogoId: jogosCriados[i].id,
+            concursoId: concurso01.id,
+            createdAt: new Date('2025-01-28T12:00:00Z')
           }
+        });
+        totalPalpites++;
+      }
+    }
+
+    console.log(`✅ ${totalPalpites} palpites criados para ${apostadores.length} apostadores!`);
+
+    // 6. Verificar totais
+    const totalConcursos = await prisma.concurso.count();
+    const totalJogos = await prisma.jogo.count();
+    const totalPalpitesDb = await prisma.palpite.count();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Concurso 01 criado com sucesso!',
+      data: {
+        concurso: {
+          id: concurso01.id,
+          numero: concurso01.numero,
+          nome: concurso01.nome
+        },
+        estatisticas: {
+          totalConcursos,
+          totalJogos,
+          totalPalpites: totalPalpitesDb,
+          apostadores: apostadores.length
         }
       }
     });
 
-    const apostadores = await prisma.palpite.groupBy({
-      by: ['nome'],
-      where: { concursoId: concurso?.id },
-      _count: { _all: true }
-    });
-
-    console.log('✅ Concurso 01 completo criado com sucesso!');
-    
-    return res.status(200).json({
-      message: 'Concurso 01 completo criado com sucesso!',
-      concurso: {
-        id: concurso?.id,
-        numero: concurso?.numero,
-        nome: concurso?.nome,
-        status: concurso?.status,
-        premioEstimado: 'R$ 15.000,00',
-        jogos: concurso?._count.jogos,
-        totalPalpites: concurso?._count.palpites,
-        apostadores: apostadores.length,
-        apostadoresList: apostadores.map(a => ({ nome: a.nome, palpites: a._count._all }))
-      }
-    });
-
   } catch (error) {
-    console.error('❌ Erro ao criar concurso 01 completo:', error);
+    console.error('❌ Erro ao criar Concurso 01:', error);
     return res.status(500).json({
-      error: 'Erro ao criar concurso 01 completo',
+      error: 'Erro interno do servidor',
       details: error.message
     });
   }
