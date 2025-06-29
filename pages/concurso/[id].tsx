@@ -184,20 +184,12 @@ export default function ConcursoDetalhes() {
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           <div className="text-center">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">⚽ Apostar</h1>
-            <div className="bg-green-100 rounded-lg p-3 mb-3">
+            <div className="bg-green-100 rounded-lg p-3">
               <p className="text-green-800 font-semibold">
                 Concurso #{concurso.numero}
               </p>
               <p className="text-green-600 text-sm">
                 {new Date(concurso.dataInicio).toLocaleDateString('pt-BR')}
-              </p>
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-blue-800 font-semibold text-sm">
-                💰 Valor por palpite: R$ 10,00
-              </p>
-              <p className="text-blue-600 text-xs">
-                Cada jogo apostado custa R$ 10,00
               </p>
             </div>
           </div>
@@ -411,6 +403,22 @@ export default function ConcursoDetalhes() {
                   placeholder="(11) 99999-9999"
                   required
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Informações de valor */}
+          <div className="bg-blue-50 border border-blue-200 rounded-2xl shadow-lg p-6 mb-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-blue-800 mb-3">💰 Informações de Pagamento</h2>
+              <div className="bg-white rounded-lg p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-blue-700 font-medium">Valor por palpite:</span>
+                  <span className="text-blue-900 font-bold text-lg">R$ 10,00</span>
+                </div>
+                <p className="text-blue-600 text-sm">
+                  Cada jogo apostado custa R$ 10,00
+                </p>
               </div>
             </div>
           </div>
