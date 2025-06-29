@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
@@ -108,44 +109,45 @@ export default function ConcursoDetalhes() {
 
           console.log(`Enviando palpite ${i + 1}/${combinacoes.length} para jogo ${jogoId}:`, dadosEnvio);
 
-        try {
-          const response = await fetch("/api/palpites", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(dadosEnvio),
-          });
+          try {
+            const response = await fetch("/api/palpites", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(dadosEnvio),
+            });
 
-          const result = await response.json();
+            const result = await response.json();
 
-          console.log(`Resposta da API para jogo ${jogoId}:`, {
-            status: response.status,
-            result
-          });
+            console.log(`Resposta da API para jogo ${jogoId}:`, {
+              status: response.status,
+              result
+            });
 
-          if (response.ok) {
-            sucessos++;
-            console.log(`✅ Palpite ${jogoId} salvo com sucesso`);
-          } else {
-            erros++;
-            const jogo = concurso?.jogos.find(j => j.id === jogoId);
-            const nomeJogo = jogo ? `${jogo.mandante} x ${jogo.visitante}` : `Jogo ${jogoId}`;
-            
-            console.error(`❌ Erro ao salvar palpite do jogo ${jogoId}:`, result);
-            
-            if (response.status === 400 && result.error?.includes('encerrado')) {
-              mensagensErro.push(`Apostas encerradas para: ${nomeJogo}`);
-            } else if (response.status === 404) {
-              mensagensErro.push(`Jogo não encontrado: ${nomeJogo}`);
-            } else if (response.status === 503) {
-              mensagensErro.push(`Erro de conexão. Tente novamente.`);
+            if (response.ok) {
+              sucessos++;
+              console.log(`✅ Palpite ${jogoId} salvo com sucesso`);
             } else {
-              mensagensErro.push(`Erro em ${nomeJogo}: ${result.error || 'Erro desconhecido'}`);
+              erros++;
+              const jogo = concurso?.jogos.find(j => j.id === jogoId);
+              const nomeJogo = jogo ? `${jogo.mandante} x ${jogo.visitante}` : `Jogo ${jogoId}`;
+              
+              console.error(`❌ Erro ao salvar palpite do jogo ${jogoId}:`, result);
+              
+              if (response.status === 400 && result.error?.includes('encerrado')) {
+                mensagensErro.push(`Apostas encerradas para: ${nomeJogo}`);
+              } else if (response.status === 404) {
+                mensagensErro.push(`Jogo não encontrado: ${nomeJogo}`);
+              } else if (response.status === 503) {
+                mensagensErro.push(`Erro de conexão. Tente novamente.`);
+              } else {
+                mensagensErro.push(`Erro em ${nomeJogo}: ${result.error || 'Erro desconhecido'}`);
+              }
             }
+          } catch (fetchError) {
+            erros++;
+            console.error(`Erro de rede para jogo ${jogoId}:`, fetchError);
+            mensagensErro.push('Erro de conexão. Verifique sua internet.');
           }
-        } catch (fetchError) {
-          erros++;
-          console.error(`Erro de rede para jogo ${jogoId}:`, fetchError);
-          mensagensErro.push('Erro de conexão. Verifique sua internet.');
         }
       }
 
@@ -296,8 +298,6 @@ export default function ConcursoDetalhes() {
             </div>
           </div>
         </div>
-
-
 
         {/* Message when betting is closed */}
         {palpitesEncerrados && (
@@ -503,20 +503,23 @@ export default function ConcursoDetalhes() {
                   <thead>
                     <tr className="border-b border-gray-200">
                       <th className="text-left py-3 px-2 font-semibold text-gray-700">Jogo</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpites no Carrinho</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Pendente</th>
-                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Ações</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 1</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 2</th>
+                      <th className="text-center py-3 px-2 font-semibold text-gray-700">Palpite 3</th>
                     </tr>
                   </thead>
                   <tbody>
                     {concurso.jogos.map((jogo, index) => {
                       const palpitesCarrinho = carrinho[jogo.id] || [];
                       const palpitePendente = palpites[jogo.id];
-                      const temAlgumPalpite = palpitesCarrinho.length > 0 || palpitePendente;
+                      const todosPalpites = [...palpitesCarrinho];
+                      if (palpitePendente && !todosPalpites.includes(palpitePendente)) {
+                        todosPalpites.push(palpitePendente);
+                      }
                       
                       return (
-                        <tr key={jogo.id} className={`border-b border-gray-100 ${temAlgumPalpite ? 'bg-blue-50' : ''}`}>
-                          {/* Informações do jogo */}
+                        <tr key={jogo.id} className={`border-b border-gray-100 ${todosPalpites.length > 0 ? 'bg-blue-50' : ''}`}>
+                          {/* Nome do jogo */}
                           <td className="py-4 px-2">
                             <div className="text-xs font-bold text-gray-500 mb-1">JOGO {index + 1}</div>
                             <div className="text-sm font-semibold text-gray-800">
@@ -524,63 +527,60 @@ export default function ConcursoDetalhes() {
                             </div>
                           </td>
                           
-                          {/* Palpites no carrinho */}
+                          {/* Palpite 1 */}
                           <td className="py-4 px-2 text-center">
-                            {palpitesCarrinho.length > 0 ? (
-                              <div className="flex flex-wrap justify-center gap-1">
-                                {palpitesCarrinho.map((palpite, idx) => (
-                                  <div key={idx} className="relative group">
-                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                                      palpite === '1' ? 'bg-blue-600 text-white' :
-                                      (palpite === '0' || palpite === 'X') ? 'bg-gray-600 text-white' :
-                                      palpite === '2' ? 'bg-red-600 text-white' : 'bg-gray-300'
-                                    }`}>
-                                      {palpite === '0' ? 'X' : palpite}
-                                    </div>
-                                    <button
-                                      onClick={() => removerPalpiteDoCarrinho(jogo.id, palpite)}
-                                      className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title="Remover"
-                                    >
-                                      ×
-                                    </button>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <span className="text-gray-400 text-sm">-</span>
-                            )}
-                          </td>
-                          
-                          {/* Palpite pendente */}
-                          <td className="py-4 px-2 text-center">
-                            {palpitePendente ? (
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto border-2 border-dashed ${
-                                palpitePendente === '1' ? 'bg-blue-100 border-blue-400 text-blue-800' :
-                                (palpitePendente === '0' || palpitePendente === 'X') ? 'bg-gray-100 border-gray-400 text-gray-800' :
-                                palpitePendente === '2' ? 'bg-red-100 border-red-400 text-red-800' : 'bg-gray-100'
+                            {todosPalpites[0] ? (
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
+                                palpitesCarrinho.includes(todosPalpites[0]) 
+                                  ? (todosPalpites[0] === '1' ? 'bg-blue-600 text-white' :
+                                     (todosPalpites[0] === '0' || todosPalpites[0] === 'X') ? 'bg-gray-600 text-white' :
+                                     'bg-red-600 text-white')
+                                  : (todosPalpites[0] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
+                                     (todosPalpites[0] === '0' || todosPalpites[0] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
+                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
                               }`}>
-                                {palpitePendente === '0' ? 'X' : palpitePendente}
+                                {todosPalpites[0] === '0' ? 'X' : todosPalpites[0]}
                               </div>
                             ) : (
                               <span className="text-gray-400 text-sm">-</span>
                             )}
                           </td>
                           
-                          {/* Ações */}
+                          {/* Palpite 2 */}
                           <td className="py-4 px-2 text-center">
-                            {palpitePendente && (
-                              <button
-                                onClick={() => {
-                                  const newPalpites = { ...palpites };
-                                  delete newPalpites[jogo.id];
-                                  setPalpites(newPalpites);
-                                }}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                                title="Cancelar pendente"
-                              >
-                                🗑️
-                              </button>
+                            {todosPalpites[1] ? (
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
+                                palpitesCarrinho.includes(todosPalpites[1]) 
+                                  ? (todosPalpites[1] === '1' ? 'bg-blue-600 text-white' :
+                                     (todosPalpites[1] === '0' || todosPalpites[1] === 'X') ? 'bg-gray-600 text-white' :
+                                     'bg-red-600 text-white')
+                                  : (todosPalpites[1] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
+                                     (todosPalpites[1] === '0' || todosPalpites[1] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
+                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
+                              }`}>
+                                {todosPalpites[1] === '0' ? 'X' : todosPalpites[1]}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
+                            )}
+                          </td>
+                          
+                          {/* Palpite 3 */}
+                          <td className="py-4 px-2 text-center">
+                            {todosPalpites[2] ? (
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm mx-auto ${
+                                palpitesCarrinho.includes(todosPalpites[2]) 
+                                  ? (todosPalpites[2] === '1' ? 'bg-blue-600 text-white' :
+                                     (todosPalpites[2] === '0' || todosPalpites[2] === 'X') ? 'bg-gray-600 text-white' :
+                                     'bg-red-600 text-white')
+                                  : (todosPalpites[2] === '1' ? 'bg-blue-100 border-2 border-dashed border-blue-400 text-blue-800' :
+                                     (todosPalpites[2] === '0' || todosPalpites[2] === 'X') ? 'bg-gray-100 border-2 border-dashed border-gray-400 text-gray-800' :
+                                     'bg-red-100 border-2 border-dashed border-red-400 text-red-800')
+                              }`}>
+                                {todosPalpites[2] === '0' ? 'X' : todosPalpites[2]}
+                              </div>
+                            ) : (
+                              <span className="text-gray-400 text-sm">-</span>
                             )}
                           </td>
                         </tr>
