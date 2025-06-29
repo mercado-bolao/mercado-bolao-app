@@ -210,50 +210,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    console.log('🔄 Gerando QR Code...');
-    console.log('📤 Parâmetros para QR Code:', { id: locationId });
-
-    let qrCodeResponse;
-    try {
-      qrCodeResponse = await efipay.pixGenerateQRCode({
-        id: locationId,
-      });
-      console.log('✅ QR Code gerado com sucesso!');
-      console.log('📋 Resposta COMPLETA do QR Code:', JSON.stringify(qrCodeResponse, null, 2));
-    } catch (qrError) {
-      console.error('❌ ERRO AO GERAR QR CODE:');
-      console.error('📝 Erro completo:', JSON.stringify(qrError, null, 2));
-      console.error('📝 Response data:', JSON.stringify(qrError?.response?.data, null, 2));
-      console.error('📝 Status:', qrError?.response?.status);
-      console.error('📝 Message:', qrError?.message);
-      console.error('📝 LocationId usado:', locationId);
-      
+    // Usar PIX Copia e Cola da própria cobrança (disponível no retorno)
+    console.log('🔄 Usando PIX Copia e Cola da cobrança...');
+    const pixCopiaCola = pixResponse.pixCopiaECola;
+    
+    if (!pixCopiaCola) {
+      console.error('❌ PIX Copia e Cola não disponível na resposta');
       return res.status(500).json({
-        error: 'Erro ao gerar QR Code',
-        details: qrError?.response?.data?.message || qrError?.response?.data?.descricao || qrError?.message || 'Erro desconhecido ao gerar QR Code',
-        debug: {
-          locationId: locationId,
-          errorStatus: qrError?.response?.status,
-          errorData: qrError?.response?.data
-        }
+        error: 'PIX Copia e Cola não disponível',
+        details: 'A EFÍ Pay não retornou o código PIX Copia e Cola'
       });
     }
 
-    // Verificar se o QR Code foi realmente gerado
-    if (!qrCodeResponse || !qrCodeResponse.qrcode) {
-      console.error('❌ QR Code não foi gerado - resposta inválida');
-      console.error('📋 Resposta recebida:', JSON.stringify(qrCodeResponse, null, 2));
-      
-      return res.status(500).json({
-        error: 'QR Code não foi gerado',
-        details: 'A EFÍ Pay não retornou o código QR',
-        debug: {
-          hasResponse: !!qrCodeResponse,
-          responseKeys: qrCodeResponse ? Object.keys(qrCodeResponse) : null,
-          hasQrcode: !!qrCodeResponse?.qrcode
-        }
-      });
-    }
+    console.log('✅ PIX Copia e Cola obtido com sucesso!');
+    console.log('📋 PIX Copia e Cola:', pixCopiaCola);
+
+    // Criar resposta simulando QR Code para manter compatibilidade
+    const qrCodeResponse = {
+      qrcode: pixCopiaCola,
+      imagemQrcode: null // Será null até conseguir gerar QR Code
+    };
 
     // Salvar dados do PIX no banco de dados
     const { PrismaClient } = require('@prisma/client');
@@ -309,6 +285,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         valor: valorTotal,
         expiracao: new Date(Date.now() + 3600000).toISOString(),
         ambiente: isSandbox ? 'sandbox' : 'produção',
+        aviso: qrCodeResponse.imagemQrcode ? null : 'Imagem QR Code não disponível - use o código PIX'
       },
     });
 
