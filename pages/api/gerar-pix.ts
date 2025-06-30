@@ -51,10 +51,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    const certificatePath = path.resolve('./certs/certificado-efi.p12');
-    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-      efiConfig.certificate = certificatePath;
-      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+    // Tentar diferentes caminhos para o certificado
+    const possiblePaths = [
+      path.resolve('./certs/certificado-efi.p12'),
+      path.resolve(__dirname, '../../certs/certificado-efi.p12'),
+      path.resolve(process.cwd(), 'certs/certificado-efi.p12'),
+      '/opt/certs/certificado-efi.p12' // Caminho alternativo no Amplify
+    ];
+
+    let certificateFound = false;
+    let certificateError = null;
+
+    for (const certificatePath of possiblePaths) {
+      try {
+        console.log('🔍 Tentando ler certificado em:', certificatePath);
+
+        if (fs.existsSync(certificatePath)) {
+          console.log('✅ Certificado encontrado em:', certificatePath);
+          efiConfig.certificate = certificatePath;
+          efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+          certificateFound = true;
+          break;
+        }
+      } catch (error) {
+        certificateError = error;
+        console.error('❌ Erro ao tentar ler certificado em', certificatePath, ':', error);
+      }
+    }
+
+    if (!certificateFound) {
+      console.error('⚠️ Nenhum certificado encontrado. Tentativas:', {
+        caminhosTentados: possiblePaths,
+        ultimoErro: certificateError,
+        ambiente: process.env.NODE_ENV,
+        cwd: process.cwd(),
+        dirname: __dirname
+      });
+
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Certificado não encontrado em produção. Verifique a configuração.');
+      }
     }
 
     const efipay = new EfiPay(efiConfig);
