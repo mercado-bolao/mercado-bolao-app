@@ -31,6 +31,7 @@
     "@types/node": "24.0.4",
     "@types/qrcode": "^1.5.5",
     "@types/react": "19.1.8",
+    "@types/webpack": "^5.28.5",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.0.0",
     "eslint-config-next": "latest",

@@ -1,5 +1,6 @@
-
+/** @type {import('next').NextConfig} */
 import type { NextConfig } from "next";
+import type { Configuration } from 'webpack';
 
 const nextConfig: NextConfig = {
   eslint: {
@@ -30,7 +31,30 @@ const nextConfig: NextConfig = {
     EFI_CERTIFICATE_PASSPHRASE: process.env.EFI_CERTIFICATE_PASSPHRASE ?? "",
     ADMIN_PASSWORD: process.env.ADMIN_PASSWORD ?? "",
   },
-};
+  reactStrictMode: true,
+  output: 'standalone',
+  // Copiar arquivos adicionais para o build
+  webpack: (config: Configuration, { isServer }: { isServer: boolean }) => {
+    if (isServer) {
+      // Copiar a pasta certs para o build
+      const { copyFileSync, existsSync, mkdirSync } = require('fs');
+      const { join } = require('path');
 
+      const certsDir = join(process.cwd(), 'certs');
+      const buildCertsDir = join(process.cwd(), '.next/server/certs');
+
+      if (existsSync(certsDir)) {
+        if (!existsSync(buildCertsDir)) {
+          mkdirSync(buildCertsDir, { recursive: true });
+        }
+        copyFileSync(
+          join(certsDir, 'certificado-efi.p12'),
+          join(buildCertsDir, 'certificado-efi.p12')
+        );
+      }
+    }
+    return config;
+  }
+};
 
 export default nextConfig;

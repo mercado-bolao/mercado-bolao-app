@@ -7,8 +7,6 @@ applications:
             - npm ci
             - npx prisma generate
             - npx prisma migrate deploy
-            - mkdir -p /opt/certs
-            - cp -r certs/* /opt/certs/ || echo "Nenhum certificado encontrado para copiar"
         build:
           commands:
             - npm run build
@@ -16,7 +14,6 @@ applications:
         baseDirectory: .next
         files:
           - '**/*'
-          - '../certs/**/*'
       cache:
         paths:
           - node_modules/**/*

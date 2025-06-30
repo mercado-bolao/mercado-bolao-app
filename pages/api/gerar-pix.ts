@@ -51,45 +51,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       client_secret: process.env.EFI_CLIENT_SECRET
     };
 
-    // Tentar diferentes caminhos para o certificado
-    const possiblePaths = [
-      path.resolve('./certs/certificado-efi.p12'),
-      path.resolve(__dirname, '../../certs/certificado-efi.p12'),
-      path.resolve(process.cwd(), 'certs/certificado-efi.p12'),
-      '/opt/certs/certificado-efi.p12' // Caminho alternativo no Amplify
-    ];
+    // Tentar encontrar o certificado usando caminhos relativos
+    const certificatePath = path.join(process.cwd(), 'certs', 'certificado-efi.p12');
 
-    let certificateFound = false;
-    let certificateError = null;
+    console.log('📂 Debug de caminhos:', {
+      processDir: process.cwd(),
+      certificatePath: certificatePath,
+      nodeEnv: process.env.NODE_ENV,
+      tentandoLer: 'certs/certificado-efi.p12'
+    });
 
-    for (const certificatePath of possiblePaths) {
-      try {
-        console.log('🔍 Tentando ler certificado em:', certificatePath);
-
-        if (fs.existsSync(certificatePath)) {
-          console.log('✅ Certificado encontrado em:', certificatePath);
-          efiConfig.certificate = certificatePath;
-          efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-          certificateFound = true;
-          break;
+    try {
+      if (fs.existsSync(certificatePath)) {
+        console.log('✅ Certificado encontrado em:', certificatePath);
+        efiConfig.certificate = certificatePath;
+        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
+      } else {
+        console.log('⚠️ Certificado não encontrado em:', certificatePath);
+        // Em produção, se não encontrar o certificado, lança erro
+        if (process.env.NODE_ENV === 'production') {
+          throw new Error(`Certificado não encontrado em: ${certificatePath}`);
         }
-      } catch (error) {
-        certificateError = error;
-        console.error('❌ Erro ao tentar ler certificado em', certificatePath, ':', error);
       }
-    }
-
-    if (!certificateFound) {
-      console.error('⚠️ Nenhum certificado encontrado. Tentativas:', {
-        caminhosTentados: possiblePaths,
-        ultimoErro: certificateError,
-        ambiente: process.env.NODE_ENV,
-        cwd: process.cwd(),
-        dirname: __dirname
-      });
-
+    } catch (error) {
+      console.error('❌ Erro ao tentar ler certificado:', error);
       if (process.env.NODE_ENV === 'production') {
-        throw new Error('Certificado não encontrado em produção. Verifique a configuração.');
+        throw error;
       }
     }
 
