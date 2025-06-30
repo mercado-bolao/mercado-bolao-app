@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
+import { withAdminAuth } from '@/components/withAdminAuth';
 
 interface VerificacaoBody {
   data?: string;
@@ -30,7 +31,7 @@ interface VerificacaoResponse {
   }>;
 }
 
-export default function VerificarPagamento() {
+function VerificarPagamento() {
   const [loading, setLoading] = useState(false);
   const [resultado, setResultado] = useState<VerificacaoResponse | null>(null);
   const [dataHora, setDataHora] = useState('29/06/2025, 16:05:55');
@@ -294,3 +295,5 @@ export default function VerificarPagamento() {
     </div>
   );
 }
+
+export default withAdminAuth(VerificarPagamento);

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
+import { withAdminAuth } from '@/components/withAdminAuth';
+import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
 interface Concurso {
   id: string;
@@ -9,8 +11,9 @@ interface Concurso {
   status: string;
 }
 
-export default function AdicionarJogos() {
+function AdicionarJogos() {
   const router = useRouter();
+  const authenticatedFetch = useAuthenticatedFetch();
   const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [concursoSelecionado, setConcursoSelecionado] = useState('');
   const [mandante, setMandante] = useState('');
@@ -19,13 +22,29 @@ export default function AdicionarJogos() {
   const [fotoMandante, setFotoMandante] = useState<File | null>(null);
   const [fotoVisitante, setFotoVisitante] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch('/api/admin/concursos')
-      .then(res => res.json())
-      .then(data => setConcursos(data))
-      .catch(error => console.error('Erro ao carregar concursos:', error));
-  }, []);
+    const fetchConcursos = async () => {
+      try {
+        const response = await authenticatedFetch('/api/admin/concursos');
+        if (!response.ok) {
+          throw new Error('Falha ao carregar concursos');
+        }
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setConcursos(data);
+        } else {
+          throw new Error('Formato de dados inválido');
+        }
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Erro ao carregar concursos');
+        console.error('Erro ao carregar concursos:', error);
+      }
+    };
+
+    fetchConcursos();
+  }, [authenticatedFetch]);
 
   const handleFotoMandanteChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -43,11 +62,12 @@ export default function AdicionarJogos() {
     e.preventDefault();
 
     if (!concursoSelecionado || !mandante || !visitante || !horario) {
-      alert('Por favor, preencha todos os campos obrigatórios');
+      setError('Por favor, preencha todos os campos obrigatórios');
       return;
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       const formData = new FormData();
@@ -64,7 +84,7 @@ export default function AdicionarJogos() {
         formData.append('fotoVisitante', fotoVisitante);
       }
 
-      const response = await fetch('/api/admin/jogos', {
+      const response = await authenticatedFetch('/api/admin/jogos', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -91,12 +111,12 @@ export default function AdicionarJogos() {
         const fileInputs = document.querySelectorAll('input[type="file"]') as NodeListOf<HTMLInputElement>;
         fileInputs.forEach(input => input.value = '');
       } else {
-        const error = await response.json();
-        alert(`Erro ao adicionar jogo: ${error.error}`);
+        const errorData = await response.json();
+        setError(`Erro ao adicionar jogo: ${errorData.error}`);
       }
     } catch (error) {
       console.error('Erro:', error);
-      alert('Erro ao adicionar jogo');
+      setError('Erro ao adicionar jogo. Por favor, tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -109,6 +129,12 @@ export default function AdicionarJogos() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Adicionar Novo Jogo</h1>
           <p className="text-gray-600">Preencha as informações do jogo para adicionar ao concurso</p>
         </div>
+
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Seleção do Concurso */}
@@ -246,3 +272,5 @@ export default function AdicionarJogos() {
     </div>
   );
 }
+
+export default withAdminAuth(AdicionarJogos);

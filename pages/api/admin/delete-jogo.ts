@@ -1,7 +1,8 @@
 import { prisma } from "../../../lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
+import { withAuth } from '../../../lib/auth-middleware';
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
@@ -52,3 +53,5 @@ export default async function handler(
     });
   }
 }
+
+export default withAuth(handler);

@@ -1,7 +1,8 @@
 import { prisma } from "../../../lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
+import { withAuth } from '../../../lib/auth-middleware';
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
@@ -61,10 +62,12 @@ export default async function handler(
     });
   } catch (error) {
     console.error('Erro ao buscar palpites:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       success: false,
-      error: "Erro ao buscar palpites", 
+      error: "Erro ao buscar palpites",
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
   }
 }
+
+export default withAuth(handler);

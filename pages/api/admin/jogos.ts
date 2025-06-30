@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { NextApiRequest, NextApiResponse } from "next";
+import { withAuth } from '../../../lib/auth-middleware';
 
 // Função para converter formatos legados de resultado
 function normalizarResultado(resultado: string): string | null {
@@ -17,7 +18,7 @@ function normalizarResultado(resultado: string): string | null {
   }
 }
 
-export default async function handler(
+async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
@@ -216,3 +217,5 @@ export default async function handler(
 
   return res.status(405).json({ error: "Método não permitido" });
 }
+
+export default withAuth(handler);

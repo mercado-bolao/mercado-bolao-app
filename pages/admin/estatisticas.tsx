@@ -1,6 +1,7 @@
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { withAdminAuth } from '@/components/withAdminAuth';
+import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 
 interface Estatisticas {
   totalConcursos: number;
@@ -19,7 +20,7 @@ interface Estatisticas {
   };
 }
 
-export default function AdminEstatisticas() {
+function AdminEstatisticas() {
   const [stats, setStats] = useState<Estatisticas | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -208,3 +209,5 @@ export default function AdminEstatisticas() {
     </div>
   );
 }
+
+export default withAdminAuth(AdminEstatisticas);

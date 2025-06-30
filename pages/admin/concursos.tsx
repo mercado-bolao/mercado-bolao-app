@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useAuthenticatedFetch } from "@/hooks/useAuthenticatedFetch";
+import { withAdminAuth } from "@/components/withAdminAuth";
 
 interface Concurso {
   id: string;
@@ -30,7 +32,7 @@ interface Jogo {
   tempGolsVisitante?: string;
 }
 
-export default function AdminConcursos() {
+function AdminConcursos() {
   const [concursos, setConcursos] = useState<Concurso[]>([]);
   const [jogos, setJogos] = useState<Jogo[] | { error: string }>([]);
   const [selectedConcurso, setSelectedConcurso] = useState<string>('');
@@ -65,18 +67,19 @@ export default function AdminConcursos() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedConcursosToDelete, setSelectedConcursosToDelete] = useState<string[]>([]);
 
+  const authenticatedFetch = useAuthenticatedFetch();
+
   useEffect(() => {
     buscarConcursos();
   }, []);
 
   const buscarConcursos = async () => {
     try {
-      const response = await fetch("/api/admin/concursos");
+      const response = await authenticatedFetch("/api/admin/concursos");
       if (!response.ok) {
         throw new Error(`Erro HTTP: ${response.status}`);
       }
       const data = await response.json();
-      // Garantir que data é um array
       if (Array.isArray(data)) {
         setConcursos(data);
       } else {
@@ -85,7 +88,7 @@ export default function AdminConcursos() {
       }
     } catch (error) {
       console.error("Erro ao buscar concursos:", error);
-      setConcursos([]); // Garantir que concursos seja um array vazio em caso de erro
+      setConcursos([]);
     } finally {
       setLoading(false);
     }
@@ -237,7 +240,7 @@ export default function AdminConcursos() {
     setLoadingJogos(true);
     try {
       console.log('Buscando jogos para concurso:', concursoId);
-      const response = await fetch(`/api/admin/jogos?concursoId=${concursoId}`);
+      const response = await authenticatedFetch(`/api/admin/jogos?concursoId=${concursoId}`);
       const data = await response.json();
       console.log('Jogos encontrados:', data);
       // Garantir que sempre seja um array
@@ -309,7 +312,7 @@ export default function AdminConcursos() {
     if (!editingJogo) return;
 
     try {
-      const response = await fetch('/api/admin/jogos', {
+      const response = await authenticatedFetch('/api/admin/jogos', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -346,7 +349,7 @@ export default function AdminConcursos() {
     }
 
     try {
-      const response = await fetch('/api/admin/limpar-resultado', {
+      const response = await authenticatedFetch('/api/admin/limpar-resultado', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -375,7 +378,7 @@ export default function AdminConcursos() {
     }
 
     try {
-      const response = await fetch('/api/admin/delete-jogo', {
+      const response = await authenticatedFetch('/api/admin/delete-jogo', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -468,7 +471,7 @@ export default function AdminConcursos() {
 
       console.log('🚀 Fazendo requisição para API...');
 
-      const response = await fetch('/api/admin/jogos', {
+      const response = await authenticatedFetch('/api/admin/jogos', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -525,98 +528,40 @@ export default function AdminConcursos() {
 
   const salvarConcurso = async (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      console.log('📝 Dados recebidos:', formData);
-
-      // Corrige o formato das datas antes de processar
-      const dataInicioCorrigida = corrigirFormatoData(formData.dataInicio);
-      const dataFimCorrigida = corrigirFormatoData(formData.dataFim);
-      const fechamentoPalpitesCorrigido = formData.fechamentoPalpites ? corrigirFormatoData(formData.fechamentoPalpites) : undefined;
-
-      console.log('📅 Datas corrigidas:', {
-        dataInicio: dataInicioCorrigida,
-        dataFim: dataFimCorrigida,
-        fechamentoPalpites: fechamentoPalpitesCorrigido
+      const response = await authenticatedFetch('/api/admin/concursos', {
+        method: editingConcurso ? 'PUT' : 'POST',
+        body: JSON.stringify(formData)
       });
-
-      // Validar datas
-      if (!validarDatas(dataInicioCorrigida, dataFimCorrigida, fechamentoPalpitesCorrigido)) {
-        console.error('❌ Erro na validação de datas');
-        return;
-      }
-
-      const dadosFormatados = {
-        ...formData,
-        dataInicio: formatarDataParaAPI(dataInicioCorrigida),
-        dataFim: formatarDataParaAPI(dataFimCorrigida),
-        fechamentoPalpites: fechamentoPalpitesCorrigido ? formatarDataParaAPI(fechamentoPalpitesCorrigido) : null,
-        numero: parseInt(formData.numero),
-        premioEstimado: formData.premioEstimado ? parseFloat(formData.premioEstimado) : null
-      };
-
-      console.log('📦 Dados formatados para API:', dadosFormatados);
-
-      const url = "/api/admin/concursos";
-      const method = editingConcurso ? "PUT" : "POST";
-      const body = editingConcurso
-        ? { ...dadosFormatados, id: editingConcurso.id }
-        : dadosFormatados;
-
-      console.log('🚀 Enviando requisição:', {
-        method,
-        url,
-        body: JSON.stringify(body)
-      });
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(body),
-      });
-
-      console.log('📨 Status da resposta:', response.status);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Erro da API:', errorData);
-        throw new Error(errorData.error || 'Erro ao salvar concurso');
+        throw new Error('Erro ao salvar concurso');
       }
 
       await buscarConcursos();
       fecharModal();
-      alert(editingConcurso ? 'Concurso atualizado com sucesso!' : 'Concurso criado com sucesso!');
     } catch (error) {
-      console.error('❌ Erro completo ao salvar concurso:', error);
-      alert(error instanceof Error ? error.message : 'Erro ao salvar concurso');
+      console.error('Erro ao salvar concurso:', error);
+      alert('Erro ao salvar concurso');
     }
   };
 
   const handleDeleteConcurso = async (id: string) => {
-    if (!confirm("Tem certeza que deseja deletar este concurso?")) {
-      return;
-    }
+    if (window.confirm('Tem certeza que deseja excluir este concurso?')) {
+      try {
+        const response = await authenticatedFetch(`/api/admin/concursos?id=${id}`, {
+          method: 'DELETE'
+        });
 
-    try {
-      const response = await fetch(`/api/deleteconcursos`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ concursoIds: [id] }),
-      });
+        if (!response.ok) {
+          throw new Error('Erro ao excluir concurso');
+        }
 
-      if (response.ok) {
-        setConcursos(concursos.filter((c) => c.id !== id));
-        alert("Concurso deletado com sucesso!");
-      } else {
-        alert("Erro ao deletar concurso");
+        await buscarConcursos();
+      } catch (error) {
+        console.error('Erro ao excluir concurso:', error);
+        alert('Erro ao excluir concurso');
       }
-    } catch (error) {
-      console.error("Erro ao deletar concurso:", error);
-      alert("Erro ao deletar concurso");
     }
   };
 
@@ -636,40 +581,22 @@ export default function AdminConcursos() {
   };
 
   const handleDeleteSelectedConcursos = async () => {
-    if (selectedConcursosToDelete.length === 0) {
-      alert("Selecione pelo menos um concurso para deletar");
-      return;
-    }
-
-    const concursosParaDeletar = concursos.filter(c => selectedConcursosToDelete.includes(c.id));
-    const nomes = concursosParaDeletar.map(c => `${c.nome || `Concurso #${c.numero}`}`).join(', ');
-
-    if (!confirm(`Tem certeza que deseja deletar os seguintes concursos?\n\n${nomes}`)) {
-      return;
-    }
-
     try {
-      const response = await fetch(`/api/deleteconcursos`, {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          concursoIds: selectedConcursosToDelete
-        }),
+      const response = await authenticatedFetch('/api/admin/delete-concursos', {
+        method: 'POST',
+        body: JSON.stringify({ concursoIds: selectedConcursosToDelete })
       });
 
-      if (response.ok) {
-        setConcursos(concursos.filter((c) => !selectedConcursosToDelete.includes(c.id)));
-        setShowDeleteModal(false);
-        setSelectedConcursosToDelete([]);
-        alert(`${concursosParaDeletar.length} concurso(s) deletado(s) com sucesso!`);
-      } else {
-        alert("Erro ao deletar concursos");
+      if (!response.ok) {
+        throw new Error('Erro ao excluir concursos');
       }
+
+      await buscarConcursos();
+      setShowDeleteModal(false);
+      setSelectedConcursosToDelete([]);
     } catch (error) {
-      console.error("Erro ao deletar concursos:", error);
-      alert("Erro ao deletar concursos");
+      console.error('Erro ao excluir concursos:', error);
+      alert('Erro ao excluir concursos');
     }
   };
 
@@ -707,6 +634,8 @@ export default function AdminConcursos() {
                 Concursos
               </span>
             </div>
+
+
 
             <Link href="/admin">
               <div className="group bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 border-2 border-green-200 hover:border-green-300 rounded-xl p-4 text-center cursor-pointer transition-all duration-300 transform hover:scale-105">
@@ -1644,3 +1573,5 @@ export default function AdminConcursos() {
     </div>
   );
 }
+
+export default withAdminAuth(AdminConcursos);
