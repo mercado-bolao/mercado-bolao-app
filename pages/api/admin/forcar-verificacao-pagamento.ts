@@ -1,13 +1,12 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  const prisma = new PrismaClient();
 
   try {
     const { txid, bilheteId } = req.body;
@@ -62,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 1. Atualizar bilhete
     await prisma.bilhete.update({
       where: { id: bilhete.id },
-      data: { 
+      data: {
         status: 'PAGO',
         updatedAt: new Date()
       }
@@ -78,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (bilhete.txid) {
       await prisma.pixPagamento.updateMany({
         where: { txid: bilhete.txid },
-        data: { 
+        data: {
           status: 'PAGA',
           updatedAt: new Date()
         }

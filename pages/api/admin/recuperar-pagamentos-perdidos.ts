@@ -1,20 +1,19 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  const prisma = new PrismaClient();
 
   try {
     console.log('🔧 Iniciando recuperação de pagamentos perdidos...');
 
     // Buscar todos os bilhetes pendentes
     const bilhetesPendentes = await prisma.bilhete.findMany({
-      where: { 
+      where: {
         status: 'PENDENTE',
         txid: { not: null }
       },
@@ -44,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (result.success && result.status === 'PAGO') {
           console.log(`✅ Pagamento recuperado: ${bilhete.txid}`);
           recuperados++;
-          
+
           resultados.push({
             bilheteId: bilhete.id,
             txid: bilhete.txid,

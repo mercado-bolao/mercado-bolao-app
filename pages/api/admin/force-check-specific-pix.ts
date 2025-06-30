@@ -1,14 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
 import path from 'path';
 import fs from 'fs';
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
-
-  const prisma = new PrismaClient();
 
   try {
     const { txid, bilheteId, whatsapp } = req.body;

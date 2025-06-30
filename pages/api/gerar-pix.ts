@@ -1,13 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import path from 'path';
 import fs from 'fs';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  console.log('🔄 Handler iniciado - método:', req.method);
-
-  const prisma = new PrismaClient();
-
   try {
     res.setHeader('Content-Type', 'application/json');
 
@@ -139,23 +135,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 3. PROGRAMAR CANCELAMENTO AUTOMÁTICO EM 5 MINUTOS
     setTimeout(async () => {
       try {
-        const prismaTimeout = new PrismaClient();
 
         // Verificar se ainda está pendente
-        const bilheteAtual = await prismaTimeout.bilhete.findUnique({
+        const bilheteAtual = await prisma.bilhete.findUnique({
           where: { id: bilhete.id }
         });
 
         if (bilheteAtual?.status === 'PENDENTE') {
           console.log('⏰ Cancelando bilhete expirado:', bilhete.id);
 
-          await prismaTimeout.bilhete.update({
+          await prisma.bilhete.update({
             where: { id: bilhete.id },
             data: { status: 'CANCELADO' }
           });
 
           // Reverter palpites para pendente
-          await prismaTimeout.palpite.updateMany({
+          await prisma.palpite.updateMany({
             where: {
               id: { in: palpitesIds }
             },
@@ -167,7 +162,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           console.log('✅ Bilhete cancelado automaticamente');
         }
 
-        await prismaTimeout.$disconnect();
+        await prisma.$disconnect();
       } catch (error) {
         console.error('❌ Erro no cancelamento automático:', error);
       }

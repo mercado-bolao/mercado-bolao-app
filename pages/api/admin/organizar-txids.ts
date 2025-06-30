@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
 import { TxidUtils } from '../../../lib/txid-utils';
+import { prisma } from '@/lib/prisma';
 
 interface Detalhe {
   bilheteId: string;
@@ -25,7 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
-  const prisma = new PrismaClient();
+
 
   try {
     console.log('🔧 Iniciando organização de TXIDs...');
