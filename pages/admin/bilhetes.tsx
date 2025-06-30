@@ -373,7 +373,7 @@ function AdminBilhetes() {
                     <div className="text-sm text-gray-500">{bilhete.whatsapp}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={formatarStatus(bilhete.status)}>
+                    <span className={getStatusColor(bilhete.status)}>
                       {bilhete.status}
                     </span>
                   </td>
