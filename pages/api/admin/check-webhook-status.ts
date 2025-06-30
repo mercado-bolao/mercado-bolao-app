@@ -13,32 +13,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Configurar EFI
         const efiSandbox = process.env.EFI_SANDBOX || 'false';
         const isSandbox = efiSandbox === 'true';
-
         const EfiPay = require('sdk-node-apis-efi');
 
-        let efiConfig: any = {
-            sandbox: isSandbox,
-            client_id: process.env.EFI_CLIENT_ID,
-            client_secret: process.env.EFI_CLIENT_SECRET
-        };
-
-        // Configurar certificado para produção
-        if (!isSandbox) {
-            console.log('🔐 Configurando certificado para produção...');
-            const certificatePath = path.resolve('./certs/certificado-efi.p12');
-
-            if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-                efiConfig.certificate = certificatePath;
-                efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-                console.log('✅ Certificado configurado com sucesso');
-            } else {
-                console.error('❌ Certificado não encontrado ou passphrase não configurada');
-                return res.status(400).json({
-                    success: false,
-                    error: 'Certificado não configurado para produção'
-                });
-            }
-        }
+        // Usar a função auxiliar para obter a configuração
+        const { getEfiConfig } = await import('../../../lib/certificate-utils');
+        const efiConfig = getEfiConfig(isSandbox);
 
         const efipay = new EfiPay(efiConfig);
         const pixKey = process.env.EFI_PIX_KEY;

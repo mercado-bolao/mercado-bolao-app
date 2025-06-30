@@ -44,41 +44,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const isSandbox = efiSandbox === 'true';
     const EfiPay = require('sdk-node-apis-efi');
 
-    // Configurar EFÍ baseado no ambiente
-    let efiConfig: any = {
-      sandbox: isSandbox,
-      client_id: process.env.EFI_CLIENT_ID,
-      client_secret: process.env.EFI_CLIENT_SECRET
-    };
-
-    // Tentar encontrar o certificado usando caminhos relativos
-    const certificatePath = path.join(process.cwd(), 'certs', 'certificado-efi.p12');
-
-    console.log('📂 Debug de caminhos:', {
-      processDir: process.cwd(),
-      certificatePath: certificatePath,
-      nodeEnv: process.env.NODE_ENV,
-      tentandoLer: 'certs/certificado-efi.p12'
-    });
-
-    try {
-      if (fs.existsSync(certificatePath)) {
-        console.log('✅ Certificado encontrado em:', certificatePath);
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      } else {
-        console.log('⚠️ Certificado não encontrado em:', certificatePath);
-        // Em produção, se não encontrar o certificado, lança erro
-        if (process.env.NODE_ENV === 'production') {
-          throw new Error(`Certificado não encontrado em: ${certificatePath}`);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Erro ao tentar ler certificado:', error);
-      if (process.env.NODE_ENV === 'production') {
-        throw error;
-      }
-    }
+    // Usar a função auxiliar para obter a configuração
+    const { getEfiConfig } = await import('../../lib/certificate-utils');
+    const efiConfig = getEfiConfig(isSandbox);
 
     const efipay = new EfiPay(efiConfig);
 

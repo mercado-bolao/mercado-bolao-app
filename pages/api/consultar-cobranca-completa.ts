@@ -1,7 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { prisma } from '../../lib/prisma';
 import { TxidUtils } from '../../lib/txid-utils';
-import EfiPay from 'sdk-node-apis-efi';
 import path from 'path';
 import fs from 'fs';
 
@@ -55,25 +54,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const efiClientId = process.env.EFI_CLIENT_ID;
       const efiClientSecret = process.env.EFI_CLIENT_SECRET;
-      const efiSandbox = process.env.EFI_SANDBOX;
+      const efiSandbox = process.env.EFI_SANDBOX || 'false';
+      const isSandbox = efiSandbox === 'true';
+      const EfiPay = require('sdk-node-apis-efi');
 
       if (!efiClientId || !efiClientSecret) {
         throw new Error('Credenciais EFI não configuradas');
       }
 
-      const isSandbox = efiSandbox === 'true';
-
-      let efiConfig: any = {
-        sandbox: isSandbox,
-        client_id: process.env.EFI_CLIENT_ID,
-        client_secret: process.env.EFI_CLIENT_SECRET
-      };
-
-      const certificatePath = path.resolve('./certs/certificado-efi.p12');
-      if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-        efiConfig.certificate = certificatePath;
-        efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-      }
+      // Usar a função auxiliar para obter a configuração
+      const { getEfiConfig } = await import('../../lib/certificate-utils');
+      const efiConfig = getEfiConfig(isSandbox);
 
       const efipay = new EfiPay(efiConfig);
 

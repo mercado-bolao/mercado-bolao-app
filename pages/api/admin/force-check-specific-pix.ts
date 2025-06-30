@@ -61,23 +61,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Verificar na EFI
     const efiSandbox = process.env.EFI_SANDBOX || 'false';
     const isSandbox = efiSandbox === 'true';
-
-    console.log('🔄 Verificando na EFI Pay...');
-    console.log('🌍 Ambiente:', isSandbox ? 'SANDBOX' : 'PRODUÇÃO');
-
     const EfiPay = require('sdk-node-apis-efi');
 
-    let efiConfig: any = {
-      sandbox: isSandbox,
-      client_id: process.env.EFI_CLIENT_ID,
-      client_secret: process.env.EFI_CLIENT_SECRET
-    };
-
-    const certificatePath = path.resolve('./certs/certificado-efi.p12');
-    if (fs.existsSync(certificatePath) && process.env.EFI_CERTIFICATE_PASSPHRASE) {
-      efiConfig.certificate = certificatePath;
-      efiConfig.passphrase = process.env.EFI_CERTIFICATE_PASSPHRASE;
-    }
+    // Usar a função auxiliar para obter a configuração
+    const { getEfiConfig } = await import('../../../lib/certificate-utils');
+    const efiConfig = getEfiConfig(isSandbox);
 
     const efipay = new EfiPay(efiConfig);
 

@@ -1,78 +1,49 @@
 import { NextApiRequest, NextApiResponse } from 'next';
+import { getEfiConfig } from '../../lib/certificate-utils';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+  const success: string[] = [];
+
   try {
-    console.log('🏥 Verificação de saúde EFI Pay...');
+    // Verificar variáveis de ambiente
+    if (!process.env.EFI_CLIENT_ID) errors.push('EFI_CLIENT_ID não configurado');
+    if (!process.env.EFI_CLIENT_SECRET) errors.push('EFI_CLIENT_SECRET não configurado');
+    if (!process.env.EFI_PIX_KEY) errors.push('EFI_PIX_KEY não configurado');
+    if (!process.env.EFI_CERTIFICATE_PASSPHRASE) errors.push('EFI_CERTIFICATE_PASSPHRASE não configurado');
 
-    const certificatePath = process.env.EFI_CERTIFICATE_PATH || './certs/certificado-efi.p12';
+    // Verificar ambiente
+    const efiSandbox = process.env.EFI_SANDBOX || 'false';
+    const isSandbox = efiSandbox === 'true';
+    success.push(`Ambiente: ${isSandbox ? 'Sandbox' : 'Produção'}`);
 
-    // Em produção, verificar se o certificado existe
-    let certificateExists = false;
+    // Tentar configurar EFI
     try {
-      const fs = require('fs');
-      certificateExists = fs.existsSync(certificatePath);
-    } catch (error) {
-      console.warn('Não foi possível verificar certificado:', error);
+      const EfiPay = require('sdk-node-apis-efi');
+      const efiConfig = getEfiConfig(isSandbox);
+      const efipay = new EfiPay(efiConfig);
+      success.push('SDK EFI inicializado com sucesso');
+    } catch (error: any) {
+      errors.push(`Erro ao inicializar SDK EFI: ${error.message}`);
     }
 
-    const config = {
-      EFI_SANDBOX: process.env.EFI_SANDBOX || 'false',
-      EFI_CLIENT_ID: !!process.env.EFI_CLIENT_ID,
-      EFI_CLIENT_SECRET: !!process.env.EFI_CLIENT_SECRET,
-      EFI_PIX_KEY: !!process.env.EFI_PIX_KEY,
-      EFI_CERTIFICATE_PASSPHRASE: !!process.env.EFI_CERTIFICATE_PASSPHRASE,
-      certificateExists: certificateExists
-    };
-
-    const isSandbox = config.EFI_SANDBOX === 'true';
-    const isProduction = !isSandbox && config.certificateExists && config.EFI_CERTIFICATE_PASSPHRASE;
-
-    let status = 'OK';
-    let warnings: string[] = [];
-    let errors: string[] = [];
-
-    // Verificações obrigatórias
-    if (!config.EFI_CLIENT_ID) errors.push('EFI_CLIENT_ID não configurado');
-    if (!config.EFI_CLIENT_SECRET) errors.push('EFI_CLIENT_SECRET não configurado');
-    if (!config.EFI_PIX_KEY) errors.push('EFI_PIX_KEY não configurado');
-
-    // Verificações para produção
-
-    if (!config.certificateExists) {
-      errors.push('Certificado não encontrado em ./certs/certificado-efi.p12');
-    }
-    if (!config.EFI_CERTIFICATE_PASSPHRASE) {
-      errors.push('EFI_CERTIFICATE_PASSPHRASE não configurado');
-    }
-
-
-    if (errors.length > 0) {
-      status = 'ERROR';
-    } else if (warnings.length > 0) {
-      status = 'WARNING';
-    }
-
-    return res.status(200).json({
-      status,
-      environment: isSandbox ? 'SANDBOX' : 'PRODUÇÃO',
-      ready: errors.length === 0,
-      config: {
-        sandbox: isSandbox,
-        hasCredentials: config.EFI_CLIENT_ID && config.EFI_CLIENT_SECRET,
-        hasPixKey: config.EFI_PIX_KEY,
-        hasCertificate: config.certificateExists,
-        hasPassphrase: config.EFI_CERTIFICATE_PASSPHRASE
-      },
+    // Retornar resultado
+    res.status(errors.length > 0 ? 500 : 200).json({
+      status: errors.length > 0 ? 'error' : 'ok',
       errors,
       warnings,
-      timestamp: new Date().toISOString()
+      success
     });
 
-  } catch (error) {
-    console.error('❌ Erro na verificação de saúde:', error);
-    return res.status(500).json({
-      status: 'ERROR',
-      error: error instanceof Error ? error.message : 'Erro desconhecido'
+  } catch (error: any) {
+    console.error('Erro no health check:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message,
+      errors: [error.message],
+      warnings,
+      success
     });
   }
 }
